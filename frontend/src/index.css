@@ -1,86 +1,183 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
 
-@layer base {
-  :root {
-    /* Brand Accent Colors */
-    --brand-saffron: 28 92% 52%;
-    --brand-saffron-dark: 24 95% 44%;
-    --brand-maroon: 348 65% 26%;
-    --brand-maroon-light: 348 55% 36%;
-    --brand-gold: 42 85% 55%;
-    --brand-ivory: 40 33% 98%;
-    --brand-charcoal: 220 20% 14%;
+@custom-variant dark (&:is(.dark *));
 
-    /* Standard Semantic Tokens - Light Mode (Warm Ivory Neutral Base) */
-    --background: 40 33% 98%;
-    --foreground: 220 20% 14%;
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-serif: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Outfit', 'Inter', sans-serif;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 20% 14%;
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 14%;
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
 
-    /* Primary: Sacred Saffron */
-    --primary: 28 92% 52%;
-    --primary-foreground: 0 0% 100%;
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
 
-    /* Secondary: Deep Regal Maroon */
-    --secondary: 348 65% 26%;
-    --secondary-foreground: 0 0% 100%;
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
 
-    /* Muted: Soft Sand/Ivory Gray */
-    --muted: 35 20% 92%;
-    --muted-foreground: 220 10% 42%;
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
 
-    /* Accent: Warm Temple Gold */
-    --accent: 42 85% 92%;
-    --accent-foreground: 348 65% 26%;
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
 
-    /* Destructive: Muted Terracotta Red */
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
 
-    /* Borders, Inputs, Rings */
-    --border: 35 20% 88%;
-    --input: 35 20% 88%;
-    --ring: 28 92% 52%;
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
 
-    --radius: 0.625rem;
+  /* Brand Signature Colors */
+  --color-brand-saffron: hsl(var(--brand-saffron));
+  --color-brand-saffron-dark: hsl(var(--brand-saffron-dark));
+  --color-brand-maroon: hsl(var(--brand-maroon));
+  --color-brand-maroon-light: hsl(var(--brand-maroon-light));
+  --color-brand-gold: hsl(var(--brand-gold));
+  --color-brand-ivory: hsl(var(--brand-ivory));
+  --color-brand-charcoal: hsl(var(--brand-charcoal));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
   }
-
-  .dark {
-    /* Semantic Tokens - Dark Mode (Deep Charcoal / Temple Evening) */
-    --background: 222 25% 10%;
-    --foreground: 40 25% 94%;
-
-    --card: 222 24% 13%;
-    --card-foreground: 40 25% 94%;
-
-    --popover: 222 24% 13%;
-    --popover-foreground: 40 25% 94%;
-
-    --primary: 28 92% 55%;
-    --primary-foreground: 222 25% 10%;
-
-    --secondary: 348 55% 42%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 222 18% 18%;
-    --muted-foreground: 220 12% 65%;
-
-    --accent: 42 75% 20%;
-    --accent-foreground: 42 85% 75%;
-
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 222 18% 22%;
-    --input: 222 18% 22%;
-    --ring: 28 92% 55%;
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
   }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
+  width: 100%;
+  @media (width >= 640px) {
+    max-width: 640px;
+    padding-inline: 1.5rem;
+  }
+  @media (width >= 768px) {
+    max-width: 768px;
+    padding-inline: 2rem;
+  }
+  @media (width >= 1024px) {
+    max-width: 1024px;
+    padding-inline: 2rem;
+  }
+  @media (width >= 1280px) {
+    max-width: 1280px;
+    padding-inline: 2rem;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+    padding-inline: 2rem;
+  }
+}
+
+:root {
+  /* ==========================================================================
+     PujaCircle Master Palette - Light Mode (Refined Vedic Heritage & Modern Luxury)
+     ========================================================================== */
+
+  /* Brand Signature Accent Tokens */
+  --brand-saffron: 24 95% 52%;         /* #F45E16 — Vibrant Sacred Saffron */
+  --brand-saffron-dark: 20 92% 44%;    /* #D8480A — Deep Sunset Terracotta (Hover State) */
+  --brand-maroon: 350 68% 28%;         /* #781729 — Regal Temple Burgundy / Kumkum */
+  --brand-maroon-light: 350 50% 40%;   /* #993347 — Warm Maroon Accent */
+  --brand-gold: 42 90% 50%;            /* #EBB014 — Polished Temple Brass / Gold */
+  --brand-ivory: 40 25% 99%;           /* #FCFCFA — Warm Porcelain Base */
+  --brand-charcoal: 224 25% 12%;        /* #171B24 — Deep Slate Obsidian Ink */
+
+  /* Surface & Semantic Tokens */
+  --background: 40 25% 99%;            /* Warm, inviting ultra-clean porcelain base */
+  --foreground: 224 25% 12%;            /* High-legibility modern slate ink */
+
+  --card: 0 0% 100%;                   /* Pure crisp white card surface */
+  --card-foreground: 224 25% 12%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 25% 12%;
+
+  /* Primary: Sacred Saffron — energetic, sacred, trustworthy */
+  --primary: 24 95% 52%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary: Regal Temple Burgundy — authority, culture, prestige */
+  --secondary: 350 68% 28%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Muted: Gentle Warm Sand */
+  --muted: 38 20% 95%;
+  --muted-foreground: 220 12% 46%;
+
+  /* Accent: Lustrous Champagne / Gold Tint */
+  --accent: 42 85% 94%;
+  --accent-foreground: 350 68% 28%;
+
+  /* Destructive: Refined Ruby Red */
+  --destructive: 0 75% 52%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Subtle Crisp Borders, Form Inputs & Focus Rings */
+  --border: 38 18% 89%;
+  --input: 38 18% 89%;
+  --ring: 24 95% 52%;
+
+  --radius: 0.75rem;
+}
+
+.dark {
+  /* ==========================================================================
+     PujaCircle Master Palette - Dark Mode (Temple Evening & Sacred Flame)
+     ========================================================================== */
+  --background: 225 24% 9%;            /* Deep Night Obsidian */
+  --foreground: 40 25% 96%;            /* Warm Ivory text */
+
+  --card: 225 22% 13%;                 /* Elevated Charcoal surface */
+  --card-foreground: 40 25% 96%;
+
+  --popover: 225 22% 13%;
+  --popover-foreground: 40 25% 96%;
+
+  --primary: 24 92% 55%;               /* Luminous Saffron */
+  --primary-foreground: 225 24% 9%;
+
+  --secondary: 350 55% 48%;            /* Vibrant Temple Ruby */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 225 18% 18%;
+  --muted-foreground: 220 12% 66%;
+
+  --accent: 42 60% 18%;                /* Warm Brass Night Glow */
+  --accent-foreground: 42 90% 78%;
+
+  --destructive: 0 65% 52%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 225 18% 20%;
+  --input: 225 18% 20%;
+  --ring: 24 92% 55%;
 }
 
 @layer base {
@@ -95,7 +192,7 @@
 
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+    font-family: var(--font-sans);
   }
 
   /* Focus styling for keyboard accessibility */
@@ -105,7 +202,7 @@
 
   /* Typography Defaults */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', 'Inter', sans-serif;
+    font-family: var(--font-serif);
     @apply font-semibold tracking-tight text-foreground;
   }
 
@@ -123,5 +220,26 @@
 
   p {
     @apply leading-relaxed text-muted-foreground;
+  }
+
+  /* Interactive Elements Pointer Cursor */
+  button,
+  [role="button"],
+  a,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  input[type="checkbox"],
+  input[type="radio"],
+  select {
+    cursor: pointer;
+  }
+
+  /* Disabled States */
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
   }
 }
