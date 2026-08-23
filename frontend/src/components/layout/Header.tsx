@@ -24,7 +24,10 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="container flex h-16 items-center justify-between">
         {/* Brand Logo */}
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-brand-maroon tracking-tight">
+        <Link
+          to={isAuthenticated && user?.role === 'USER' ? '/rituals' : '/'}
+          className="flex items-center gap-2 font-bold text-xl text-brand-maroon tracking-tight"
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <Sparkles className="h-5 w-5" />
           </div>

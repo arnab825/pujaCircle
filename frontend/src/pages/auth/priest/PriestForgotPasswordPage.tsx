@@ -1,46 +1,113 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { forgotPasswordSchema, ForgotPasswordInput } from '@/schemas/auth.schema';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Mail, ArrowRight, AlertCircle, Flame } from 'lucide-react';
+import { toast } from 'sonner';
 
-/*
-  PAGE: Priest Forgot Password (/auth/priest/forgot-password)
-  
-  ACCESS:
-  - Unauthenticated Purohits
-  
-  PURPOSE:
-  - Account recovery via EMAIL OTP (not phone).
-  
-  RECOVERY FLOW:
-  1. Priest enters registered Email address.
-  2. System sends 6-digit Email OTP (Mock OTP: 123456).
-  3. Upon verification, redirects to /auth/priest/reset-password.
-  
-  DATA SOURCE:
-  - Future: POST /api/v1/auth/priest/forgot-password
-*/
+/**
+ * PriestForgotPasswordPage
+ * Purohit Account recovery via Email OTP using React Hook Form & Zod.
+ */
 const PriestForgotPasswordPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
+  const onSubmit = (data: ForgotPasswordInput) => {
+    setError(null);
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.info(`Purohit recovery OTP sent to ${data.email}. Mock OTP: 123456`);
+      navigate('/auth/priest/reset-password');
+    }, 400);
+  };
+
+  const handleFillDemo = () => {
+    setValue('email', 'priest@example.demo', { shouldValidate: true });
+    setError(null);
+  };
+
   return (
-    <div className="container max-w-md py-12 space-y-6">
-      <div className="text-center space-y-1">
-        <h1 className="text-2xl font-bold font-serif text-foreground">Recover Purohit Account 🔑</h1>
-        <p className="text-xs text-muted-foreground">
-          Enter your registered email address to receive a secure password reset OTP.
-        </p>
-      </div>
+    <div className="container max-w-md py-12 px-4">
+      <Card className="shadow-md border-primary/20">
+        <CardHeader className="text-center space-y-1 pb-4">
+          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-1 shadow-sm">
+            <Flame className="h-5 w-5" />
+          </div>
+          <CardTitle className="text-2xl font-bold font-serif text-foreground">
+            Recover Purohit Account
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Enter your registered email to receive a password reset OTP.
+          </CardDescription>
+        </CardHeader>
 
-      <div className="p-6 border rounded-lg bg-card space-y-4">
-        {/* TODO: Email input field */}
-        {/* TODO: 'Send Recovery OTP' button */}
-        <div className="p-4 bg-muted/40 rounded border text-xs text-muted-foreground text-center">
-          [Priest Email Recovery Form Placeholder]
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-        <div className="text-center text-xs pt-2">
-          <Link to="/auth/priest/login" className="text-muted-foreground hover:text-primary">
-            ← Back to Purohit Sign In
-          </Link>
-        </div>
-      </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Registered Email Address</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="priest@example.demo"
+                  {...register('email')}
+                  className="pl-9 text-xs"
+                />
+              </div>
+              {errors.email && (
+                <p className="text-[11px] text-destructive">{errors.email.message}</p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleFillDemo}
+              className="text-[11px] text-primary hover:underline font-medium block text-right w-full"
+            >
+              Fill demo email (priest@example.demo)
+            </button>
+          </CardContent>
+
+          <CardFooter className="flex flex-col space-y-3 pt-2">
+            <Button type="submit" className="w-full text-xs font-medium gap-1.5" disabled={isLoading}>
+              {isLoading ? 'Sending OTP...' : 'Send Recovery OTP'}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+            <div className="text-center text-xs text-muted-foreground">
+              <Link to="/auth/priest/login" className="text-primary hover:underline">
+                ← Back to Priest Sign In
+              </Link>
+            </div>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
 };

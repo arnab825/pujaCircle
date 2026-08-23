@@ -64,10 +64,31 @@ export const appRouter = createBrowserRouter([
       </PublicRouteGuard>
     ),
     children: [
-      // Marketing Information Routes (Unauthenticated + USER)
-      { index: true, element: <HomePage /> },
-      { path: 'about', element: <AboutPage /> },
-      { path: 'contact', element: <ContactPage /> },
+      // Marketing Information Routes (Unauthenticated Visitors Only)
+      {
+        index: true,
+        element: (
+          <GuestOnlyRoute>
+            <HomePage />
+          </GuestOnlyRoute>
+        ),
+      },
+      {
+        path: 'about',
+        element: (
+          <GuestOnlyRoute>
+            <AboutPage />
+          </GuestOnlyRoute>
+        ),
+      },
+      {
+        path: 'contact',
+        element: (
+          <GuestOnlyRoute>
+            <ContactPage />
+          </GuestOnlyRoute>
+        ),
+      },
 
       // Legacy/Root auth aliases redirecting to user auth
       { path: 'login', element: <Navigate to="/auth/user/login" replace /> },

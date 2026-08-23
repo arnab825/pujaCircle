@@ -1,47 +1,73 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '@/store/auth.store';
+import { Sparkles } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/constants';
 
+/**
+ * Compact Marketing / Global Footer
+ * Sleek, minimal and non-intrusive.
+ */
 export const Footer: React.FC = () => {
+  const { user, isAuthenticated } = useAuthStore();
+  const isDevotee = isAuthenticated && user?.role === 'USER';
+
   return (
-    <footer className="border-t bg-muted/40 text-muted-foreground mt-auto">
-      <div className="container py-10 md:py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="space-y-3">
-            <h3 className="text-base font-bold text-foreground">{APP_CONFIG.APP_NAME}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {APP_CONFIG.TAGLINE}. Connecting devotees with verified Vedic scholars across Indian cities.
-            </p>
+    <footer className="border-t bg-card/60 backdrop-blur-sm text-muted-foreground mt-auto py-6">
+      <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+        {/* Brand & Tagline */}
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Sparkles className="h-3.5 w-3.5" />
           </div>
-          <div>
-            <h4 className="text-sm font-semibold text-foreground mb-3">Popular Rituals</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/rituals" className="hover:text-primary">Griha Pravesh</Link></li>
-              <li><Link to="/rituals" className="hover:text-primary">Satyanarayan Katha</Link></li>
-              <li><Link to="/rituals" className="hover:text-primary">Maha Rudrabhishek</Link></li>
-              <li><Link to="/rituals" className="hover:text-primary">Ganapati Havan</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-foreground mb-3">Are you a Priest?</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/auth/priest/register" className="hover:text-primary font-medium text-primary">Join as a Purohit</Link></li>
-              <li><Link to="/auth/priest/login" className="hover:text-primary">Purohit Portal Sign In</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-sm font-semibold text-foreground mb-3">Support & Info</h4>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/contact" className="hover:text-primary">Contact Us</Link></li>
-              <li><Link to="/about" className="hover:text-primary">About Platform</Link></li>
-              <li className="text-xs text-muted-foreground pt-2">Direct Dakshina paid to Purohit in cash.</li>
-            </ul>
-          </div>
+          <span className="font-semibold text-foreground">
+            Puja<span className="text-primary">Circle</span>
+          </span>
+          <span className="hidden md:inline text-muted-foreground/60">•</span>
+          <span className="hidden md:inline text-muted-foreground text-[11px]">
+            {APP_CONFIG.TAGLINE}
+          </span>
         </div>
-        <div className="border-t mt-8 pt-6 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} {APP_CONFIG.APP_NAME}. All rights reserved. Built for India.
+
+        {/* Minimal Navigation Links */}
+        <div className="flex items-center gap-4 text-xs">
+          {isDevotee ? (
+            <>
+              <Link to="/rituals" className="hover:text-primary transition-colors">
+                Rituals
+              </Link>
+              <Link to="/priests" className="hover:text-primary transition-colors">
+                Purohits
+              </Link>
+              <Link to="/bookings" className="hover:text-primary transition-colors">
+                Bookings
+              </Link>
+              <Link to="/profile" className="hover:text-primary transition-colors">
+                Profile
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/about" className="hover:text-primary transition-colors">
+                About Us
+              </Link>
+              <Link to="/contact" className="hover:text-primary transition-colors">
+                Contact
+              </Link>
+              <Link to="/auth/priest/login" className="hover:text-primary transition-colors">
+                Purohit Portal
+              </Link>
+            </>
+          )}
+        </div>
+
+        {/* Copyright */}
+        <div className="text-[11px] text-muted-foreground/80">
+          © {new Date().getFullYear()} {APP_CONFIG.APP_NAME}. Direct Cash Dakshina.
         </div>
       </div>
     </footer>
   );
 };
+
+export default Footer;
