@@ -1,52 +1,43 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Plus } from 'lucide-react';
 
+/*
+  PAGE: Priest Availability & Slot Management (/priest/availability)
+  
+  ACCESS:
+  - PRIEST role only
+  
+  PURPOSE:
+  - Manage daily calendar time slots for muhurat rituals (e.g. 07:30 - 10:30, 11:00 - 14:00).
+  - Mark slots as AVAILABLE, BOOKED, or BLOCKED.
+  
+  FUTURE CONTENT:
+  - Date picker / weekly view.
+  - Time slot creation dialog (Start Time, End Time).
+  - Slot status toggle (Available vs Blocked for personal travel/temple duties).
+  
+  DATA SOURCE:
+  - Currently: mockSlots from centralized mock data (@/mocks/db)
+  - Future: GET /api/v1/priest/slots and POST /api/v1/priest/slots
+*/
 const PriestAvailabilityPage: React.FC = () => {
   return (
-    <div className="container max-w-3xl py-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Muhurat Slots & Availability</h1>
-          <p className="text-muted-foreground mt-1">Set the dates and time windows you are available for rituals.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Schedule & Slot Availability 📅</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Configure your daily muhurat timings and manage blocked dates.
+          </p>
         </div>
-        <Button size="sm" className="gap-1">
-          <Plus className="h-4 w-4" /> Add Slot
-        </Button>
+        <Button size="sm">+ Add Time Slot</Button>
       </div>
 
-      <div className="space-y-3">
-        <Card>
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="font-semibold text-sm">2026-08-25</p>
-              <p className="text-xs text-muted-foreground">07:30 AM - 10:30 AM (Auspicious Morning)</p>
-            </div>
-            <Badge variant="default">AVAILABLE</Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="font-semibold text-sm">2026-08-25</p>
-              <p className="text-xs text-muted-foreground">11:00 AM - 02:00 PM (Midday)</p>
-            </div>
-            <Badge variant="default">AVAILABLE</Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="font-semibold text-sm">2026-08-26</p>
-              <p className="text-xs text-muted-foreground">08:00 AM - 11:00 AM</p>
-            </div>
-            <Badge variant="secondary">BOOKED</Badge>
-          </CardContent>
-        </Card>
+      {/* TODO: Calendar / Slot Grid showing Available, Booked, and Blocked slots */}
+      <div className="p-8 border rounded-lg bg-card text-center space-y-3">
+        <p className="text-xs text-muted-foreground">
+          [Priest Availability Calendar and Slot Management Grid Placeholder]
+        </p>
       </div>
     </div>
   );

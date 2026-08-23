@@ -10,11 +10,11 @@ export const bookingApi = {
     return mockApi.mockGetBookings(userId);
   },
 
-  getBookingById: async (id: string): Promise<Booking> => {
+  getBookingById: async (id: string): Promise<Booking | null> => {
     return mockApi.mockGetBookingById(id);
   },
 
-  cancelBooking: async (data: CancelBookingRequest): Promise<Booking> => {
+  cancelBooking: async (data: CancelBookingRequest | { bookingId: string; reason: string }): Promise<Booking> => {
     return mockApi.mockCancelBooking(data.bookingId, data.reason);
   },
 };

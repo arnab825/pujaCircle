@@ -1,24 +1,46 @@
-import * as mockApi from '@/mocks/mock-api';
-import { RegisterUserRequest, AuthResponse, VerifyOtpRequest } from '@/types/auth.types';
+import {
+  mockLogin,
+  mockLogout,
+  mockSendPhoneOtp,
+  mockVerifyPhoneOtp,
+  mockSendEmailOtp,
+  mockVerifyEmailOtp,
+} from '@/mocks/mock-api';
+import {
+  LoginCredentials,
+  AuthResponse,
+  PhoneOtpRequest,
+  VerifyPhoneOtpRequest,
+  EmailOtpRequest,
+  VerifyEmailOtpRequest,
+} from '@/types/auth.types';
 
 /**
- * Authentication API Service
- * Delegated to Mock API in Phase 1 scaffolding.
+ * Authentication API (Frontend Layer)
+ * Connects directly to mock API for local development.
  */
 export const authApi = {
-  sendOtp: async (phoneNumber: string) => {
-    return mockApi.mockLogin(phoneNumber);
+  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
+    return mockLogin(credentials);
   },
 
-  verifyOtp: async (data: VerifyOtpRequest): Promise<AuthResponse> => {
-    return mockApi.mockVerifyUserOtp(data.phoneNumber, data.otp);
+  logout: async (): Promise<{ success: boolean; message: string }> => {
+    return mockLogout();
   },
 
-  register: async (data: RegisterUserRequest): Promise<AuthResponse> => {
-    return mockApi.mockRegisterUser(data);
+  sendPhoneOtp: async (data: PhoneOtpRequest) => {
+    return mockSendPhoneOtp(data);
   },
 
-  logout: async () => {
-    return mockApi.mockLogout();
+  verifyPhoneOtp: async (data: VerifyPhoneOtpRequest) => {
+    return mockVerifyPhoneOtp(data);
+  },
+
+  sendEmailOtp: async (data: EmailOtpRequest) => {
+    return mockSendEmailOtp(data);
+  },
+
+  verifyEmailOtp: async (data: VerifyEmailOtpRequest) => {
+    return mockVerifyEmailOtp(data);
   },
 };

@@ -1,10 +1,9 @@
-import { config } from '@/lib/config';
-
 /**
- * Simulates real-world network latency.
- * Defaults to config.mockDelayMs (350ms) to ensure smooth development while testing loading states.
+ * Simple mock delay helper for frontend development.
+ * Simulates small network response time (~300ms - 500ms).
  */
-export const delay = (ms?: number): Promise<void> => {
-  const duration = ms !== undefined ? ms : config.mockDelayMs;
-  return new Promise((resolve) => setTimeout(resolve, duration));
+export const delay = (ms: number = 400): Promise<void> => {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 };

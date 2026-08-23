@@ -1,68 +1,44 @@
-# Complete Application Flow Diagrams - PujaCircle 🕉️
+# Application Flow Diagrams - PujaCircle 🕉️
 
-## 1. Visitor & Devotee Booking Journey
+## 1. Unified Admin Management Lifecycle Flow
 
 ```mermaid
 graph TD
-    Start([Visitor lands on Homepage]) --> Discovery[Browse Priests / Rituals]
-    Discovery --> Filters[Filter by City, Language, or Puja Type]
-    Filters --> PriestProfile[View Priest Profile & Credentials]
-    PriestProfile --> SelectSlot[Select Available Muhurat Slot]
+    Admin([Platform Administrator]) --> AdminNav["/admin/dashboard"]
     
-    SelectSlot --> CheckAuth{Is Devotee Signed In?}
-    CheckAuth -- No --> AuthModal[Open Auth Modal -> Enter Indian Phone + OTP]
-    AuthModal --> Verified[Phone Verified & Session Initialized]
-    Verified --> AddressCheck
-    CheckAuth -- Yes --> AddressCheck{Has Saved Address?}
+    AdminNav --> PriestMgmt["Manage Priests (/admin/priests)"]
+    AdminNav --> UserMgmt["Manage Devotees (/admin/users)"]
     
-    AddressCheck -- No --> AddressModal[Open Address Modal -> Enter PIN & Venue Details]
-    AddressModal --> ConfirmModal[Open Booking Confirmation Modal]
-    AddressCheck -- Yes --> ConfirmModal
+    PriestMgmt --> PAction{Priest Action}
+    PAction -- Approve --> P_Active["Status: APPROVED (Active)"]
+    PAction -- Reject --> P_Rejected["Status: REJECTED"]
+    PAction -- Ban --> P_Banned["Status: BANNED (Access Revoked)"]
+    PAction -- Unban --> P_Active
+    PAction -- Delete --> P_Deleted["Permanently Removed"]
     
-    ConfirmModal --> Review[Review Date, Muhurat Slot, Address & Offline Dakshina]
-    Review --> ClickConfirm[Confirm Puja Booking]
-    ClickConfirm --> Booked[Slot status -> BOOKED, Booking status -> CONFIRMED]
-    Booked --> BookingDetails[Redirect to Booking Details Page with Priest Contact]
+    UserMgmt --> UAction{User Action}
+    UAction -- Suspend --> U_Suspended["Status: SUSPENDED"]
+    UAction -- Reactivate --> U_Active["Status: ACTIVE"]
 ```
 
 ---
 
-## 2. Priest Onboarding & Admin Verification Flow
+## 2. Separate Authentication Architecture
 
 ```mermaid
 graph TD
-    PStart([Priest visits Priest Portal]) --> PRegister[Fills Registration: Experience, Languages, Lineage]
-    PRegister --> POTP[Verifies Mobile via 6-digit OTP]
-    POTP --> PPending[Account Status -> PENDING]
-    
-    PPending --> AdminQueue[Appears in Admin Verification Queue]
-    AdminQueue --> AdminReview[Admin inspects credentials & Vedic background]
-    
-    AdminReview --> AdminDecision{Admin Decision}
-    AdminDecision -- Reject --> PRejected[Status -> REJECTED (Notification sent)]
-    AdminDecision -- Approve --> PApproved[Status -> APPROVED]
-    
-    PApproved --> PDashboard[Priest Dashboard Activated]
-    PDashboard --> AddSlots[Priest creates Muhurat Availability Slots]
-    AddSlots --> PublicVisible[Priest & Slots become visible in public search]
-```
+    subgraph Public Website
+        Visitor([Visitor]) --> PublicNav[Header: Sign In / Create Account]
+        PublicNav --> UserAuth["/auth/user/login & /auth/user/register"]
+        Visitor --> FooterLink["Footer: Join as a Purohit"]
+        FooterLink --> PriestAuth["/auth/priest/register & /auth/priest/login"]
+    end
 
----
+    subgraph Internal Admin URL
+        AdminUrl["Direct URL: /auth/admin/login"] --> AdminAuth["Admin Login (Email + Password)"]
+    end
 
-## 3. Devotee Profile, Address & Cancellation Management
-
-```mermaid
-graph TD
-    UserStart([Devotee logs into Dashboard]) --> Dashboard[User Dashboard]
-    
-    Dashboard --> Tab1[Addresses Management]
-    Tab1 --> AddAddr[Add New Address / Auto-detect PIN]
-    Tab1 --> SetDef[Set Address as Default]
-    Tab1 --> DelAddr[Delete Unused Address]
-    
-    Dashboard --> Tab2[Bookings History]
-    Tab2 --> ViewDetails[View Booking Details & Venue]
-    ViewDetails --> CancelBooking[Cancel Scheduled Booking]
-    CancelBooking --> ReasonModal[Submit Cancellation Reason]
-    ReasonModal --> ReleaseSlot[Booking marked CANCELLED -> Slot returned to AVAILABLE]
+    UserAuth --> UserDash["Customer Website (/)"]
+    PriestAuth --> PriestDash["Priest Workspace (/priest/dashboard)"]
+    AdminAuth --> AdminDash["Admin Workspace (/admin/dashboard)"]
 ```

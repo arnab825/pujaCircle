@@ -63,10 +63,14 @@ export const AddressModal: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
     if (cleaned.length === 6) {
       try {
         const lookup = await addressApi.lookupPincode(cleaned);
-        setCity(lookup.city);
-        setDistrict(lookup.district);
-        setState(lookup.state);
-        toast.info(`Auto-detected: ${lookup.city}, ${lookup.state}`);
+        if (lookup.locations.length > 0) {
+          const loc = lookup.locations[0];
+          setCity(loc.city);
+          setDistrict(loc.district);
+          setState(loc.state);
+          setLocality(loc.locality);
+          toast.info(`Auto-detected: ${loc.city}, ${loc.state}`);
+        }
       } catch {
         // Continue
       }

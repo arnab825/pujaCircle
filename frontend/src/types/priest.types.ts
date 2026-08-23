@@ -1,4 +1,4 @@
-export type PriestApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type PriestApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BANNED';
 export type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED';
 
 export interface Priest {
@@ -20,6 +20,7 @@ export interface Priest {
   rating?: number;
   reviewCount?: number;
   dakshinaSuggested?: number;
+  statusReason?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -64,4 +65,5 @@ export interface PriestFilterParams {
   language?: string;
   specialization?: string;
   searchQuery?: string;
+  status?: PriestApprovalStatus | 'ALL';
 }

@@ -12,7 +12,7 @@ const UserDashboardPage: React.FC = () => {
     <div className="container py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Namaste, {user?.fullName || 'Devotee'}</h1>
+          <h1 className="text-3xl font-bold">Namaste, {user?.name || 'Devotee'}</h1>
           <p className="text-muted-foreground mt-1">Manage your rituals, addresses, and priest appointments.</p>
         </div>
         <Link to="/priests">

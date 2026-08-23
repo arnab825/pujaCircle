@@ -1,43 +1,86 @@
 import { create } from 'zustand';
-import { AuthUser } from '@/types/auth.types';
+import { AuthUser, LoginCredentials } from '@/types/auth.types';
+import { authApi } from '@/api/auth.api';
 
-/**
- * Auth Store
- * Responsibility: Manages client-side session state (current user, auth status, modal visibility).
- * Note: Avoid putting entire backend collections here; keeps session & UI modal state.
- */
+const STORAGE_KEY = 'pujacircle-mock-auth';
+
+// Helper to read initial saved user from localStorage
+function getSavedUser(): AuthUser | null {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  isAuthModalOpen: boolean;
-  authModalView: 'LOGIN' | 'REGISTER' | 'VERIFY_OTP';
-  pendingPhoneNumber: string | null;
+  isLoading: boolean;
+  error: string | null;
 
-  // Actions
-  setUser: (user: AuthUser | null) => void;
-  openAuthModal: (view?: 'LOGIN' | 'REGISTER' | 'VERIFY_OTP') => void;
-  closeAuthModal: () => void;
-  setPendingPhoneNumber: (phone: string | null) => void;
+  // Simple actions
+  login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
+  setUser: (user: AuthUser | null) => void;
+  clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: {
-    id: 'usr_mock_1',
-    fullName: 'Aditi Sharma',
-    phoneNumber: '9876543210',
-    role: 'USER',
-    isPhoneVerified: true,
-    createdAt: new Date().toISOString(),
-  },
-  isAuthenticated: true,
-  isAuthModalOpen: false,
-  authModalView: 'LOGIN',
-  pendingPhoneNumber: null,
+const initialUser = getSavedUser();
 
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
-  openAuthModal: (view = 'LOGIN') => set({ isAuthModalOpen: true, authModalView: view }),
-  closeAuthModal: () => set({ isAuthModalOpen: false, pendingPhoneNumber: null }),
-  setPendingPhoneNumber: (phoneNumber) => set({ pendingPhoneNumber: phoneNumber }),
-  logout: () => set({ user: null, isAuthenticated: false }),
+export const useAuthStore = create<AuthState>((set) => ({
+  user: initialUser,
+  isAuthenticated: initialUser !== null,
+  isLoading: false,
+  error: null,
+
+  login: async (credentials: LoginCredentials) => {
+    set({ isLoading: true, error: null });
+
+    try {
+      const response = await authApi.login(credentials);
+
+      if (response.success && response.data?.user) {
+        const user = response.data.user;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+        } catch {
+          // Continue if localStorage is unavailable
+        }
+        set({ user, isAuthenticated: true, isLoading: false, error: null });
+        return true;
+      } else {
+        set({ error: response.message, isLoading: false });
+        return false;
+      }
+    } catch {
+      set({ error: 'An error occurred during login. Please try again.', isLoading: false });
+      return false;
+    }
+  },
+
+  logout: () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Continue
+    }
+    set({ user: null, isAuthenticated: false, error: null });
+  },
+
+  setUser: (user: AuthUser | null) => {
+    try {
+      if (user) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // Continue
+    }
+    set({ user, isAuthenticated: user !== null });
+  },
+
+  clearError: () => set({ error: null }),
 }));

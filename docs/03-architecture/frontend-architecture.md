@@ -1,56 +1,39 @@
-# Frontend Architecture Specification - PujaCircle
+# Frontend Architecture Specification - PujaCircle 🕉️
 
-## 1. Directory Organization
+## 1. Directory Organization & Clean Module Boundaries
 
 ```
 frontend/src/
-├── api/          # API Abstraction Services (auth, user, address, priest, booking)
-├── assets/       # Static SVGs and icons
-├── components/   # UI components grouped by domain and primitives (ui, layout, auth, address, priest, booking)
-├── hooks/        # Reusable React hooks
-├── lib/          # Utilities (cn, constants, config)
-├── mocks/        # Mock DB, Mock APIs, artificial latency simulator
-├── pages/        # Route page skeletons (public, auth, user, priest, admin)
-├── routes/       # React Router configuration (app-router.tsx)
-├── schemas/      # Zod validation schemas
-├── store/        # Zustand client-state stores (auth, address, booking)
-├── types/        # TypeScript domain models and interfaces
-├── App.tsx       # Root wrapper with Router and global modals
-├── index.css     # CSS variable tokens and global resets
-└── main.tsx      # Application entrypoint
+├── api/          # auth.api, user.api, address.api, priest.api, booking.api, admin.api
+├── components/
+│   ├── layout/   # PublicLayout.tsx, PriestLayout.tsx, AdminLayout.tsx, Header.tsx, Footer.tsx, PriestSidebar.tsx
+│   ├── common/   # ProtectedRoute.tsx, PublicRouteGuard.tsx, GuestOnlyRoute.tsx, LoadingSpinner.tsx
+│   ├── ui/       # shadcn/ui primitives
+│   └── ...       # Domain components
+├── mocks/        # db.ts (Single centralized mock database), delay.ts, mock-api.ts, test-mock-api.ts
+├── pages/
+│   ├── public/   # HomePage, AboutPage, ContactPage, RitualsPage, PriestListingPage, PriestDetailsPage
+│   ├── auth/
+│   │   ├── user/   # UserLoginPage, UserRegisterPage, UserForgotPasswordPage, UserResetPasswordPage, UserVerifyPhonePage, UserVerifyEmailPage
+│   │   ├── priest/ # PriestLoginPage, PriestRegisterPage, PriestForgotPasswordPage, PriestResetPasswordPage, PriestVerifyPhonePage, PriestVerifyEmailPage
+│   │   └── admin/  # AdminLoginPage (Private / Hidden)
+│   ├── user/     # ProfilePage, AddressesPage, BookingsPage, BookingDetailsPage
+│   ├── priest/   # PriestDashboardPage, PriestProfilePage, PriestAvailabilityPage, PriestBookingsPage
+│   └── admin/    # AdminDashboardPage, AdminPriestsPage, AdminPriestDetailsPage, AdminUsersPage
+├── routes/       # app-router.tsx
+├── store/        # auth.store.ts, address.store.ts, booking.store.ts
+└── types/        # auth.types.ts, user.types.ts, address.types.ts, priest.types.ts, booking.types.ts
 ```
 
 ---
 
-## 2. API Decoupling Pattern
+## 2. Skeleton & Single Mock Data Source Model
 
-React components must never import `mocks/db.ts` or instantiate direct Axios calls inside presentation components.
-
-```
-[React Component] ──> [src/api/*.api.ts] ──> [src/mocks/mock-api.ts] ──> [src/mocks/db.ts]
-```
-
-When switching to backend:
-```
-[React Component] ──> [src/api/*.api.ts] ──> [Axios Client] ──> [Express /api/v1/*]
-```
-
----
-
-## 3. Form Validation Architecture
-
-Form workflows in PujaCircle strictly utilize:
-- **React Hook Form**: For performance and un-rendered state management.
-- **Zod**: For TypeScript-first schema validation.
-- **`@hookform/resolvers/zod`**: To connect Zod schemas directly into React Hook Form.
-- **`<Form>`, `<FormField>`, `<FormControl>`, `<FormMessage>`**: shadcn components for consistent accessible error messages.
-
----
-
-## 4. Zustand State Boundaries
-
-Zustand stores are intentionally scoped:
-- **`auth.store.ts`**: Holds `user`, `isAuthenticated`, and auth modal visibility flags.
-- **`address.store.ts`**: Holds `selectedAddressId`, `isAddressModalOpen`, and address being edited.
-- **`booking.store.ts`**: Holds transient draft booking parameters (`priestId`, `slotId`, `bookingDate`) and booking modal states.
-- **Rule**: Avoid dumping entire collections into Zustand. Server collections (priest list, booking history) are fetched by feature hooks or components.
+- **RAFCE-style Skeletons**: Every page is structured as a clear React functional component with documented placeholders for future features.
+- **Single Source of Truth (`@/mocks/db.ts`)**: All mock records (users, priests, rituals, addresses, slots, bookings, PIN codes, dashboard stats) reside in `@/mocks/db.ts`. No duplicate mock data exists inside page files.
+- **Development Transition**:
+  ```
+  Page Skeleton -> Mock API Service -> Centralized Mock DB (@/mocks/db.ts)
+                          ↓ (Future Backend Integration)
+  Page Component -> API Service -> Express / Node Backend -> Database
+  ```

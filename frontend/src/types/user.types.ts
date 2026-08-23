@@ -1,21 +1,23 @@
 import { Role } from './auth.types';
 
+export type UserStatus = 'ACTIVE' | 'SUSPENDED';
+
 export interface UserProfile {
   id: string;
-  fullName: string;
+  name: string;
   phoneNumber: string;
   email?: string;
   role: Role;
-  isPhoneVerified: boolean;
-  profileImageUrl?: string;
-  preferredLanguage?: string;
-  createdAt: string;
-  updatedAt?: string;
+  status?: UserStatus;
+  primaryCity?: string;
+  addressSummary?: string;
+  bookingCount?: number;
+  createdAt?: string;
 }
 
 export interface UpdateUserProfileRequest {
-  fullName?: string;
+  name?: string;
   email?: string;
-  preferredLanguage?: string;
-  profileImageUrl?: string;
+  phoneNumber?: string;
+  status?: UserStatus;
 }

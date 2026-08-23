@@ -1,31 +1,34 @@
-# Address API Specifications - PujaCircle
+# Address API & PIN Code Detection Specifications - PujaCircle
 
-## 1. List Addresses
+## 1. PIN Code Location Lookup
 - **Method**: `GET`
-- **Route**: `/api/v1/addresses`
-- **Auth**: Required (`USER`)
-- **Success Response (200 OK)**:
+- **Future Production URL**: `https://api.postalpincode.in/pincode/[PINCODE]`
+- **Frontend Mock Function**: `addressApi.lookupPincode(pincode)`
+- **Behavior**:
+  - Accepts 6-digit Indian postal PIN code.
+  - Returns array of matching post office locations with locality, city, district, state, and country.
+  - If multiple post offices match (e.g. `700019` in Kolkata), the frontend displays a dropdown for user selection before auto-populating address fields.
+
+- **Example Response Format**:
 ```json
 {
-  "success": true,
-  "data": [
+  "pincode": "700019",
+  "locations": [
     {
-      "id": "addr_mock_1",
-      "userId": "usr_mock_1",
-      "label": "HOME",
-      "recipientName": "Aditi Sharma",
-      "phoneNumber": "9876543210",
-      "houseBuilding": "Flat 802, Orchid Residency",
-      "street": "Linking Road",
-      "locality": "Bandra West",
-      "landmark": "Opposite National College",
-      "pincode": "400050",
-      "city": "Mumbai",
-      "district": "Mumbai Suburban",
-      "state": "Maharashtra",
-      "country": "India",
-      "isDefault": true,
-      "createdAt": "2026-01-15T12:00:00.000Z"
+      "postOffice": "Ballygunge Post Office",
+      "locality": "Ballygunge",
+      "city": "Kolkata",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "country": "India"
+    },
+    {
+      "postOffice": "Gariahat Road Post Office",
+      "locality": "Gariahat",
+      "city": "Kolkata",
+      "district": "Kolkata",
+      "state": "West Bengal",
+      "country": "India"
     }
   ]
 }
@@ -33,54 +36,24 @@
 
 ---
 
-## 2. Create Address
+## 2. Address Creation
 - **Method**: `POST`
 - **Route**: `/api/v1/addresses`
-- **Auth**: Required (`USER`)
 - **Request Body**:
 ```json
 {
   "label": "HOME",
   "recipientName": "Aditi Sharma",
-  "phoneNumber": "9876543210",
-  "houseBuilding": "Flat 802, Orchid Residency",
-  "street": "Linking Road",
-  "locality": "Bandra West",
-  "landmark": "Opposite National College",
-  "pincode": "400050",
-  "city": "Mumbai",
-  "district": "Mumbai Suburban",
-  "state": "Maharashtra",
+  "phoneNumber": "+919876543210",
+  "houseBuilding": "Flat 402, Ganga Tower",
+  "street": "Rashbehari Avenue",
+  "locality": "Ballygunge",
+  "landmark": "Near Lake Mall",
+  "pincode": "700019",
+  "city": "Kolkata",
+  "district": "Kolkata",
+  "state": "West Bengal",
   "country": "India",
   "isDefault": true
 }
 ```
-- **Success Response (201 Created)**:
-```json
-{
-  "success": true,
-  "message": "Address created successfully",
-  "data": { "id": "addr_mock_1", ... }
-}
-```
-
----
-
-## 3. Update Address
-- **Method**: `PUT`
-- **Route**: `/api/v1/addresses/:id`
-- **Auth**: Required (`USER`)
-
----
-
-## 4. Delete Address
-- **Method**: `DELETE`
-- **Route**: `/api/v1/addresses/:id`
-- **Auth**: Required (`USER`)
-
----
-
-## 5. Set Default Address
-- **Method**: `PATCH`
-- **Route**: `/api/v1/addresses/:id/default`
-- **Auth**: Required (`USER`)

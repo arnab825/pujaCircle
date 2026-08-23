@@ -2,6 +2,7 @@ import * as mockApi from '@/mocks/mock-api';
 import { Priest, PriestFilterParams, PriestSlot, Ritual, PriestRegistrationRequest } from '@/types/priest.types';
 
 export const priestApi = {
+  // Public Approved Priests
   getPriests: async (params?: PriestFilterParams): Promise<Priest[]> => {
     return mockApi.mockGetPriests(params);
   },
@@ -26,11 +27,11 @@ export const priestApi = {
     return mockApi.mockRegisterPriest(data);
   },
 
-  verifyPriestOtp: async (phoneNumber: string, otp: string) => {
-    return mockApi.mockVerifyPriestOtp(phoneNumber, otp);
+  // Admin Management APIs
+  getAllPriests: async (params?: PriestFilterParams): Promise<Priest[]> => {
+    return mockApi.mockGetAllPriests(params);
   },
 
-  // Admin approval stubs
   getPendingPriests: async (): Promise<Priest[]> => {
     return mockApi.mockGetPendingPriests();
   },
@@ -39,7 +40,20 @@ export const priestApi = {
     return mockApi.mockApprovePriest(priestId);
   },
 
-  rejectPriest: async (priestId: string): Promise<Priest> => {
-    return mockApi.mockRejectPriest(priestId);
+  rejectPriest: async (priestId: string, reason?: string): Promise<Priest> => {
+    return mockApi.mockRejectPriest(priestId, reason);
+  },
+
+
+  banPriest: async (priestId: string, reason?: string): Promise<Priest> => {
+    return mockApi.mockBanPriest(priestId, reason);
+  },
+
+  reactivatePriest: async (priestId: string): Promise<Priest> => {
+    return mockApi.mockReactivatePriest(priestId);
+  },
+
+  deletePriest: async (priestId: string): Promise<{ success: boolean; message: string }> => {
+    return mockApi.mockDeletePriest(priestId);
   },
 };

@@ -1,62 +1,59 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, UserCheck } from 'lucide-react';
 
+/*
+  PAGE: Priest Dashboard (/priest/dashboard)
+  
+  ACCESS:
+  - PRIEST role only (Strictly isolated in PriestLayout with PriestSidebar)
+  
+  PURPOSE:
+  - Gives a Vedic Purohit an operational overview of their daily ritual schedule and upcoming bookings.
+  
+  FUTURE CONTENT:
+  - 4 Stat Cards:
+    1. Today's Bookings (count)
+    2. Upcoming Bookings (count)
+    3. Completed Pujas (count)
+    4. Pending Requests (count)
+  - Weekly Booking Schedule Chart (Bar chart: Mon-Sun distribution).
+  - Upcoming Ceremonies List (Next 3 bookings with Devotee name, Ritual, Muhurat time, Locality).
+  - Quick Actions: "Manage Availability Slots", "View All Bookings", "Update Profile".
+  
+  DATA SOURCE:
+  - Currently: mockDashboardStats.priest & mockBookings from centralized mock data (@/mocks/db)
+  - Future: GET /api/v1/priest/dashboard-stats
+  
+  IMPORTANT:
+  - Do NOT show consumer/devotee navigation.
+  - Priest navigates via dedicated PriestSidebar.
+*/
 const PriestDashboardPage: React.FC = () => {
   return (
-    <div className="container py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Purohit Portal Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Manage ritual appointments, schedules, and your verified profile.</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Priest Dashboard 🪔</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Welcome to your Purohit Workspace. Here is your ritual schedule overview.
+          </p>
+        </div>
+        <Link to="/priest/availability">
+          <Button size="sm">Manage Slots</Button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Appointments</CardTitle>
-              <Calendar className="h-5 w-5 text-primary" />
-            </div>
-            <CardDescription>Scheduled pujas from devotees</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/priest/bookings">
-              <Button variant="outline" className="w-full">View Appointments</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Availability & Slots</CardTitle>
-              <Clock className="h-5 w-5 text-primary" />
-            </div>
-            <CardDescription>Configure muhurat slots for devotees</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/priest/availability">
-              <Button variant="outline" className="w-full">Manage Slots</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Purohit Profile</CardTitle>
-              <UserCheck className="h-5 w-5 text-primary" />
-            </div>
-            <CardDescription>Update bio, languages & specializations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/priest/profile">
-              <Button variant="outline" className="w-full">Edit Profile</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {/* TODO: 4 Stat Cards (Today's Bookings, Upcoming, Completed, Pending) */}
+      {/* TODO: Weekly booking bar chart */}
+      {/* TODO: Upcoming ceremonies agenda list */}
+      <div className="p-8 border rounded-lg bg-card text-center space-y-3">
+        <p className="text-sm font-medium text-foreground">
+          [Priest Performance & Schedule Dashboard Skeleton]
+        </p>
+        <p className="text-xs text-muted-foreground max-w-md mx-auto">
+          Future implementation will display Today's Bookings, Upcoming Schedule, Weekly Booking Trends, and Quick Actions.
+        </p>
       </div>
     </div>
   );

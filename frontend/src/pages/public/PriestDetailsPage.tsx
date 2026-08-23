@@ -1,165 +1,56 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { priestApi } from '@/api/priest.api';
-import { Priest, PriestSlot } from '@/types/priest.types';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { useBookingStore } from '@/store/booking.store';
-import { useAuthStore } from '@/store/auth.store';
-import { BookingConfirmModal } from '@/components/booking/BookingConfirmModal';
-import { toast } from 'sonner';
-import { Star, MapPin, Languages, Award, Clock } from 'lucide-react';
 
+/*
+  PAGE: Priest Profile & Booking Schedule (/priests/:id)
+  
+  ACCESS:
+  - Devotees (USER role) & Visitors
+  
+  PURPOSE:
+  - Detailed profile of a Vedic Purohit: Gurukul lineage, Vedic background, languages, service localities.
+  - Interactive calendar showing available muhurat slots (mockSlots).
+  - Booking initiation for a selected ritual, slot, and devotee address.
+  
+  FUTURE CONTENT:
+  - Priest biographical details, credentials, ratings, and customer reviews.
+  - Ritual selection dropdown.
+  - Date & Muhurat slot picker.
+  - Address selection dropdown (for logged-in devotees with registered addresses).
+  - Booking confirmation button triggering offline cash dakshina appointment creation.
+  
+  DATA SOURCE:
+  - Currently: mockPriests, mockRituals, mockSlots from centralized mock data (@/mocks/db)
+  - Future: GET /api/v1/priests/:id and GET /api/v1/priests/:id/slots
+  
+  IMPORTANT / VALIDATION:
+  - Only authenticated devotees with a valid saved address can proceed to create a booking.
+*/
 const PriestDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [priest, setPriest] = useState<Priest | null>(null);
-  const [slots, setSlots] = useState<PriestSlot[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { openBookingModal } = useBookingStore();
-  const { isAuthenticated, openAuthModal } = useAuthStore();
-
-  useEffect(() => {
-    if (id) {
-      Promise.all([priestApi.getPriestById(id), priestApi.getPriestSlots(id)])
-        .then(([pData, sData]) => {
-          setPriest(pData);
-          setSlots(sData);
-        })
-        .catch(() => toast.error('Priest not found'))
-        .finally(() => setIsLoading(false));
-    }
-  }, [id]);
-
-  const handleBook = (slot: PriestSlot) => {
-    if (!isAuthenticated) {
-      toast.info('Please sign in to proceed with booking');
-      openAuthModal('LOGIN');
-      return;
-    }
-    openBookingModal({
-      priestId: priest?.id,
-      slotId: slot.id,
-      bookingDate: slot.date,
-      estimatedDakshina: priest?.dakshinaSuggested,
-    });
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container py-20 flex justify-center">
-        <LoadingSpinner label="Loading priest details..." />
-      </div>
-    );
-  }
-
-  if (!priest) {
-    return (
-      <div className="container py-16 text-center">
-        <p className="text-lg">Priest not found.</p>
-        <Link to="/priests"><Button className="mt-4">Back to Priests</Button></Link>
-      </div>
-    );
-  }
 
   return (
-    <div className="container py-8 space-y-8">
-      {/* Priest Header */}
-      <div className="flex flex-col md:flex-row gap-6 items-start justify-between border-b pb-8">
-        <div className="flex gap-4 items-center">
-          <img
-            src={priest.profileImageUrl}
-            alt={priest.fullName}
-            className="h-24 w-24 rounded-full object-cover border-2 border-primary/30"
-          />
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{priest.displayName}</h1>
-              <Badge variant="accent" className="text-xs">Verified Purohit</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-              <MapPin className="h-3.5 w-3.5" /> {priest.city}, {priest.state}
-            </p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
-              <span className="flex items-center gap-1 font-semibold text-amber-600">
-                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                {priest.rating} ({priest.reviewCount} reviews)
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Award className="h-3.5 w-3.5" /> {priest.experienceYears} Years Vedic Experience
-              </span>
-            </div>
-          </div>
+    <div className="container max-w-4xl py-8 space-y-6">
+      <Link to="/priests" className="text-xs text-muted-foreground hover:text-primary">
+        ← Back to Purohits Directory
+      </Link>
+
+      <div className="p-6 border rounded-lg bg-card space-y-4">
+        <h1 className="text-2xl font-bold font-serif text-foreground">Pandit Profile & Booking 🕉️</h1>
+        <p className="text-xs text-muted-foreground">Priest ID: {id}</p>
+
+        {/* TODO: Display priest bio, Gurukul lineage, specializations, and ratings */}
+        {/* TODO: Display ritual selection, date picker, slot selection from mockSlots */}
+        {/* TODO: Address picker and 'Confirm Puja Booking' action */}
+        <div className="p-4 bg-muted/40 rounded border text-xs text-muted-foreground">
+          [Priest credentials, available calendar slots, and booking flow will render here]
         </div>
+
+        <Link to="/bookings">
+          <Button size="sm">View My Bookings</Button>
+        </Link>
       </div>
-
-      {/* Details & Available Slots */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
-          <Card>
-            <CardHeader><CardTitle className="text-lg">About & Vedic Background</CardTitle></CardHeader>
-            <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
-              <p>{priest.bio}</p>
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">Languages Spoken</h4>
-                <div className="flex gap-2 items-center">
-                  <Languages className="h-4 w-4 text-primary" />
-                  <span>{priest.languages.join(', ')}</span>
-                </div>
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">Specializations</h4>
-                <div className="flex gap-2 flex-wrap">
-                  {priest.specializations.map((s) => (
-                    <Badge key={s} variant="secondary">{s}</Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Booking Slots Card */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" /> Available Muhurat Slots
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {slots.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No slots currently available.</p>
-              ) : (
-                slots.map((slot) => (
-                  <div key={slot.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="text-xs font-semibold">{slot.date}</p>
-                      <p className="text-xs text-muted-foreground">{slot.startTime} - {slot.endTime}</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      disabled={slot.status !== 'AVAILABLE'}
-                      onClick={() => handleBook(slot)}
-                    >
-                      {slot.status === 'AVAILABLE' ? 'Book' : 'Booked'}
-                    </Button>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <BookingConfirmModal
-        onConfirm={() => {
-          toast.success('Puja booking request confirmed! Payment is offline.');
-          useBookingStore.getState().closeBookingModal();
-        }}
-      />
     </div>
   );
 };

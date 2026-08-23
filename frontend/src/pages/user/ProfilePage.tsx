@@ -1,49 +1,48 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/store/auth.store';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle2 } from 'lucide-react';
 
+/*
+  PAGE: Devotee Profile Settings (/profile)
+  
+  ACCESS:
+  - Devotees (USER role only)
+  
+  PURPOSE:
+  - Displays devotee account information (Name, Verified Mobile, Verified Email).
+  - Quick navigation links to Manage Addresses and View Booking History.
+  
+  FUTURE CONTENT:
+  - Account info summary (Name, +91 Phone Number with Verified badge, Email with Verified badge).
+  - Password update form.
+  - Notification preferences for ritual reminders.
+  
+  DATA SOURCE:
+  - Currently: useAuthStore (user)
+  - Future: GET /api/v1/user/profile
+*/
 const ProfilePage: React.FC = () => {
-  const { user } = useAuthStore();
-
   return (
     <div className="container max-w-2xl py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Devotee Profile</h1>
-        <p className="text-muted-foreground mt-1">Manage your account information and contact preferences.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-serif text-foreground">Devotee Profile 👤</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Manage your personal details, verified contacts, and security settings.
+          </p>
+        </div>
+        <Link to="/addresses">
+          <Button variant="outline" size="sm">Manage Addresses</Button>
+        </Link>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Your registered identity on PujaCircle</CardDescription>
-            </div>
-            {user?.isPhoneVerified && (
-              <Badge variant="accent" className="flex items-center gap-1 text-green-700 bg-green-50 border-green-200">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Phone Verified
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <Label>Full Name</Label>
-            <Input defaultValue={user?.fullName || 'Aditi Sharma'} />
-          </div>
-          <div className="space-y-1">
-            <Label>Registered Phone Number (+91)</Label>
-            <Input disabled defaultValue={user?.phoneNumber || '9876543210'} />
-            <p className="text-[11px] text-muted-foreground">Phone number is verified and tied to OTP login.</p>
-          </div>
-          <Button className="w-full sm:w-auto">Save Changes</Button>
-        </CardContent>
-      </Card>
+      <div className="p-6 border rounded-lg bg-card space-y-4">
+        {/* TODO: Display Name, Verified Mobile (+91), Verified Email */}
+        {/* TODO: Add change password form */}
+        <div className="p-4 bg-muted/40 rounded border text-xs text-muted-foreground">
+          [Devotee Account Details & Security Settings Placeholder]
+        </div>
+      </div>
     </div>
   );
 };

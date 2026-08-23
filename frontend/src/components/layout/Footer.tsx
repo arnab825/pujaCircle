@@ -23,23 +23,23 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-foreground mb-3">For Priests</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-3">Are you a Priest?</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/priest/register" className="hover:text-primary">Join as a Purohit</Link></li>
-              <li><Link to="/priest/dashboard" className="hover:text-primary">Priest Portal</Link></li>
+              <li><Link to="/auth/priest/register" className="hover:text-primary font-medium text-primary">Join as a Purohit</Link></li>
+              <li><Link to="/auth/priest/login" className="hover:text-primary">Purohit Portal Sign In</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-foreground mb-3">Support</h4>
+            <h4 className="text-sm font-semibold text-foreground mb-3">Support & Info</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/contact" className="hover:text-primary">Contact Us</Link></li>
               <li><Link to="/about" className="hover:text-primary">About Platform</Link></li>
-              <li className="text-xs text-muted-foreground pt-2">Offline Cash payment to Purohit directly.</li>
+              <li className="text-xs text-muted-foreground pt-2">Direct Dakshina paid to Purohit in cash.</li>
             </ul>
           </div>
         </div>
         <div className="border-t mt-8 pt-6 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} {APP_CONFIG.APP_NAME}. All rights reserved. Made for India.
+          © {new Date().getFullYear()} {APP_CONFIG.APP_NAME}. All rights reserved. Built for India.
         </div>
       </div>
     </footer>

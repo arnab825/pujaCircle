@@ -1,42 +1,47 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
+/*
+  PAGE: Priest Profile & Qualifications (/priest/profile)
+  
+  ACCESS:
+  - PRIEST role only
+  
+  PURPOSE:
+  - Edit Vedic qualifications, experience years, bio, languages spoken, ritual specializations, and service localities.
+  
+  FUTURE CONTENT:
+  - Full Name & Display Title.
+  - Verified Mobile Number & Email.
+  - Years of Vedic Experience.
+  - Gurukul / Traditional Lineage & Bio.
+  - Languages spoken checkboxes (Sanskrit, Hindi, Marathi, Bengali, Tamil, etc.).
+  - Specializations (Griha Pravesh, Havan, Satyanarayan Katha, Vivah, etc.).
+  - Service local areas / pin codes.
+  
+  DATA SOURCE:
+  - Currently: mockPriests from centralized mock data (@/mocks/db)
+  - Future: GET /api/v1/priest/profile and PUT /api/v1/priest/profile
+*/
 const PriestProfilePage: React.FC = () => {
   return (
-    <div className="container max-w-2xl py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Purohit Profile Settings</h1>
-        <p className="text-muted-foreground mt-1">Update your Vedic background, language proficiencies, and service areas.</p>
+    <div className="max-w-3xl space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Vedic Profile & Bio 🪔</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Keep your credentials, languages, and service areas up to date.
+          </p>
+        </div>
+        <Button size="sm">Save Changes</Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Vedic Credentials</CardTitle>
-          <CardDescription>This information is visible to devotees booking rituals</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
-            <Label>Display Name</Label>
-            <Input defaultValue="Pt. Ramesh Shastri" />
-          </div>
-          <div className="space-y-1">
-            <Label>Vedic Experience (Years)</Label>
-            <Input type="number" defaultValue="18" />
-          </div>
-          <div className="space-y-1">
-            <Label>Bio & Lineage</Label>
-            <Textarea
-              rows={3}
-              defaultValue="Vedic scholar trained in Varanasi Gurukul. Specializes in Griha Pravesh and Satyanarayan Katha."
-            />
-          </div>
-          <Button>Save Profile</Button>
-        </CardContent>
-      </Card>
+      {/* TODO: Form with Bio, Experience, Languages, Specializations, and Service Localities */}
+      <div className="p-8 border rounded-lg bg-card text-center space-y-3">
+        <p className="text-xs text-muted-foreground">
+          [Priest Credentials, Bio, Languages, and Specializations Form Placeholder]
+        </p>
+      </div>
     </div>
   );
 };

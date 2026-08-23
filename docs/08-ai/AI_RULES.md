@@ -1,15 +1,14 @@
-# Explicit AI Engineering Rules - PujaCircle
+# Explicit AI Engineering Rules - PujaCircle 🕉️
 
-1. **Do not introduce mobile functionality**: PujaCircle is strictly a responsive web application.
-2. **Do not introduce live priest tracking**: No GPS coordinates, live maps, or driver-style tracking.
-3. **Do not introduce online priest payments in Phase 1**: All priest remuneration is offline cash (`paymentStatus: PENDING` or `PAID_OFFLINE`).
-4. **Do not introduce e-commerce into Phase 1**: No cart, product catalog, checkout, or merchandise inventory.
-5. **Do not invent API endpoints**: Follow the contracts defined in `docs/04-api/API.md`.
-6. **Do not invent database entities**: Follow the schema defined in `docs/05-database/backend-schema.md`.
-7. **Do not bypass the API layer**: React components must never import `src/mocks/db.ts` directly.
-8. **Do not introduce a new library without justification**: Rely on installed packages (Tailwind, shadcn, Radix, Lucide, date-fns, sonner, Zustand, Zod, Axios).
-9. **Reuse existing shadcn components**: Located in `src/components/ui/`.
-10. **Use existing design tokens**: Use `--primary`, `--secondary`, `--accent`, `--brand-maroon`, etc.
-11. **Check documentation before implementation**: `docs/` is the source of truth.
-12. **Keep beginner-friendly architecture**: Avoid over-abstraction, custom monorepos, micro-frontends, or convoluted design patterns.
-13. **Prefer simple, robust solutions**: Small, readable files with clean TypeScript types.
+1. **Admin Priest Governance Rules**:
+   - Priest management is unified under `/admin/priests` and `/admin/priests/:id`.
+   - Administrator has authority to Approve, Reject, Ban, Unban/Reactivate, and Delete priest accounts.
+   - Banned priests MUST be omitted from customer discovery (`/priests` and `/rituals`).
+2. **Admin User Governance Rules**:
+   - Administrator can view all registered devotees on the platform (`/admin/users`) with their verified contacts, regions, and booking metrics.
+   - Administrator can suspend and reactivate devotee accounts.
+3. **Separate Authentication Systems (No Role Selectors)**:
+   - USER Auth is at `/auth/user/*`.
+   - PRIEST Auth is at `/auth/priest/*`.
+   - ADMIN Auth is at `/auth/admin/login` (hidden from public UI).
+4. **Follow existing documentation**: `docs/` is the project's source of truth.

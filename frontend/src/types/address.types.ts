@@ -40,11 +40,16 @@ export interface UpdateAddressRequest extends Partial<CreateAddressRequest> {
   id: string;
 }
 
-export interface PincodeLookupResponse {
-  pincode: string;
+export interface PincodeLocation {
+  postOffice: string;
+  locality: string;
   city: string;
   district: string;
   state: string;
   country: string;
-  postOffices: string[];
+}
+
+export interface PincodeLookupResponse {
+  pincode: string;
+  locations: PincodeLocation[];
 }

@@ -1,35 +1,49 @@
-# UX Interaction Flows & Modal Architecture - PujaCircle
+# UX Interaction Flows & Administrative Governance - PujaCircle
 
-## 1. Modal-First Interaction Matrix
+## 1. Unified Administrative Management Workflows
 
-| User Action | Target Component | State / Trigger | Return State |
-| :--- | :--- | :--- | :--- |
-| **Sign In / Register** | `<AuthModal>` (Dialog) | User clicks "Sign In" or "Book Priest" | Updates session in `auth.store`, closes modal |
-| **Add / Edit Address** | `<AddressModal>` (Dialog) | User clicks "+ Add Address" | Saves address via `address.api`, refreshes list |
-| **Confirm Booking** | `<BookingConfirmModal>` (Dialog) | Devotee clicks available slot on priest profile | Transitions booking to `CONFIRMED`, triggers toast |
-| **Cancel Booking** | `<AlertDialog>` | Devotee clicks "Cancel Booking" | Marks status `CANCELLED`, releases slot |
-| **Admin Decision** | `<AlertDialog>` | Admin approves or rejects priest | Updates approval status in database |
+```
+                               ADMIN CONSOLE (/admin/*)
+                                          │
+        ┌─────────────────────────────────┼─────────────────────────────────┐
+        ▼                                 ▼                                 ▼
+ Admin Dashboard                   Manage Priests                  Registered Devotees
+(/admin/dashboard)                (/admin/priests)                  (/admin/users)
+        │                                 │                                 │
+  - Platform Overview               - Status Tabs: ALL, APPROVED,     - View All Devotees
+  - Monthly Bookings Trend            PENDING, BANNED                 - Verified Mobile & Email
+  - Pending Applications List       - Review & Approve Applications   - Primary Region & Bookings
+  - Live Activity Log               - Reject Applications             - Suspend / Reactivate
+                                    - Ban / Revoke Privileges
+                                    - Permanent Removal
+                                    - Details at /admin/priests/:id
+```
 
 ---
 
-## 2. Devotee Booking User Journey
+## 2. Priest Lifecycle & Administrative State Transitions
 
 ```
-[Landing Page / Search]
-         ↓
-[Priest Listing Page] (Filter by City, Language, Ritual)
-         ↓
-[Priest Profile Page]
-         ↓
-[Select Muhurat Slot]
-         ↓
-[Is Devotee Authenticated?]
-      /            \
-    (No)           (Yes)
-     ↓               ↓
-[Auth Modal: OTP]  [Booking Modal: Address & Instructions]
-     ↓               ↓
-[Session Saved] ────> [Confirm Booking (Offline Cash)]
-                         ↓
-                   [Toast Notification & Redirect to Booking Details]
+[ Priest Registration ] -> Status: PENDING ADMIN APPROVAL
+                                  │
+                  ┌───────────────┴───────────────┐
+                  ▼                               ▼
+            [ REJECTED ]                    [ APPROVED ] (Active in Devotee Search)
+                                                  │
+                                  ┌───────────────┴───────────────┐
+                                  ▼                               ▼
+                             [ BANNED ]                      [ DELETED ]
+                             (Revoked access)                (Permanently removed)
+                                  │
+                                  ▼
+                         [ UNBANNED / RESTORED ] -> [ APPROVED ]
 ```
+
+---
+
+## 3. Devotee Management Workflow
+
+- **Admin Devotee Directory (`/admin/users`)**:
+  - View all devotee accounts, registration dates, contact numbers, emails, primary regions, and puja counts.
+  - **Suspend Account**: Revokes booking privileges.
+  - **Reactivate Account**: Restores normal devotee booking access.
