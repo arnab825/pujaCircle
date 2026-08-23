@@ -29,7 +29,7 @@ const AdminUsersPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-serif">
-          Registered Devotees 👥
+          Registered Devotees
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
           Platform directory of registered devotees, contact verification status, and account actions.

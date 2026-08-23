@@ -34,7 +34,7 @@ const PriestDashboardPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Priest Dashboard 🪔</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Priest Dashboard</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Welcome to your Purohit Workspace. Here is your ritual schedule overview.
           </p>

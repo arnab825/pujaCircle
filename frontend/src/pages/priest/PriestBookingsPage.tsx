@@ -27,7 +27,7 @@ const PriestBookingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Ceremony Appointments 🕉️</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Ceremony Appointments</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
           View all scheduled family pujas and complete post-ritual dakshina settlements.
         </p>

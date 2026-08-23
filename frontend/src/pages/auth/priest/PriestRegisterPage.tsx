@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { registerPriestPersonalSchema, RegisterPriestPersonalInput } from "@/schemas/auth.schema";
 import { addressApi } from "@/api/address.api";
 import { PincodeLocation } from "@/types/address.types";
 import { Button } from "@/components/ui/button";
@@ -34,17 +37,28 @@ import { toast } from "sonner";
 /**
  * PriestRegisterPage
  * Multi-Step Purohit Onboarding Application
- * Collects Vedic background and service areas with automated PIN code city extraction, ending with PENDING APPROVAL confirmation.
+ * Built with React Hook Form, Zod validation, and automated PIN-code city extraction.
  */
 const PriestRegisterPage: React.FC = () => {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-
-  // Step 1: Personal Info
-  const [fullName, setFullName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Step 1: Personal info form with React Hook Form + Zod
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<RegisterPriestPersonalInput>({
+    resolver: zodResolver(registerPriestPersonalSchema),
+    defaultValues: {
+      fullName: "",
+      phoneNumber: "",
+      email: "",
+      password: "",
+    },
+  });
 
   // Step 2: Verification OTPs
   const [phoneOtp, setPhoneOtp] = useState("");
@@ -71,20 +85,9 @@ const PriestRegisterPage: React.FC = () => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Step 1 Submit
-  const handleProceedToOtp = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Step 1 Submit after Zod validation
+  const onPersonalSubmit = () => {
     setErrorMessage(null);
-
-    if (
-      !fullName.trim() ||
-      !phoneNumber.trim() ||
-      !email.trim() ||
-      !password.trim()
-    ) {
-      setErrorMessage("Please fill in all personal credentials.");
-      return;
-    }
     setStep(2);
     toast.info("Verification codes sent. Development Mock OTP is 123456");
   };
@@ -143,6 +146,14 @@ const PriestRegisterPage: React.FC = () => {
     toast.success("Purohit application submitted for review!");
   };
 
+  const handleFillDemo = () => {
+    setValue("fullName", "Pandit Giridhar Bhattacharya", { shouldValidate: true });
+    setValue("phoneNumber", "+919876543288", { shouldValidate: true });
+    setValue("email", "giridhar.b@example.demo", { shouldValidate: true });
+    setValue("password", "Priest@123", { shouldValidate: true });
+    setErrorMessage(null);
+  };
+
   return (
     <div className="container max-w-lg py-10 px-4">
       <Card className="shadow-md border-primary/20">
@@ -187,9 +198,9 @@ const PriestRegisterPage: React.FC = () => {
           </div>
         )}
 
-        {/* ================= STEP 1: Personal Info ================= */}
+        {/* ================= STEP 1: Personal Info (React Hook Form + Zod) ================= */}
         {step === 1 && (
-          <form onSubmit={handleProceedToOtp}>
+          <form onSubmit={handleSubmit(onPersonalSubmit)}>
             <CardContent className="space-y-3.5">
               <div className="space-y-1">
                 <Label className="text-xs">Full Name & Title</Label>
@@ -197,12 +208,13 @@ const PriestRegisterPage: React.FC = () => {
                   <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="e.g. Pandit Radhe Shyam Shastri"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    {...register("fullName")}
                     className="pl-9 text-xs"
-                    required
                   />
                 </div>
+                {errors.fullName && (
+                  <p className="text-[11px] text-destructive">{errors.fullName.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -212,12 +224,13 @@ const PriestRegisterPage: React.FC = () => {
                   <Input
                     type="tel"
                     placeholder="+91 98765 43211"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    {...register("phoneNumber")}
                     className="pl-9 text-xs"
-                    required
                   />
                 </div>
+                {errors.phoneNumber && (
+                  <p className="text-[11px] text-destructive">{errors.phoneNumber.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -227,12 +240,13 @@ const PriestRegisterPage: React.FC = () => {
                   <Input
                     type="email"
                     placeholder="purohit@example.demo"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register("email")}
                     className="pl-9 text-xs"
-                    required
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-[11px] text-destructive">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -242,10 +256,8 @@ const PriestRegisterPage: React.FC = () => {
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Create your portal password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    {...register("password")}
                     className="pl-9 pr-9 text-xs"
-                    required
                   />
                   <button
                     type="button"
@@ -256,17 +268,14 @@ const PriestRegisterPage: React.FC = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="text-[11px] text-destructive">{errors.password.message}</p>
+                )}
               </div>
 
               <button
                 type="button"
-                onClick={() => {
-                  setFullName("Pandit Giridhar Bhattacharya");
-                  setPhoneNumber("+919876543288");
-                  setEmail("giridhar.b@example.demo");
-                  setPassword("Priest@123");
-                  setErrorMessage(null);
-                }}
+                onClick={handleFillDemo}
                 className="text-[11px] text-primary hover:underline font-medium block text-right w-full"
               >
                 Fill demo application
@@ -572,7 +581,7 @@ const PriestRegisterPage: React.FC = () => {
                   Application Submitted
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                  Thank you, Pandit {fullName}. Your Vedic credentials in{" "}
+                  Thank you, Pandit {getValues("fullName")}. Your Vedic credentials in{" "}
                   <strong className="text-foreground">
                     {city}, {state}
                   </strong>{" "}

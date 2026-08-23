@@ -91,7 +91,7 @@ const ContactPage: React.FC = () => {
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {['Kolkata', 'Mumbai', 'Bengaluru', 'Pune', 'Delhi NCR', 'Hyderabad', 'Chennai'].map((city) => (
             <span key={city} className="bg-muted/50 border px-2.5 py-1 rounded-md text-[11px] font-medium text-foreground">
-              📍 {city}
+              {city}
             </span>
           ))}
         </div>

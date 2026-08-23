@@ -25,7 +25,7 @@ const PriestAvailabilityPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Schedule & Slot Availability 📅</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Schedule & Slot Availability</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Configure your daily muhurat timings and manage blocked dates.
           </p>

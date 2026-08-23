@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { registerUserPersonalSchema, RegisterUserPersonalInput } from '@/schemas/auth.schema';
 import { useAuthStore } from '@/store/auth.store';
 import { addressApi } from '@/api/address.api';
+import { PincodeLocation } from '@/types/address.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,29 +16,40 @@ import { toast } from 'sonner';
 /**
  * UserRegisterPage
  * Multi-Step Devotee Registration Form
- * Includes contact verification (Mock OTP: 123456) and mandatory address setup with PIN code lookup.
+ * Uses React Hook Form + Zod for personal credentials, followed by OTP and PIN-code address detection.
  */
 const UserRegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const { setUser } = useAuthStore();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
-
-  // Step 1: Personal info
-  const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Step 2: OTP verification
+  // Step 1: Personal info form with React Hook Form + Zod
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    getValues,
+    formState: { errors },
+  } = useForm<RegisterUserPersonalInput>({
+    resolver: zodResolver(registerUserPersonalSchema),
+    defaultValues: {
+      fullName: '',
+      phoneNumber: '',
+      email: '',
+      password: '',
+    },
+  });
+
+  // Step 2: OTP verification state
   const [phoneOtp, setPhoneOtp] = useState('');
   const [emailOtp, setEmailOtp] = useState('');
 
-  // Step 3: Address setup
+  // Step 3: Address setup state
   const [pincode, setPincode] = useState('700019');
-  const [locations, setLocations] = useState<any[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
+  const [locations, setLocations] = useState<PincodeLocation[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<PincodeLocation | null>(null);
   const [houseBuilding, setHouseBuilding] = useState('Flat 402, Ganga Heights');
   const [street, setStreet] = useState('Rashbehari Avenue');
   const [landmark, setLandmark] = useState('Near Lake Mall');
@@ -43,20 +58,9 @@ const UserRegisterPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Step 1: Proceed to OTPs
-  const handleProceedToOtp = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Step 1: Proceed to OTPs after Zod validation
+  const onPersonalSubmit = () => {
     setErrorMessage(null);
-
-    if (!fullName.trim() || !phoneNumber.trim() || !email.trim() || !password.trim()) {
-      setErrorMessage('Please fill in all personal details.');
-      return;
-    }
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters.');
-      return;
-    }
-
     setStep(2);
     toast.info('Verification codes sent. Development Mock OTP is 123456');
   };
@@ -81,9 +85,12 @@ const UserRegisterPage: React.FC = () => {
 
   // Step 3: PIN Code Lookup
   const handleLookupPin = async (pinToSearch: string) => {
+    const cleanPin = pinToSearch.trim().replace(/\D/g, '');
+    if (cleanPin.length !== 6) return;
+
     setIsSearchingPin(true);
     try {
-      const res = await addressApi.lookupPincode(pinToSearch);
+      const res = await addressApi.lookupPincode(cleanPin);
       setLocations(res.locations);
       if (res.locations.length > 0) {
         setSelectedLocation(res.locations[0]);
@@ -106,12 +113,15 @@ const UserRegisterPage: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    const formVals = getValues();
 
     const newUser = {
       id: `user-devotee-${Date.now()}`,
-      name: fullName,
-      phoneNumber: phoneNumber.startsWith('+91') ? phoneNumber : `+91${phoneNumber.replace(/\D/g, '')}`,
-      email,
+      name: formVals.fullName,
+      phoneNumber: formVals.phoneNumber.startsWith('+91')
+        ? formVals.phoneNumber
+        : `+91${formVals.phoneNumber.replace(/\D/g, '')}`,
+      email: formVals.email,
       role: 'USER' as const,
       hasAddress: true,
     };
@@ -122,6 +132,14 @@ const UserRegisterPage: React.FC = () => {
       toast.success('Registration successful! Welcome to PujaCircle.');
       navigate('/rituals');
     }, 400);
+  };
+
+  const handleFillDemo = () => {
+    setValue('fullName', 'Suresh Kumar Mukherjee', { shouldValidate: true });
+    setValue('phoneNumber', '+919876543299', { shouldValidate: true });
+    setValue('email', 'suresh.m@example.demo', { shouldValidate: true });
+    setValue('password', 'User@123', { shouldValidate: true });
+    setErrorMessage(null);
   };
 
   return (
@@ -154,9 +172,9 @@ const UserRegisterPage: React.FC = () => {
           </div>
         )}
 
-        {/* ================= STEP 1: Personal Info ================= */}
+        {/* ================= STEP 1: Personal Info (React Hook Form + Zod) ================= */}
         {step === 1 && (
-          <form onSubmit={handleProceedToOtp}>
+          <form onSubmit={handleSubmit(onPersonalSubmit)}>
             <CardContent className="space-y-3.5">
               <div className="space-y-1">
                 <Label className="text-xs">Full Name</Label>
@@ -164,12 +182,13 @@ const UserRegisterPage: React.FC = () => {
                   <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="e.g. Ramesh Chandra Sharma"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    {...register('fullName')}
                     className="pl-9 text-xs"
-                    required
                   />
                 </div>
+                {errors.fullName && (
+                  <p className="text-[11px] text-destructive">{errors.fullName.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -179,12 +198,13 @@ const UserRegisterPage: React.FC = () => {
                   <Input
                     type="tel"
                     placeholder="+91 98765 43210"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    {...register('phoneNumber')}
                     className="pl-9 text-xs"
-                    required
                   />
                 </div>
+                {errors.phoneNumber && (
+                  <p className="text-[11px] text-destructive">{errors.phoneNumber.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -194,12 +214,13 @@ const UserRegisterPage: React.FC = () => {
                   <Input
                     type="email"
                     placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register('email')}
                     className="pl-9 text-xs"
-                    required
                   />
                 </div>
+                {errors.email && (
+                  <p className="text-[11px] text-destructive">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -209,10 +230,8 @@ const UserRegisterPage: React.FC = () => {
                   <Input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Create a secure password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    {...register('password')}
                     className="pl-9 pr-9 text-xs"
-                    required
                   />
                   <button
                     type="button"
@@ -223,18 +242,15 @@ const UserRegisterPage: React.FC = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="text-[11px] text-destructive">{errors.password.message}</p>
+                )}
               </div>
 
               {/* Demo Pre-fill Button */}
               <button
                 type="button"
-                onClick={() => {
-                  setFullName('Suresh Kumar Mukherjee');
-                  setPhoneNumber('+919876543299');
-                  setEmail('suresh.m@example.demo');
-                  setPassword('User@123');
-                  setErrorMessage(null);
-                }}
+                onClick={handleFillDemo}
                 className="text-[11px] text-primary hover:underline font-medium block text-right w-full"
               >
                 Auto-fill registration demo
@@ -267,7 +283,7 @@ const UserRegisterPage: React.FC = () => {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <Label className="text-xs">Mobile Verification Code</Label>
-                  <span className="text-[10px] text-muted-foreground">Sent to {phoneNumber}</span>
+                  <span className="text-[10px] text-muted-foreground">Sent to {getValues('phoneNumber')}</span>
                 </div>
                 <Input
                   maxLength={6}
@@ -282,7 +298,7 @@ const UserRegisterPage: React.FC = () => {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <Label className="text-xs">Email Verification Code</Label>
-                  <span className="text-[10px] text-muted-foreground">Sent to {email}</span>
+                  <span className="text-[10px] text-muted-foreground">Sent to {getValues('email')}</span>
                 </div>
                 <Input
                   maxLength={6}

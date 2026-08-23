@@ -30,7 +30,7 @@ const PriestListingPage: React.FC = () => {
   return (
     <div className="container py-8 space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Find a Vedic Purohit 🕉️</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Find a Vedic Purohit</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Vetted, Gurukul-trained priests available for in-home ceremonies across your city.
         </p>

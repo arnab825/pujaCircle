@@ -28,7 +28,7 @@ const PriestProfilePage: React.FC = () => {
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Vedic Profile & Bio 🪔</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Vedic Profile & Bio</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Keep your credentials, languages, and service areas up to date.
           </p>

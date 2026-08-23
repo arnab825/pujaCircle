@@ -15,7 +15,7 @@ import { adminApi } from '../api/admin.api';
  */
 
 async function runMockTests() {
-  console.log('\n🕉️ --- STARTING PUJACIRCLE MOCK API VALIDATION --- 🕉️\n');
+  console.log('\n--- STARTING PUJACIRCLE MOCK API VALIDATION ---\n');
 
   try {
     // 1. Test Mock Authentication & Distinct Role Logins
@@ -188,9 +188,9 @@ async function runMockTests() {
     const reactivatedUser = await adminApi.updateUserStatus(userToSuspend.id, 'ACTIVE');
     console.log(`  ✓ Admin reactivated devotee account: ${reactivatedUser.name} (Status: ${reactivatedUser.status})`);
 
-    console.log('\n✅ ALL MOCK API, RBAC & ADMIN CONTROLS CHECKS PASSED SUCCESSFULLY! ✅\n');
+    console.log('\n[PASS] ALL MOCK API, RBAC & ADMIN CONTROLS CHECKS PASSED SUCCESSFULLY!\n');
   } catch (error) {
-    console.error('\n❌ MOCK API TEST FAILED:', error);
+    console.error('\n[FAIL] MOCK API TEST FAILED:', error);
     process.exit(1);
   }
 }

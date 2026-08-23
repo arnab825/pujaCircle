@@ -20,7 +20,7 @@ const HomePage: React.FC = () => {
 
         <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-foreground font-serif leading-tight">
           Authentic Vedic Pujas, <br className="hidden sm:inline" />
-          Conducted at Your Home 🕉️
+          Conducted at Your Home
         </h1>
 
         <p className="text-muted-foreground text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">

@@ -35,7 +35,7 @@ const AdminDashboardPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground font-serif">
-            Administration Console 🛡️
+            Administration Console
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             System-wide overview, verification queue, and platform health metrics.

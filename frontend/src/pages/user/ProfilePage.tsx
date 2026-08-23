@@ -26,7 +26,7 @@ const ProfilePage: React.FC = () => {
     <div className="container max-w-2xl py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-foreground">Devotee Profile 👤</h1>
+          <h1 className="text-2xl font-bold font-serif text-foreground">Devotee Profile</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Manage your personal details, verified contacts, and security settings.
           </p>

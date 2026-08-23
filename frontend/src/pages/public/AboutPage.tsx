@@ -18,7 +18,7 @@ const AboutPage: React.FC = () => {
           <span>Our Sacred Mission</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold font-serif text-foreground">
-          About PujaCircle 🕉️
+          About PujaCircle
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
           PujaCircle was founded to preserve authentic Vedic traditions and connect devotees with verified, knowledgeable Purohits across Indian cities.

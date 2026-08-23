@@ -34,7 +34,9 @@ const AdminPriestDetailsPage: React.FC = () => {
       </Link>
 
       <div className="p-6 border rounded-lg bg-card space-y-4">
-        <h1 className="text-2xl font-bold font-serif text-foreground">Priest Profile Review 🪔</h1>
+        <h1 className="text-2xl font-bold font-serif text-foreground">
+          Priest Profile Review
+        </h1>
         <p className="text-xs text-muted-foreground">Scholar ID: {id}</p>
 
         {/* TODO: Detailed view of Vedic credentials, Bio, Languages, Specializations */}

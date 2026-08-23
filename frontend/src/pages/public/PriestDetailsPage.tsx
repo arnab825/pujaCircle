@@ -37,7 +37,7 @@ const PriestDetailsPage: React.FC = () => {
       </Link>
 
       <div className="p-6 border rounded-lg bg-card space-y-4">
-        <h1 className="text-2xl font-bold font-serif text-foreground">Pandit Profile & Booking 🕉️</h1>
+        <h1 className="text-2xl font-bold font-serif text-foreground">Pandit Profile & Booking</h1>
         <p className="text-xs text-muted-foreground">Priest ID: {id}</p>
 
         {/* TODO: Display priest bio, Gurukul lineage, specializations, and ratings */}

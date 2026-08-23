@@ -33,7 +33,7 @@ const BookingDetailsPage: React.FC = () => {
       </Link>
 
       <div className="p-6 border rounded-lg bg-card space-y-4">
-        <h1 className="text-2xl font-bold font-serif text-foreground">Ceremony Booking Details 🕉️</h1>
+        <h1 className="text-2xl font-bold font-serif text-foreground">Ceremony Booking Details</h1>
         <p className="text-xs text-muted-foreground">Booking Reference: {id}</p>
 
         {/* TODO: Display Pandit contact, Muhurat timing, Venue address */}

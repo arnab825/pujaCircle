@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { resetPasswordSchema, ResetPasswordInput } from '@/schemas/auth.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,35 +13,44 @@ import { toast } from 'sonner';
 /**
  * UserResetPasswordPage
  * Reset Password with Email OTP validation
+ * Built with React Hook Form and Zod Validation.
  */
 const UserResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<ResetPasswordInput>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      otp: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
+  });
 
-    if (otp.trim() !== '123456') {
+  const onSubmit = (data: ResetPasswordInput) => {
+    setError(null);
+    if (data.otp.trim() !== '123456') {
       setError('Invalid OTP code. Please use development mock code: 123456');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError('New password must be at least 6 characters.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
       return;
     }
 
     toast.success('Password updated successfully! Please sign in.');
     navigate('/auth/user/login');
+  };
+
+  const handleFillDemo = () => {
+    setValue('otp', '123456', { shouldValidate: true });
+    setValue('newPassword', 'User@123', { shouldValidate: true });
+    setValue('confirmPassword', 'User@123', { shouldValidate: true });
+    setError(null);
   };
 
   return (
@@ -56,7 +68,7 @@ const UserResetPasswordPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
 
-        <form onSubmit={handleReset}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-3.5">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
@@ -69,28 +81,30 @@ const UserResetPasswordPage: React.FC = () => {
               Mock OTP: <strong className="text-primary font-mono">123456</strong>
             </div>
 
+            {/* Recovery OTP */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Recovery OTP</Label>
               <Input
                 maxLength={6}
                 placeholder="123456"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                {...register('otp')}
                 className="font-mono text-center tracking-widest text-sm"
-                required
               />
+              {errors.otp && (
+                <p className="text-[11px] text-destructive">{errors.otp.message}</p>
+              )}
             </div>
 
+            {/* New Password */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">New Password</Label>
               <div className="relative">
+                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter new password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="pr-9 text-xs"
-                  required
+                  {...register('newPassword')}
+                  className="pl-9 pr-9 text-xs"
                 />
                 <button
                   type="button"
@@ -101,18 +115,21 @@ const UserResetPasswordPage: React.FC = () => {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {errors.newPassword && (
+                <p className="text-[11px] text-destructive">{errors.newPassword.message}</p>
+              )}
             </div>
 
+            {/* Confirm Password */}
             <div className="space-y-1">
               <Label className="text-xs font-medium">Confirm New Password</Label>
               <div className="relative">
+                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Re-enter new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="pr-9 text-xs"
-                  required
+                  {...register('confirmPassword')}
+                  className="pl-9 pr-9 text-xs"
                 />
                 <button
                   type="button"
@@ -123,16 +140,14 @@ const UserResetPasswordPage: React.FC = () => {
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {errors.confirmPassword && (
+                <p className="text-[11px] text-destructive">{errors.confirmPassword.message}</p>
+              )}
             </div>
 
             <button
               type="button"
-              onClick={() => {
-                setOtp('123456');
-                setNewPassword('User@123');
-                setConfirmPassword('User@123');
-                setError(null);
-              }}
+              onClick={handleFillDemo}
               className="text-[11px] text-primary hover:underline font-medium block text-right w-full"
             >
               Fill demo values

@@ -64,7 +64,7 @@ const PriestLoginPage: React.FC = () => {
             <Flame className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl font-bold font-serif text-foreground">
-            PujaCircle for Priests 🪔
+            PujaCircle for Priests
           </CardTitle>
           <CardDescription className="text-xs">
             Welcome, Pandit Ji. Manage your ritual schedules and ceremony appointments.

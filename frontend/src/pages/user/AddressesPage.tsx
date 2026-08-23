@@ -31,7 +31,7 @@ const AddressesPage: React.FC = () => {
     <div className="container max-w-3xl py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-foreground">Saved Addresses 📍</h1>
+          <h1 className="text-2xl font-bold font-serif text-foreground">Saved Addresses</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Manage home and temple locations for in-home Vedic ritual appointments.
           </p>

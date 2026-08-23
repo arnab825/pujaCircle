@@ -30,7 +30,7 @@ const RitualsPage: React.FC = () => {
   return (
     <div className="container py-8 space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Vedic Rituals & Ceremonies 🕉️</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Vedic Rituals & Ceremonies</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Explore sacred ceremonies performed according to traditional Vedic Vidhi.
         </p>

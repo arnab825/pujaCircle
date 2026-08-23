@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { verifyOtpSchema, VerifyOtpInput } from '@/schemas/auth.schema';
+import { authApi } from '@/api/auth.api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,20 +14,39 @@ import { toast } from 'sonner';
 /**
  * UserVerifyEmailPage
  * Standalone Email Verification Page
+ * Built with React Hook Form, Zod Schema Validation, and centralized mock OTP.
  */
 const UserVerifyEmailPage: React.FC = () => {
   const navigate = useNavigate();
-  const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const handleVerify = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.trim() === '123456') {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<VerifyOtpInput>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: {
+      otp: '',
+    },
+  });
+
+  const onSubmit = async (data: VerifyOtpInput) => {
+    setError(null);
+    const res = await authApi.verifyEmailOtp({ email: 'user@example.demo', otp: data.otp });
+
+    if (res.success) {
       toast.success('Email address verified successfully!');
       navigate('/auth/user/login');
     } else {
-      setError('Invalid OTP code. Please enter development mock code: 123456');
+      setError(res.message);
     }
+  };
+
+  const handleFillDemoOtp = () => {
+    setValue('otp', '123456', { shouldValidate: true });
+    setError(null);
   };
 
   return (
@@ -41,7 +64,7 @@ const UserVerifyEmailPage: React.FC = () => {
           </CardDescription>
         </CardHeader>
 
-        <form onSubmit={handleVerify}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
@@ -60,12 +83,21 @@ const UserVerifyEmailPage: React.FC = () => {
               <Input
                 maxLength={6}
                 placeholder="123456"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                {...register('otp')}
                 className="font-mono text-center tracking-widest text-base"
-                required
               />
+              {errors.otp && (
+                <p className="text-[11px] text-destructive">{errors.otp.message}</p>
+              )}
             </div>
+
+            <button
+              type="button"
+              onClick={handleFillDemoOtp}
+              className="text-[11px] text-primary hover:underline font-medium block text-right w-full"
+            >
+              Fill mock OTP (123456)
+            </button>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-3 pt-2">

@@ -61,7 +61,7 @@ const AdminLoginPage: React.FC = () => {
             <ShieldAlert className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl font-bold font-serif text-foreground">
-            PujaCircle Admin 🛡️
+            PujaCircle Admin
           </CardTitle>
           <CardDescription className="text-xs">
             Private internal operations console. Authorized personnel only.
