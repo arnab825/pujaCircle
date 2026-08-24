@@ -50,6 +50,7 @@ import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminPriestsPage from '@/pages/admin/AdminPriestsPage';
 import AdminPriestDetailsPage from '@/pages/admin/AdminPriestDetailsPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminProfilePage from '@/pages/admin/AdminProfilePage';
 
 export const appRouter = createBrowserRouter([
   // ==========================================
@@ -348,6 +349,7 @@ export const appRouter = createBrowserRouter([
       { path: 'priests', element: <AdminPriestsPage /> },
       { path: 'priests/:id', element: <AdminPriestDetailsPage /> },
       { path: 'users', element: <AdminUsersPage /> },
+      { path: 'profile', element: <AdminProfilePage /> },
     ],
   },
 
