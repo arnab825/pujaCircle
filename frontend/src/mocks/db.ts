@@ -449,12 +449,6 @@ export const mockDashboardStats = {
       { month: 'May', count: 480 },
       { month: 'Jun', count: 550 },
     ],
-    recentActivities: [
-      { text: 'New priest application submitted by Pandit Krishnakant Upadhyay', time: '10 mins ago' },
-      { text: 'New devotee registered with address in Bandra West, Mumbai', time: '25 mins ago' },
-      { text: 'Booking PC-1001 confirmed for Shri Satyanarayan Puja', time: '1 hour ago' },
-      { text: 'Priest Pandit Ramesh Shastri completed Mahashivratri special ritual', time: '3 hours ago' },
-    ],
   },
 };
 
