@@ -1,7 +1,7 @@
 import { Address } from './address.types';
 import { Priest, Ritual, PriestSlot } from './priest.types';
 
-export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'REJECTED';
 export type PaymentMethod = 'OFFLINE_CASH';
 export type PaymentStatus = 'PENDING' | 'PAID_OFFLINE';
 
