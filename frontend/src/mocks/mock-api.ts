@@ -433,7 +433,9 @@ export async function mockGetBookings(userId = 'user-devotee-1'): Promise<Bookin
 
 export async function mockGetBookingById(id: string): Promise<Booking | null> {
   await delay(300);
-  const booking = mockBookings.find((b) => b.id === id);
+  const booking = mockBookings.find(
+    (b) => b.id === id || b.bookingReference?.toLowerCase() === id?.toLowerCase()
+  );
   if (!booking) return null;
   return {
     ...booking,
@@ -446,7 +448,9 @@ export async function mockGetBookingById(id: string): Promise<Booking | null> {
 
 export async function mockCancelBooking(bookingId: string, reason: string): Promise<Booking> {
   await delay(300);
-  const booking = mockBookings.find((b) => b.id === bookingId);
+  const booking = mockBookings.find(
+    (b) => b.id === bookingId || b.bookingReference?.toLowerCase() === bookingId?.toLowerCase()
+  );
   if (!booking) throw new Error('Booking not found');
 
   booking.status = 'CANCELLED';
