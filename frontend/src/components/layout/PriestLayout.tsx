@@ -39,11 +39,11 @@ export const PriestLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-muted/20">
-      {/* Priest Sidebar */}
-      <aside className="w-64 border-r bg-card flex-col justify-between hidden md:flex">
-        <div>
+      {/* Priest Sidebar - Fixed / Non-scrollable with page */}
+      <aside className="fixed inset-y-0 left-0 z-30 w-64 border-r bg-card flex flex-col justify-between hidden md:flex h-screen">
+        <div className="flex-1 overflow-y-auto">
           {/* Workspace Branding */}
-          <div className="h-16 border-b flex items-center gap-2 px-6">
+          <div className="h-16 border-b flex items-center gap-2 px-6 shrink-0 bg-card">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <Sparkles className="h-4 w-4" />
             </div>
@@ -82,7 +82,7 @@ export const PriestLayout: React.FC = () => {
         </div>
 
         {/* Sidebar Footer User Info & Logout */}
-        <div className="p-4 border-t space-y-3">
+        <div className="p-4 border-t space-y-3 shrink-0 bg-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-foreground truncate max-w-32.5">
@@ -105,10 +105,10 @@ export const PriestLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area - Shifted for fixed sidebar */}
+      <div className="flex-1 flex flex-col min-w-0 md:pl-64">
         {/* Top Header Bar */}
-        <header className="h-16 border-b bg-card flex items-center justify-between px-6">
+        <header className="sticky top-0 z-20 h-16 border-b bg-card/95 backdrop-blur-xs flex items-center justify-between px-6">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-foreground">
               Purohit Portal
