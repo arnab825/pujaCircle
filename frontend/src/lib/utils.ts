@@ -175,3 +175,51 @@ export function getBookingStatusColor(status: BookingStatus): {
       };
   }
 }
+
+/**
+ * Check if a booking deadline has expired
+ */
+export function isBookingExpired(deadline: string | undefined | null): boolean {
+  if (!deadline) return false;
+  return new Date(deadline).getTime() < Date.now();
+}
+
+/**
+ * Get dashboard / default home path based on user role
+ */
+export function getRoleHomePath(role: 'USER' | 'PRIEST' | 'ADMIN' | undefined | null): string {
+  switch (role) {
+    case 'PRIEST':
+      return '/priest/dashboard';
+    case 'ADMIN':
+      return '/admin/dashboard';
+    case 'USER':
+    default:
+      return '/';
+  }
+}
+
+/**
+ * Clean and format 10-digit Indian phone number
+ */
+export function normalizePhoneNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `+91${digits}`;
+  }
+  if (digits.length === 12 && digits.startsWith('91')) {
+    return `+${digits}`;
+  }
+  return phone.trim();
+}
+
+/**
+ * Normalize and title-case service/ritual names
+ */
+export function normalizeServiceName(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
