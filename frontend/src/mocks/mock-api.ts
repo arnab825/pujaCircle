@@ -410,7 +410,16 @@ export async function mockCreateAddress(
 
   const validated = parseResult.data;
 
-  if (validated.isDefault) {
+  // Enforce maximum 2 addresses rule
+  const userAddresses = mockDb.addresses.filter((a) => a.userId === userId);
+  if (userAddresses.length >= 2) {
+    return {
+      success: false,
+      message: 'You cannot add more than 2 addresses. Please edit or delete an existing address.',
+    };
+  }
+
+  if (validated.isDefault || userAddresses.length === 0) {
     mockDb.addresses.forEach((a) => {
       if (a.userId === userId) a.isDefault = false;
     });
@@ -434,7 +443,7 @@ export async function mockCreateAddress(
     district: validated.district,
     state: validated.state,
     country: validated.country || 'India',
-    isDefault: validated.isDefault ?? true,
+    isDefault: validated.isDefault !== undefined ? validated.isDefault : userAddresses.length === 0,
     createdAt: new Date().toISOString(),
   };
 
@@ -447,6 +456,29 @@ export async function mockCreateAddress(
     success: true,
     data: deepClone(newAddress),
     message: 'Address saved successfully!',
+  };
+}
+
+export async function mockSetDefaultAddress(
+  userId: string,
+  addressId: string
+): Promise<{ success: boolean; data?: Address; message: string }> {
+  await delay(250);
+  const target = mockDb.addresses.find((a) => a.id === addressId && a.userId === userId);
+  if (!target) {
+    return { success: false, message: 'Address not found or unauthorized.' };
+  }
+
+  mockDb.addresses.forEach((a) => {
+    if (a.userId === userId) {
+      a.isDefault = a.id === addressId;
+    }
+  });
+
+  return {
+    success: true,
+    data: deepClone(target),
+    message: 'Default address updated successfully.',
   };
 }
 
@@ -505,7 +537,15 @@ export async function mockDeleteAddress(
   const idx = mockDb.addresses.findIndex((a) => a.id === addressId && a.userId === userId);
   if (idx === -1) return { success: false, message: 'Address not found or unauthorized.' };
 
+  const wasDefault = mockDb.addresses[idx].isDefault;
   mockDb.addresses.splice(idx, 1);
+
+  // If deleted was default, make the remaining one default
+  if (wasDefault) {
+    const remaining = mockDb.addresses.find((a) => a.userId === userId);
+    if (remaining) remaining.isDefault = true;
+  }
+
   return { success: true, message: 'Address deleted successfully.' };
 }
 
