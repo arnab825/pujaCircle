@@ -1,18 +1,7 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { AuthUser, LoginCredentials } from '@/types/auth.types';
 import { authApi } from '@/api/auth.api';
-
-const STORAGE_KEY = 'pujacircle-mock-auth';
-
-// Helper to read initial saved user from localStorage
-function getSavedUser(): AuthUser | null {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : null;
-  } catch {
-    return null;
-  }
-}
 
 interface AuthState {
   user: AuthUser | null;
@@ -20,67 +9,58 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
 
-  // Simple actions
+  // Actions
   login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
   setUser: (user: AuthUser | null) => void;
   clearError: () => void;
 }
 
-const initialUser = getSavedUser();
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: initialUser,
-  isAuthenticated: initialUser !== null,
-  isLoading: false,
-  error: null,
+      login: async (credentials: LoginCredentials) => {
+        set({ isLoading: true, error: null });
 
-  login: async (credentials: LoginCredentials) => {
-    set({ isLoading: true, error: null });
-
-    try {
-      const response = await authApi.login(credentials);
-
-      if (response.success && response.data?.user) {
-        const user = response.data.user;
         try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+          const response = await authApi.login(credentials);
+
+          if (response.success && response.data?.user) {
+            const user = response.data.user;
+            set({ user, isAuthenticated: true, isLoading: false, error: null });
+            return true;
+          } else {
+            set({ error: response.message || 'Login failed', isLoading: false });
+            return false;
+          }
         } catch {
-          // Continue if localStorage is unavailable
+          set({ error: 'An unexpected error occurred during sign-in. Please try again.', isLoading: false });
+          return false;
         }
-        set({ user, isAuthenticated: true, isLoading: false, error: null });
-        return true;
-      } else {
-        set({ error: response.message, isLoading: false });
-        return false;
-      }
-    } catch {
-      set({ error: 'An error occurred during login. Please try again.', isLoading: false });
-      return false;
-    }
-  },
+      },
 
-  logout: () => {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // Continue
-    }
-    set({ user: null, isAuthenticated: false, error: null });
-  },
+      logout: () => {
+        set({ user: null, isAuthenticated: false, error: null });
+      },
 
-  setUser: (user: AuthUser | null) => {
-    try {
-      if (user) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      } else {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch {
-      // Continue
-    }
-    set({ user, isAuthenticated: user !== null });
-  },
+      setUser: (user: AuthUser | null) => {
+        set({ user, isAuthenticated: user !== null });
+      },
 
-  clearError: () => set({ error: null }),
-}));
+      clearError: () => set({ error: null }),
+    }),
+    {
+      name: 'pujacircle-auth-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
+    }
+  )
+);

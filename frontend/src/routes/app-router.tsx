@@ -1,3 +1,4 @@
+import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { PriestLayout } from '@/components/layout/PriestLayout';
@@ -5,57 +6,70 @@ import { AdminLayout } from '@/components/layout/AdminLayout';
 import { ProtectedRoute } from '@/components/common/ProtectedRoute';
 import { PublicRouteGuard } from '@/components/common/PublicRouteGuard';
 import { GuestOnlyRoute } from '@/components/common/GuestOnlyRoute';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-// Marketing & Public Pages
-import HomePage from '@/pages/public/HomePage';
-import AboutPage from '@/pages/public/AboutPage';
-import ContactPage from '@/pages/public/ContactPage';
+// Helper component for lazy-loaded route suspense
+const LazyPage = (Component: React.ComponentType) => (
+  <Suspense
+    fallback={
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <LoadingSpinner size="md" label="Loading..." />
+      </div>
+    }
+  >
+    <Component />
+  </Suspense>
+);
 
-// User Auth Pages
-import UserLoginPage from '@/pages/auth/user/UserLoginPage';
-import UserRegisterPage from '@/pages/auth/user/UserRegisterPage';
-import UserForgotPasswordPage from '@/pages/auth/user/UserForgotPasswordPage';
-import UserResetPasswordPage from '@/pages/auth/user/UserResetPasswordPage';
-import UserVerifyPhonePage from '@/pages/auth/user/UserVerifyPhonePage';
-import UserVerifyEmailPage from '@/pages/auth/user/UserVerifyEmailPage';
+// Marketing & Public Pages (Lazy Loaded)
+const HomePage = lazy(() => import('@/pages/public/HomePage'));
+const AboutPage = lazy(() => import('@/pages/public/AboutPage'));
+const ContactPage = lazy(() => import('@/pages/public/ContactPage'));
 
-// Priest Auth Pages
-import PriestLoginPage from '@/pages/auth/priest/PriestLoginPage';
-import PriestRegisterPage from '@/pages/auth/priest/PriestRegisterPage';
-import PriestForgotPasswordPage from '@/pages/auth/priest/PriestForgotPasswordPage';
-import PriestResetPasswordPage from '@/pages/auth/priest/PriestResetPasswordPage';
-import PriestVerifyPhonePage from '@/pages/auth/priest/PriestVerifyPhonePage';
-import PriestVerifyEmailPage from '@/pages/auth/priest/PriestVerifyEmailPage';
+// User Auth Pages (Lazy Loaded)
+const UserLoginPage = lazy(() => import('@/pages/auth/user/UserLoginPage'));
+const UserRegisterPage = lazy(() => import('@/pages/auth/user/UserRegisterPage'));
+const UserForgotPasswordPage = lazy(() => import('@/pages/auth/user/UserForgotPasswordPage'));
+const UserResetPasswordPage = lazy(() => import('@/pages/auth/user/UserResetPasswordPage'));
+const UserVerifyPhonePage = lazy(() => import('@/pages/auth/user/UserVerifyPhonePage'));
+const UserVerifyEmailPage = lazy(() => import('@/pages/auth/user/UserVerifyEmailPage'));
 
-// Admin Auth Page (Private / Hidden)
-import AdminLoginPage from '@/pages/auth/admin/AdminLoginPage';
+// Priest Auth Pages (Lazy Loaded)
+const PriestLoginPage = lazy(() => import('@/pages/auth/priest/PriestLoginPage'));
+const PriestRegisterPage = lazy(() => import('@/pages/auth/priest/PriestRegisterPage'));
+const PriestForgotPasswordPage = lazy(() => import('@/pages/auth/priest/PriestForgotPasswordPage'));
+const PriestResetPasswordPage = lazy(() => import('@/pages/auth/priest/PriestResetPasswordPage'));
+const PriestVerifyPhonePage = lazy(() => import('@/pages/auth/priest/PriestVerifyPhonePage'));
+const PriestVerifyEmailPage = lazy(() => import('@/pages/auth/priest/PriestVerifyEmailPage'));
 
-// Authenticated Customer Pages (USER Role Only)
-import RitualsPage from '@/pages/public/RitualsPage';
-import PriestListingPage from '@/pages/public/PriestListingPage';
-import PriestDetailsPage from '@/pages/public/PriestDetailsPage';
-import ProfilePage from '@/pages/user/ProfilePage';
-import AddressesPage from '@/pages/user/AddressesPage';
-import BookingsPage from '@/pages/user/BookingsPage';
-import BookingDetailsPage from '@/pages/user/BookingDetailsPage';
+// Admin Auth Page (Lazy Loaded)
+const AdminLoginPage = lazy(() => import('@/pages/auth/admin/AdminLoginPage'));
 
-// Priest Workspace Pages (PRIEST Role Only)
-import PriestDashboardPage from '@/pages/priest/PriestDashboardPage';
-import PriestProfilePage from '@/pages/priest/PriestProfilePage';
-import PriestAvailabilityPage from '@/pages/priest/PriestAvailabilityPage';
-import PriestBookingsPage from '@/pages/priest/PriestBookingsPage';
+// Customer Features (Lazy Loaded)
+const RitualsPage = lazy(() => import('@/pages/public/RitualsPage'));
+const PriestListingPage = lazy(() => import('@/pages/public/PriestListingPage'));
+const PriestDetailsPage = lazy(() => import('@/pages/public/PriestDetailsPage'));
+const ProfilePage = lazy(() => import('@/pages/user/ProfilePage'));
+const AddressesPage = lazy(() => import('@/pages/user/AddressesPage'));
+const BookingsPage = lazy(() => import('@/pages/user/BookingsPage'));
+const BookingDetailsPage = lazy(() => import('@/pages/user/BookingDetailsPage'));
 
-// Admin Workspace Pages (ADMIN Role Only)
-import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
-import AdminPriestsPage from '@/pages/admin/AdminPriestsPage';
-import AdminPriestDetailsPage from '@/pages/admin/AdminPriestDetailsPage';
-import AdminUsersPage from '@/pages/admin/AdminUsersPage';
-import AdminProfilePage from '@/pages/admin/AdminProfilePage';
+// Priest Workspace (Lazy Loaded)
+const PriestDashboardPage = lazy(() => import('@/pages/priest/PriestDashboardPage'));
+const PriestProfilePage = lazy(() => import('@/pages/priest/PriestProfilePage'));
+const PriestAvailabilityPage = lazy(() => import('@/pages/priest/PriestAvailabilityPage'));
+const PriestBookingsPage = lazy(() => import('@/pages/priest/PriestBookingsPage'));
+
+// Admin Workspace (Lazy Loaded)
+const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
+const AdminPriestsPage = lazy(() => import('@/pages/admin/AdminPriestsPage'));
+const AdminPriestDetailsPage = lazy(() => import('@/pages/admin/AdminPriestDetailsPage'));
+const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
+const AdminProfilePage = lazy(() => import('@/pages/admin/AdminProfilePage'));
 
 export const appRouter = createBrowserRouter([
   // ==========================================
-  // 1. PUBLIC WEBSITE & CONSUMER EXPERIENCE (PublicLayout)
-  // Protected from PRIEST and ADMIN workspaces
+  // 1. PUBLIC WEBSITE & CONSUMER EXPERIENCE
   // ==========================================
   {
     path: '/',
@@ -65,33 +79,12 @@ export const appRouter = createBrowserRouter([
       </PublicRouteGuard>
     ),
     children: [
-      // Marketing Information Routes (Unauthenticated Visitors Only)
-      {
-        index: true,
-        element: (
-          <GuestOnlyRoute>
-            <HomePage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'about',
-        element: (
-          <GuestOnlyRoute>
-            <AboutPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'contact',
-        element: (
-          <GuestOnlyRoute>
-            <ContactPage />
-          </GuestOnlyRoute>
-        ),
-      },
+      // Marketing
+      { index: true, element: <GuestOnlyRoute>{LazyPage(HomePage)}</GuestOnlyRoute> },
+      { path: 'about', element: <GuestOnlyRoute>{LazyPage(AboutPage)}</GuestOnlyRoute> },
+      { path: 'contact', element: <GuestOnlyRoute>{LazyPage(ContactPage)}</GuestOnlyRoute> },
 
-      // Legacy/Root auth aliases redirecting to user auth
+      // Legacy & Convenience Auth Redirects
       { path: 'login', element: <Navigate to="/auth/user/login" replace /> },
       { path: 'register', element: <Navigate to="/auth/user/register" replace /> },
       { path: 'auth/login', element: <Navigate to="/auth/user/login" replace /> },
@@ -100,220 +93,42 @@ export const appRouter = createBrowserRouter([
       { path: 'reset-password', element: <Navigate to="/auth/user/reset-password" replace /> },
       { path: 'verify-otp', element: <Navigate to="/auth/user/verify-phone" replace /> },
 
-      // ==========================================
-      // USER AUTHENTICATION ROUTES (/auth/user/*)
-      // ==========================================
-      {
-        path: 'auth/user/login',
-        element: (
-          <GuestOnlyRoute>
-            <UserLoginPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/user/register',
-        element: (
-          <GuestOnlyRoute>
-            <UserRegisterPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/user/verify-phone',
-        element: (
-          <GuestOnlyRoute>
-            <UserVerifyPhonePage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/user/verify-email',
-        element: (
-          <GuestOnlyRoute>
-            <UserVerifyEmailPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/user/forgot-password',
-        element: (
-          <GuestOnlyRoute>
-            <UserForgotPasswordPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/user/reset-password',
-        element: (
-          <GuestOnlyRoute>
-            <UserResetPasswordPage />
-          </GuestOnlyRoute>
-        ),
-      },
+      // Devotee Auth Routes
+      { path: 'auth/user/login', element: <GuestOnlyRoute>{LazyPage(UserLoginPage)}</GuestOnlyRoute> },
+      { path: 'auth/user/register', element: <GuestOnlyRoute>{LazyPage(UserRegisterPage)}</GuestOnlyRoute> },
+      { path: 'auth/user/verify-phone', element: <GuestOnlyRoute>{LazyPage(UserVerifyPhonePage)}</GuestOnlyRoute> },
+      { path: 'auth/user/verify-email', element: <GuestOnlyRoute>{LazyPage(UserVerifyEmailPage)}</GuestOnlyRoute> },
+      { path: 'auth/user/forgot-password', element: <GuestOnlyRoute>{LazyPage(UserForgotPasswordPage)}</GuestOnlyRoute> },
+      { path: 'auth/user/reset-password', element: <GuestOnlyRoute>{LazyPage(UserResetPasswordPage)}</GuestOnlyRoute> },
 
-      // ==========================================
-      // PRIEST AUTHENTICATION ROUTES (/auth/priest/*)
-      // ==========================================
-      {
-        path: 'auth/priest/login',
-        element: (
-          <GuestOnlyRoute>
-            <PriestLoginPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/priest/register',
-        element: (
-          <GuestOnlyRoute>
-            <PriestRegisterPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/priest/verify-phone',
-        element: (
-          <GuestOnlyRoute>
-            <PriestVerifyPhonePage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/priest/verify-email',
-        element: (
-          <GuestOnlyRoute>
-            <PriestVerifyEmailPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/priest/forgot-password',
-        element: (
-          <GuestOnlyRoute>
-            <PriestForgotPasswordPage />
-          </GuestOnlyRoute>
-        ),
-      },
-      {
-        path: 'auth/priest/reset-password',
-        element: (
-          <GuestOnlyRoute>
-            <PriestResetPasswordPage />
-          </GuestOnlyRoute>
-        ),
-      },
+      // Priest Auth Routes
+      { path: 'auth/priest/login', element: <GuestOnlyRoute>{LazyPage(PriestLoginPage)}</GuestOnlyRoute> },
+      { path: 'auth/priest/register', element: <GuestOnlyRoute>{LazyPage(PriestRegisterPage)}</GuestOnlyRoute> },
+      { path: 'auth/priest/verify-phone', element: <GuestOnlyRoute>{LazyPage(PriestVerifyPhonePage)}</GuestOnlyRoute> },
+      { path: 'auth/priest/verify-email', element: <GuestOnlyRoute>{LazyPage(PriestVerifyEmailPage)}</GuestOnlyRoute> },
+      { path: 'auth/priest/forgot-password', element: <GuestOnlyRoute>{LazyPage(PriestForgotPasswordPage)}</GuestOnlyRoute> },
+      { path: 'auth/priest/reset-password', element: <GuestOnlyRoute>{LazyPage(PriestResetPasswordPage)}</GuestOnlyRoute> },
 
-      // ==========================================
-      // ADMIN AUTHENTICATION ROUTE (/auth/admin/login)
-      // (Private / Hidden Console Login)
-      // ==========================================
-      {
-        path: 'auth/admin/login',
-        element: (
-          <GuestOnlyRoute>
-            <AdminLoginPage />
-          </GuestOnlyRoute>
-        ),
-      },
+      // Admin Auth Route
+      { path: 'auth/admin/login', element: <GuestOnlyRoute>{LazyPage(AdminLoginPage)}</GuestOnlyRoute> },
 
-      // ==========================================
-      // CUSTOMER-ONLY FEATURES (USER Role Only)
-      // ==========================================
-      {
-        path: 'rituals',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <RitualsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'priests',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <PriestListingPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'priests/:id',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <PriestDetailsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'profile',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <ProfilePage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'user/profile',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <ProfilePage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'addresses',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <AddressesPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'user/addresses',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <AddressesPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'bookings',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <BookingsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'user/bookings',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <BookingsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'bookings/:id',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <BookingDetailsPage />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'user/bookings/:id',
-        element: (
-          <ProtectedRoute allowedRoles={['USER']}>
-            <BookingDetailsPage />
-          </ProtectedRoute>
-        ),
-      },
+      // Devotee Customer Features (USER Role Only)
+      { path: 'rituals', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(RitualsPage)}</ProtectedRoute> },
+      { path: 'priests', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(PriestListingPage)}</ProtectedRoute> },
+      { path: 'priests/:id', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(PriestDetailsPage)}</ProtectedRoute> },
+      { path: 'profile', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(ProfilePage)}</ProtectedRoute> },
+      { path: 'user/profile', element: <Navigate to="/profile" replace /> },
+      { path: 'addresses', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(AddressesPage)}</ProtectedRoute> },
+      { path: 'user/addresses', element: <Navigate to="/addresses" replace /> },
+      { path: 'bookings', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(BookingsPage)}</ProtectedRoute> },
+      { path: 'user/bookings', element: <Navigate to="/bookings" replace /> },
+      { path: 'bookings/:id', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(BookingDetailsPage)}</ProtectedRoute> },
+      { path: 'user/bookings/:id', element: <Navigate to="/bookings/:id" replace /> },
     ],
   },
 
   // ==========================================
-  // 2. PRIEST WORKSPACE (PriestLayout)
-  // Protected strictly for PRIEST role
+  // 2. PRIEST WORKSPACE (PRIEST Role Only)
   // ==========================================
   {
     path: '/priest',
@@ -324,17 +139,16 @@ export const appRouter = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Navigate to="/priest/dashboard" replace /> },
-      { path: 'dashboard', element: <PriestDashboardPage /> },
-      { path: 'profile', element: <PriestProfilePage /> },
-      { path: 'availability', element: <PriestAvailabilityPage /> },
-      { path: 'bookings', element: <PriestBookingsPage /> },
-      { path: 'bookings/:id', element: <PriestBookingsPage /> },
+      { path: 'dashboard', element: LazyPage(PriestDashboardPage) },
+      { path: 'profile', element: LazyPage(PriestProfilePage) },
+      { path: 'availability', element: LazyPage(PriestAvailabilityPage) },
+      { path: 'bookings', element: LazyPage(PriestBookingsPage) },
+      { path: 'bookings/:id', element: LazyPage(PriestBookingsPage) },
     ],
   },
 
   // ==========================================
-  // 3. ADMIN WORKSPACE (AdminLayout)
-  // Protected strictly for ADMIN role
+  // 3. ADMIN WORKSPACE (ADMIN Role Only)
   // ==========================================
   {
     path: '/admin',
@@ -345,14 +159,14 @@ export const appRouter = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
-      { path: 'dashboard', element: <AdminDashboardPage /> },
-      { path: 'priests', element: <AdminPriestsPage /> },
-      { path: 'priests/:id', element: <AdminPriestDetailsPage /> },
-      { path: 'users', element: <AdminUsersPage /> },
-      { path: 'profile', element: <AdminProfilePage /> },
+      { path: 'dashboard', element: LazyPage(AdminDashboardPage) },
+      { path: 'priests', element: LazyPage(AdminPriestsPage) },
+      { path: 'priests/:id', element: LazyPage(AdminPriestDetailsPage) },
+      { path: 'users', element: LazyPage(AdminUsersPage) },
+      { path: 'profile', element: LazyPage(AdminProfilePage) },
     ],
   },
 
-  // Catch-all route -> redirect to root (PublicRouteGuard will route to role-appropriate home)
+  // Catch-all route
   { path: '*', element: <Navigate to="/" replace /> },
 ]);
