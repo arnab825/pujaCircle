@@ -33,28 +33,31 @@ export const Footer: React.FC = () => {
         <div className="flex items-center gap-4 text-xs">
           {isDevotee ? (
             <>
-              <Link to="/rituals" className="hover:text-primary transition-colors">
-                Rituals
+              <Link to="/user/priests" className="hover:text-primary transition-colors">
+                Find Priests
               </Link>
-              <Link to="/priests" className="hover:text-primary transition-colors">
-                Purohits
+              <Link to="/user/bookings" className="hover:text-primary transition-colors">
+                My Bookings
               </Link>
-              <Link to="/bookings" className="hover:text-primary transition-colors">
-                Bookings
+              <Link to="/user/addresses" className="hover:text-primary transition-colors">
+                Addresses
               </Link>
-              <Link to="/profile" className="hover:text-primary transition-colors">
+              <Link to="/user/profile" className="hover:text-primary transition-colors">
                 Profile
               </Link>
             </>
           ) : (
             <>
+              <Link to="/" className="hover:text-primary transition-colors">
+                Home
+              </Link>
               <Link to="/about" className="hover:text-primary transition-colors">
                 About Us
               </Link>
               <Link to="/contact" className="hover:text-primary transition-colors">
                 Contact
               </Link>
-              <Link to="/auth/priest/login" className="hover:text-primary transition-colors">
+              <Link to="/priest/login" className="hover:text-primary transition-colors font-medium">
                 Purohit Portal
               </Link>
             </>

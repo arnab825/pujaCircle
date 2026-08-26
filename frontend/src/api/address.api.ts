@@ -2,28 +2,23 @@ import * as mockApi from '@/mocks/mock-api';
 import { Address, CreateAddressRequest, UpdateAddressRequest, PincodeLookupResponse, PincodeLocation } from '@/types/address.types';
 
 export const addressApi = {
-  getAddresses: async (userId?: string): Promise<Address[]> => {
-    return mockApi.mockGetAddresses(userId);
+  getAddresses: async (userId: string = 'user-devotee-1'): Promise<Address[]> => {
+    const res = await mockApi.mockGetAddresses(userId);
+    return res.data || [];
   },
 
-  getAddressById: async (id: string): Promise<Address> => {
-    return mockApi.mockGetAddressById(id);
+  createAddress: async (data: CreateAddressRequest, userId: string = 'user-devotee-1'): Promise<Address | undefined> => {
+    const res = await mockApi.mockCreateAddress(userId, data);
+    return res.data;
   },
 
-  createAddress: async (data: CreateAddressRequest, userId?: string): Promise<Address> => {
-    return mockApi.mockCreateAddress(data, userId);
+  updateAddress: async (data: UpdateAddressRequest, userId: string = 'user-devotee-1'): Promise<Address | undefined> => {
+    const res = await mockApi.mockUpdateAddress(userId, data);
+    return res.data;
   },
 
-  updateAddress: async (data: UpdateAddressRequest, userId?: string): Promise<Address> => {
-    return mockApi.mockUpdateAddress(data, userId);
-  },
-
-  deleteAddress: async (id: string, userId?: string): Promise<{ success: boolean; id: string }> => {
-    return mockApi.mockDeleteAddress(id, userId);
-  },
-
-  setDefaultAddress: async (id: string, userId?: string): Promise<Address> => {
-    return mockApi.mockSetDefaultAddress(id, userId);
+  deleteAddress: async (id: string, userId: string = 'user-devotee-1'): Promise<{ success: boolean; message: string }> => {
+    return mockApi.mockDeleteAddress(userId, id);
   },
 
   /**
@@ -44,6 +39,7 @@ export const addressApi = {
             const locations: PincodeLocation[] = data[0].PostOffice.map((po: any) => ({
               postOffice: `${po.Name} Post Office`,
               locality: po.Name,
+              villageTown: po.Name,
               city: po.District || po.Block || po.Circle || 'Unknown',
               district: po.District || 'Unknown',
               state: po.State || 'Unknown',

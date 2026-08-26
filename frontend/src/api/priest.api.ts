@@ -1,59 +1,52 @@
 import * as mockApi from '@/mocks/mock-api';
-import { Priest, PriestFilterParams, PriestSlot, Ritual, PriestRegistrationRequest } from '@/types/priest.types';
+import { Priest, PriestFilterParams, PriestSlot, Ritual } from '@/types/priest.types';
 
 export const priestApi = {
   // Public Approved Priests
   getPriests: async (params?: PriestFilterParams): Promise<Priest[]> => {
-    return mockApi.mockGetPriests(params);
+    const res = await mockApi.mockGetPriests(params);
+    return res.data || [];
   },
 
-  getPriestById: async (id: string): Promise<Priest> => {
-    return mockApi.mockGetPriestById(id);
+  getPriestById: async (id: string): Promise<Priest | undefined> => {
+    const res = await mockApi.mockGetPriestById(id);
+    return res.data;
   },
 
   getPriestSlots: async (priestId: string, date?: string): Promise<PriestSlot[]> => {
-    return mockApi.mockGetPriestSlots(priestId, date);
+    const res = await mockApi.mockGetPriestSlots(priestId, date);
+    return res.data || [];
   },
 
   getRituals: async (): Promise<Ritual[]> => {
-    return mockApi.mockGetRituals();
-  },
-
-  getRitualBySlug: async (slug: string): Promise<Ritual> => {
-    return mockApi.mockGetRitualBySlug(slug);
-  },
-
-  registerPriest: async (data: PriestRegistrationRequest): Promise<Priest> => {
-    return mockApi.mockRegisterPriest(data);
+    const res = await mockApi.mockGetRituals();
+    return res.data || [];
   },
 
   // Admin Management APIs
   getAllPriests: async (params?: PriestFilterParams): Promise<Priest[]> => {
-    return mockApi.mockGetAllPriests(params);
+    const res = await mockApi.mockGetPriests(params ? { ...params, status: 'ALL' } : { status: 'ALL' });
+    return res.data || [];
   },
 
   getPendingPriests: async (): Promise<Priest[]> => {
-    return mockApi.mockGetPendingPriests();
+    const res = await mockApi.mockAdminGetPriests();
+    return res.data?.filter((p) => p.approvalStatus === 'PENDING') || [];
   },
 
-  approvePriest: async (priestId: string): Promise<Priest> => {
-    return mockApi.mockApprovePriest(priestId);
+  approvePriest: async (priestId: string) => {
+    return mockApi.mockAdminApprovePriest(priestId);
   },
 
-  rejectPriest: async (priestId: string, reason?: string): Promise<Priest> => {
-    return mockApi.mockRejectPriest(priestId, reason);
+  rejectPriest: async (priestId: string, reason: string = 'Application incomplete') => {
+    return mockApi.mockAdminRejectPriest(priestId, reason);
   },
 
-
-  banPriest: async (priestId: string, reason?: string): Promise<Priest> => {
-    return mockApi.mockBanPriest(priestId, reason);
+  banPriest: async (priestId: string, reason: string = 'Policy violation') => {
+    return mockApi.mockAdminBanPriest(priestId, reason);
   },
 
-  reactivatePriest: async (priestId: string): Promise<Priest> => {
-    return mockApi.mockReactivatePriest(priestId);
-  },
-
-  deletePriest: async (priestId: string): Promise<{ success: boolean; message: string }> => {
-    return mockApi.mockDeletePriest(priestId);
+  reactivatePriest: async (priestId: string) => {
+    return mockApi.mockAdminUnbanPriest(priestId);
   },
 };

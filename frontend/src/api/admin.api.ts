@@ -1,50 +1,51 @@
 import * as mockApi from '@/mocks/mock-api';
 import { Priest, PriestFilterParams } from '@/types/priest.types';
-import { UserProfile, UserStatus } from '@/types/user.types';
 import { Booking } from '@/types/booking.types';
 
 export const adminApi = {
   // Priest Management
   getAllPriests: async (params?: PriestFilterParams): Promise<Priest[]> => {
-    return mockApi.mockGetAllPriests(params);
+    const res = await mockApi.mockGetPriests(params);
+    return res.data || [];
   },
 
   getPendingPriests: async (): Promise<Priest[]> => {
-    return mockApi.mockGetPendingPriests();
+    const res = await mockApi.mockAdminGetPriests();
+    return res.data?.filter((p) => p.approvalStatus === 'PENDING') || [];
   },
 
-  approvePriest: async (priestId: string): Promise<Priest> => {
-    return mockApi.mockApprovePriest(priestId);
+  approvePriest: async (priestId: string): Promise<{ success: boolean; message: string }> => {
+    return mockApi.mockAdminApprovePriest(priestId);
   },
 
-  rejectPriest: async (priestId: string, reason?: string): Promise<Priest> => {
-    return mockApi.mockRejectPriest(priestId, reason);
+  rejectPriest: async (priestId: string, reason?: string): Promise<{ success: boolean; message: string }> => {
+    return mockApi.mockAdminRejectPriest(priestId, reason || 'Incomplete documentation');
   },
 
-
-  banPriest: async (priestId: string, reason?: string): Promise<Priest> => {
-    return mockApi.mockBanPriest(priestId, reason);
+  banPriest: async (priestId: string, reason?: string): Promise<{ success: boolean; message: string }> => {
+    return mockApi.mockAdminBanPriest(priestId, reason || 'Policy violation');
   },
 
-  reactivatePriest: async (priestId: string): Promise<Priest> => {
-    return mockApi.mockReactivatePriest(priestId);
-  },
-
-  deletePriest: async (priestId: string): Promise<{ success: boolean; message: string }> => {
-    return mockApi.mockDeletePriest(priestId);
+  reactivatePriest: async (priestId: string): Promise<{ success: boolean; message: string }> => {
+    return mockApi.mockAdminUnbanPriest(priestId);
   },
 
   // Devotee / User Management
-  getAllUsers: async (): Promise<UserProfile[]> => {
-    return mockApi.mockGetAllUsers();
+  getAllUsers: async (): Promise<any[]> => {
+    const res = await mockApi.mockAdminGetUsers();
+    return res.data || [];
   },
 
-  updateUserStatus: async (userId: string, status: UserStatus) => {
-    return mockApi.mockUpdateUserStatus(userId, status);
+  updateUserStatus: async (userId: string, status: string, reason?: string) => {
+    if (status === 'BANNED' || status === 'SUSPENDED') {
+      return mockApi.mockAdminBanUser(userId, reason || 'Administrative action');
+    }
+    return mockApi.mockAdminUnbanUser(userId);
   },
 
   // Platform Bookings
   getAllBookings: async (): Promise<Booking[]> => {
-    return mockApi.mockGetAllBookings();
+    const res = await mockApi.mockGetBookings();
+    return res.data || [];
   },
 };

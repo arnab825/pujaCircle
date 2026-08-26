@@ -3,12 +3,15 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { PriestLayout } from '@/components/layout/PriestLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
-import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+import {
+  UserRouteGuard,
+  PriestRouteGuard,
+  AdminRouteGuard,
+} from '@/components/common/RoleRouteGuard';
 import { PublicRouteGuard } from '@/components/common/PublicRouteGuard';
 import { GuestOnlyRoute } from '@/components/common/GuestOnlyRoute';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-// Helper component for lazy-loaded route suspense
 const LazyPage = (Component: React.ComponentType) => (
   <Suspense
     fallback={
@@ -21,12 +24,12 @@ const LazyPage = (Component: React.ComponentType) => (
   </Suspense>
 );
 
-// Marketing & Public Pages (Lazy Loaded)
+// Marketing & Public Pages (Lazy)
 const HomePage = lazy(() => import('@/pages/public/HomePage'));
 const AboutPage = lazy(() => import('@/pages/public/AboutPage'));
 const ContactPage = lazy(() => import('@/pages/public/ContactPage'));
 
-// User Auth Pages (Lazy Loaded)
+// User Auth Pages
 const UserLoginPage = lazy(() => import('@/pages/auth/user/UserLoginPage'));
 const UserRegisterPage = lazy(() => import('@/pages/auth/user/UserRegisterPage'));
 const UserForgotPasswordPage = lazy(() => import('@/pages/auth/user/UserForgotPasswordPage'));
@@ -34,7 +37,7 @@ const UserResetPasswordPage = lazy(() => import('@/pages/auth/user/UserResetPass
 const UserVerifyPhonePage = lazy(() => import('@/pages/auth/user/UserVerifyPhonePage'));
 const UserVerifyEmailPage = lazy(() => import('@/pages/auth/user/UserVerifyEmailPage'));
 
-// Priest Auth Pages (Lazy Loaded)
+// Priest Auth Pages
 const PriestLoginPage = lazy(() => import('@/pages/auth/priest/PriestLoginPage'));
 const PriestRegisterPage = lazy(() => import('@/pages/auth/priest/PriestRegisterPage'));
 const PriestForgotPasswordPage = lazy(() => import('@/pages/auth/priest/PriestForgotPasswordPage'));
@@ -42,11 +45,11 @@ const PriestResetPasswordPage = lazy(() => import('@/pages/auth/priest/PriestRes
 const PriestVerifyPhonePage = lazy(() => import('@/pages/auth/priest/PriestVerifyPhonePage'));
 const PriestVerifyEmailPage = lazy(() => import('@/pages/auth/priest/PriestVerifyEmailPage'));
 
-// Admin Auth Page (Lazy Loaded)
+// Admin Auth Page
 const AdminLoginPage = lazy(() => import('@/pages/auth/admin/AdminLoginPage'));
 
-// Customer Features (Lazy Loaded)
-const RitualsPage = lazy(() => import('@/pages/public/RitualsPage'));
+// Devotee Pages
+const UserHomePage = lazy(() => import('@/pages/user/UserHomePage'));
 const PriestListingPage = lazy(() => import('@/pages/public/PriestListingPage'));
 const PriestDetailsPage = lazy(() => import('@/pages/public/PriestDetailsPage'));
 const ProfilePage = lazy(() => import('@/pages/user/ProfilePage'));
@@ -54,13 +57,15 @@ const AddressesPage = lazy(() => import('@/pages/user/AddressesPage'));
 const BookingsPage = lazy(() => import('@/pages/user/BookingsPage'));
 const BookingDetailsPage = lazy(() => import('@/pages/user/BookingDetailsPage'));
 
-// Priest Workspace (Lazy Loaded)
+// Priest Workspace Pages
 const PriestDashboardPage = lazy(() => import('@/pages/priest/PriestDashboardPage'));
-const PriestProfilePage = lazy(() => import('@/pages/priest/PriestProfilePage'));
+const PriestServicesPage = lazy(() => import('@/pages/priest/PriestServicesPage'));
 const PriestAvailabilityPage = lazy(() => import('@/pages/priest/PriestAvailabilityPage'));
 const PriestBookingsPage = lazy(() => import('@/pages/priest/PriestBookingsPage'));
+const PriestProfilePage = lazy(() => import('@/pages/priest/PriestProfilePage'));
+const PriestPendingApprovalPage = lazy(() => import('@/pages/priest/PriestPendingApprovalPage'));
 
-// Admin Workspace (Lazy Loaded)
+// Admin Workspace Pages
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'));
 const AdminPriestsPage = lazy(() => import('@/pages/admin/AdminPriestsPage'));
 const AdminPriestDetailsPage = lazy(() => import('@/pages/admin/AdminPriestDetailsPage'));
@@ -69,7 +74,7 @@ const AdminProfilePage = lazy(() => import('@/pages/admin/AdminProfilePage'));
 
 export const appRouter = createBrowserRouter([
   // ==========================================
-  // 1. PUBLIC WEBSITE & CONSUMER EXPERIENCE
+  // 1. PUBLIC WEBSITE & DEVOTEE (USER) PORTAL
   // ==========================================
   {
     path: '/',
@@ -79,51 +84,54 @@ export const appRouter = createBrowserRouter([
       </PublicRouteGuard>
     ),
     children: [
-      // Marketing
+      // Public Marketing
       { index: true, element: <GuestOnlyRoute>{LazyPage(HomePage)}</GuestOnlyRoute> },
       { path: 'about', element: <GuestOnlyRoute>{LazyPage(AboutPage)}</GuestOnlyRoute> },
       { path: 'contact', element: <GuestOnlyRoute>{LazyPage(ContactPage)}</GuestOnlyRoute> },
 
-      // Legacy & Convenience Auth Redirects
-      { path: 'login', element: <Navigate to="/auth/user/login" replace /> },
-      { path: 'register', element: <Navigate to="/auth/user/register" replace /> },
-      { path: 'auth/login', element: <Navigate to="/auth/user/login" replace /> },
-      { path: 'auth/register', element: <Navigate to="/auth/user/register" replace /> },
-      { path: 'forgot-password', element: <Navigate to="/auth/user/forgot-password" replace /> },
-      { path: 'reset-password', element: <Navigate to="/auth/user/reset-password" replace /> },
-      { path: 'verify-otp', element: <Navigate to="/auth/user/verify-phone" replace /> },
+      // Guest Auth Routes
+      { path: 'user/login', element: <GuestOnlyRoute>{LazyPage(UserLoginPage)}</GuestOnlyRoute> },
+      { path: 'user/register', element: <GuestOnlyRoute>{LazyPage(UserRegisterPage)}</GuestOnlyRoute> },
+      { path: 'user/forgot-password', element: <GuestOnlyRoute>{LazyPage(UserForgotPasswordPage)}</GuestOnlyRoute> },
+      { path: 'user/reset-password', element: <GuestOnlyRoute>{LazyPage(UserResetPasswordPage)}</GuestOnlyRoute> },
+      { path: 'user/verify-phone', element: <GuestOnlyRoute>{LazyPage(UserVerifyPhonePage)}</GuestOnlyRoute> },
+      { path: 'user/verify-email', element: <GuestOnlyRoute>{LazyPage(UserVerifyEmailPage)}</GuestOnlyRoute> },
 
-      // Devotee Auth Routes
-      { path: 'auth/user/login', element: <GuestOnlyRoute>{LazyPage(UserLoginPage)}</GuestOnlyRoute> },
-      { path: 'auth/user/register', element: <GuestOnlyRoute>{LazyPage(UserRegisterPage)}</GuestOnlyRoute> },
-      { path: 'auth/user/verify-phone', element: <GuestOnlyRoute>{LazyPage(UserVerifyPhonePage)}</GuestOnlyRoute> },
-      { path: 'auth/user/verify-email', element: <GuestOnlyRoute>{LazyPage(UserVerifyEmailPage)}</GuestOnlyRoute> },
-      { path: 'auth/user/forgot-password', element: <GuestOnlyRoute>{LazyPage(UserForgotPasswordPage)}</GuestOnlyRoute> },
-      { path: 'auth/user/reset-password', element: <GuestOnlyRoute>{LazyPage(UserResetPasswordPage)}</GuestOnlyRoute> },
+      { path: 'priest/login', element: <GuestOnlyRoute>{LazyPage(PriestLoginPage)}</GuestOnlyRoute> },
+      { path: 'priest/register', element: <GuestOnlyRoute>{LazyPage(PriestRegisterPage)}</GuestOnlyRoute> },
+      { path: 'priest/forgot-password', element: <GuestOnlyRoute>{LazyPage(PriestForgotPasswordPage)}</GuestOnlyRoute> },
+      { path: 'priest/reset-password', element: <GuestOnlyRoute>{LazyPage(PriestResetPasswordPage)}</GuestOnlyRoute> },
+      { path: 'priest/verify-phone', element: <GuestOnlyRoute>{LazyPage(PriestVerifyPhonePage)}</GuestOnlyRoute> },
+      { path: 'priest/verify-email', element: <GuestOnlyRoute>{LazyPage(PriestVerifyEmailPage)}</GuestOnlyRoute> },
 
-      // Priest Auth Routes
-      { path: 'auth/priest/login', element: <GuestOnlyRoute>{LazyPage(PriestLoginPage)}</GuestOnlyRoute> },
-      { path: 'auth/priest/register', element: <GuestOnlyRoute>{LazyPage(PriestRegisterPage)}</GuestOnlyRoute> },
-      { path: 'auth/priest/verify-phone', element: <GuestOnlyRoute>{LazyPage(PriestVerifyPhonePage)}</GuestOnlyRoute> },
-      { path: 'auth/priest/verify-email', element: <GuestOnlyRoute>{LazyPage(PriestVerifyEmailPage)}</GuestOnlyRoute> },
-      { path: 'auth/priest/forgot-password', element: <GuestOnlyRoute>{LazyPage(PriestForgotPasswordPage)}</GuestOnlyRoute> },
-      { path: 'auth/priest/reset-password', element: <GuestOnlyRoute>{LazyPage(PriestResetPasswordPage)}</GuestOnlyRoute> },
+      { path: 'admin/login', element: <GuestOnlyRoute>{LazyPage(AdminLoginPage)}</GuestOnlyRoute> },
 
-      // Admin Auth Route
-      { path: 'auth/admin/login', element: <GuestOnlyRoute>{LazyPage(AdminLoginPage)}</GuestOnlyRoute> },
+      // Legacy /auth/* aliases
+      { path: 'auth/user/login', element: <Navigate to="/user/login" replace /> },
+      { path: 'auth/user/register', element: <Navigate to="/user/register" replace /> },
+      { path: 'auth/user/forgot-password', element: <Navigate to="/user/forgot-password" replace /> },
+      { path: 'auth/user/reset-password', element: <Navigate to="/user/reset-password" replace /> },
+      { path: 'auth/priest/login', element: <Navigate to="/priest/login" replace /> },
+      { path: 'auth/priest/register', element: <Navigate to="/priest/register" replace /> },
+      { path: 'auth/admin/login', element: <Navigate to="/admin/login" replace /> },
+      { path: 'login', element: <Navigate to="/user/login" replace /> },
+      { path: 'register', element: <Navigate to="/user/register" replace /> },
 
-      // Devotee Customer Features (USER Role Only)
-      { path: 'rituals', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(RitualsPage)}</ProtectedRoute> },
-      { path: 'priests', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(PriestListingPage)}</ProtectedRoute> },
-      { path: 'priests/:id', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(PriestDetailsPage)}</ProtectedRoute> },
-      { path: 'profile', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(ProfilePage)}</ProtectedRoute> },
-      { path: 'user/profile', element: <Navigate to="/profile" replace /> },
-      { path: 'addresses', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(AddressesPage)}</ProtectedRoute> },
-      { path: 'user/addresses', element: <Navigate to="/addresses" replace /> },
-      { path: 'bookings', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(BookingsPage)}</ProtectedRoute> },
-      { path: 'user/bookings', element: <Navigate to="/bookings" replace /> },
-      { path: 'bookings/:id', element: <ProtectedRoute allowedRoles={['USER']}>{LazyPage(BookingDetailsPage)}</ProtectedRoute> },
-      { path: 'user/bookings/:id', element: <Navigate to="/bookings/:id" replace /> },
+      // Canonical Devotee Features (USER Role Only)
+      { path: 'user/home', element: <UserRouteGuard>{LazyPage(UserHomePage)}</UserRouteGuard> },
+      { path: 'user/priests', element: <UserRouteGuard>{LazyPage(PriestListingPage)}</UserRouteGuard> },
+      { path: 'user/priests/:id', element: <UserRouteGuard>{LazyPage(PriestDetailsPage)}</UserRouteGuard> },
+      { path: 'user/bookings', element: <UserRouteGuard>{LazyPage(BookingsPage)}</UserRouteGuard> },
+      { path: 'user/bookings/:id', element: <UserRouteGuard>{LazyPage(BookingDetailsPage)}</UserRouteGuard> },
+      { path: 'user/addresses', element: <UserRouteGuard>{LazyPage(AddressesPage)}</UserRouteGuard> },
+      { path: 'user/profile', element: <UserRouteGuard>{LazyPage(ProfilePage)}</UserRouteGuard> },
+
+      // Backward-Compatible Redirects
+      { path: 'rituals', element: <Navigate to="/user/priests" replace /> },
+      { path: 'priests', element: <Navigate to="/user/priests" replace /> },
+      { path: 'bookings', element: <Navigate to="/user/bookings" replace /> },
+      { path: 'addresses', element: <Navigate to="/user/addresses" replace /> },
+      { path: 'profile', element: <Navigate to="/user/profile" replace /> },
     ],
   },
 
@@ -133,17 +141,19 @@ export const appRouter = createBrowserRouter([
   {
     path: '/priest',
     element: (
-      <ProtectedRoute allowedRoles={['PRIEST']}>
+      <PriestRouteGuard>
         <PriestLayout />
-      </ProtectedRoute>
+      </PriestRouteGuard>
     ),
     children: [
       { index: true, element: <Navigate to="/priest/dashboard" replace /> },
       { path: 'dashboard', element: LazyPage(PriestDashboardPage) },
-      { path: 'profile', element: LazyPage(PriestProfilePage) },
+      { path: 'services', element: LazyPage(PriestServicesPage) },
       { path: 'availability', element: LazyPage(PriestAvailabilityPage) },
       { path: 'bookings', element: LazyPage(PriestBookingsPage) },
       { path: 'bookings/:id', element: LazyPage(PriestBookingsPage) },
+      { path: 'profile', element: LazyPage(PriestProfilePage) },
+      { path: 'pending-approval', element: LazyPage(PriestPendingApprovalPage) },
     ],
   },
 
@@ -153,9 +163,9 @@ export const appRouter = createBrowserRouter([
   {
     path: '/admin',
     element: (
-      <ProtectedRoute allowedRoles={['ADMIN']}>
+      <AdminRouteGuard>
         <AdminLayout />
-      </ProtectedRoute>
+      </AdminRouteGuard>
     ),
     children: [
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
@@ -167,6 +177,6 @@ export const appRouter = createBrowserRouter([
     ],
   },
 
-  // Catch-all route
+  // Catch-all
   { path: '*', element: <Navigate to="/" replace /> },
 ]);

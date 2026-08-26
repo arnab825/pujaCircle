@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 import { mockGetBookingById, mockCancelBooking } from '@/mocks/mock-api';
 import { Booking, BookingStatus } from '@/types/booking.types';
+import { useAuthStore } from '@/store/auth.store';
 
 const QUICK_CANCEL_REASONS = [
   'Schedule clash or change of plans',
@@ -53,6 +54,7 @@ const QUICK_CANCEL_REASONS = [
 const BookingDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -68,8 +70,10 @@ const BookingDetailsPage: React.FC = () => {
     if (!id) return;
     setIsLoading(true);
     try {
-      const data = await mockGetBookingById(id);
-      setBooking(data);
+      const res = await mockGetBookingById(id);
+      if (res.success && res.data) {
+        setBooking(res.data);
+      }
     } catch (err) {
       console.error('Failed to load booking:', err);
       toast.error('Failed to load ceremony booking details.');
@@ -84,7 +88,7 @@ const BookingDetailsPage: React.FC = () => {
 
   // Handle Confirm Cancel
   const handleConfirmCancel = async () => {
-    if (!booking) return;
+    if (!booking || !user) return;
 
     const finalReason =
       selectedReason === 'Other reasons'
@@ -95,12 +99,16 @@ const BookingDetailsPage: React.FC = () => {
 
     setIsCancelling(true);
     try {
-      const updated = await mockCancelBooking(booking.id, finalReason);
-      setBooking(updated);
-      toast.success(`Booking ${booking.bookingReference} cancelled successfully.`, {
-        description: 'The assigned Purohit has been notified of the schedule update.',
-      });
-      setCancelModalOpen(false);
+      const res = await mockCancelBooking(booking.id, user.id, finalReason);
+      if (res.success && res.data) {
+        setBooking(res.data);
+        toast.success(`Booking ${booking.bookingReference} cancelled successfully.`, {
+          description: 'The assigned Purohit has been notified of the schedule update.',
+        });
+        setCancelModalOpen(false);
+      } else {
+        toast.error(res.message || 'Failed to cancel booking.');
+      }
     } catch (err) {
       console.error('Error cancelling booking:', err);
       toast.error('Failed to cancel the ceremony appointment. Please try again.');
@@ -136,36 +144,36 @@ const BookingDetailsPage: React.FC = () => {
     switch (status) {
       case 'CONFIRMED':
         return (
-          <Badge className="bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700/50 hover:bg-amber-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
-            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+          <Badge className="bg-amber-500/15 text-amber-700 border-amber-300 hover:bg-amber-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-600" />
             Confirmed & Scheduled
           </Badge>
         );
       case 'PENDING':
         return (
-          <Badge className="bg-orange-500/15 text-orange-800 dark:text-orange-300 border-orange-300 dark:border-orange-700/50 hover:bg-orange-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
-            <Hourglass className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+          <Badge className="bg-orange-500/15 text-orange-700 border-orange-300 hover:bg-orange-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
+            <Hourglass className="w-3.5 h-3.5 text-orange-600" />
             Pending Purohit Confirmation
           </Badge>
         );
       case 'COMPLETED':
         return (
-          <Badge className="bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700/50 hover:bg-emerald-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
-            <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <Badge className="bg-emerald-500/15 text-emerald-700 border-emerald-300 hover:bg-emerald-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
+            <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-600" />
             Ceremony Completed
           </Badge>
         );
       case 'CANCELLED':
         return (
-          <Badge className="bg-rose-500/15 text-rose-800 dark:text-rose-300 border-rose-300 dark:border-rose-700/50 hover:bg-rose-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
-            <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+          <Badge className="bg-rose-500/15 text-rose-700 border-rose-300 hover:bg-rose-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
+            <XCircle className="w-3.5 h-3.5 text-rose-600" />
             Appointment Cancelled
           </Badge>
         );
       case 'REJECTED':
         return (
-          <Badge className="bg-zinc-500/15 text-zinc-800 dark:text-zinc-300 border-zinc-300 dark:border-zinc-700/50 hover:bg-zinc-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
-            <Ban className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" />
+          <Badge className="bg-zinc-500/15 text-zinc-700 border-zinc-300 hover:bg-zinc-500/20 font-medium text-xs flex items-center gap-1.5 py-1 px-3">
+            <Ban className="w-3.5 h-3.5 text-zinc-600" />
             Declined by Purohit
           </Badge>
         );
@@ -269,7 +277,7 @@ const BookingDetailsPage: React.FC = () => {
       {/* Main Booking Summary Card */}
       <Card className="border-border shadow-xs overflow-hidden bg-card">
         {/* Top Header Banner with Brand Styling */}
-        <div className="p-6 bg-gradient-to-r from-primary/10 via-amber-500/5 to-secondary/10 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="p-6 bg-linear-to-r from-primary/10 via-amber-500/5 to-secondary/10 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <span className="text-[11px] font-mono font-bold px-2.5 py-1 bg-background/90 text-foreground border rounded-md shadow-2xs">
@@ -504,18 +512,18 @@ const BookingDetailsPage: React.FC = () => {
                     </span>
                     <span className="text-xs text-muted-foreground">Cash on Completion</span>
                   </div>
-                  <span className="text-2xl font-bold font-serif text-foreground text-primary">
+                  <span className="text-2xl font-bold font-serif text-primary">
                     ₹{booking.dakshinaAmount?.toLocaleString('en-IN') || '2,100'}
                   </span>
                 </div>
 
                 <div className="space-y-1 text-[11px] text-muted-foreground">
                   <div className="flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
                     <span>No advance online payment required.</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
                     <span>Hand over Dakshina directly to Purohit upon completion of the ritual.</span>
                   </div>
                 </div>

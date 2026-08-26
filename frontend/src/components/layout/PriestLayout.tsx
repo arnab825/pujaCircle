@@ -11,6 +11,7 @@ import {
   Clock,
   UserCheck,
   LogOut,
+  IndianRupee,
 } from "lucide-react";
 
 /**
@@ -25,17 +26,14 @@ export const PriestLayout: React.FC = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/auth/login");
+    navigate("/priest/login");
   };
 
   const navItems = [
     { label: "Dashboard", path: "/priest/dashboard", icon: LayoutDashboard },
-    { label: "Appointments", path: "/priest/bookings", icon: Calendar },
-    {
-      label: "Availability & Slots",
-      path: "/priest/availability",
-      icon: Clock,
-    },
+    { label: "Services & Prices", path: "/priest/services", icon: IndianRupee },
+    { label: "Availability Slots", path: "/priest/availability", icon: Clock },
+    { label: "Appointments Log", path: "/priest/bookings", icon: Calendar },
     { label: "Purohit Profile", path: "/priest/profile", icon: UserCheck },
   ];
 
@@ -50,10 +48,10 @@ export const PriestLayout: React.FC = () => {
               <Sparkles className="h-4 w-4" />
             </div>
             <div>
-              <span className="font-bold text-sm text-brand-maroon">
+              <span className="font-bold text-sm text-foreground font-serif">
                 PujaCircle
               </span>
-              <p className="text-[10px] uppercase font-semibold text-primary">
+              <p className="text-[10px] uppercase font-semibold text-primary font-sans">
                 Purohit Workspace
               </p>
             </div>
@@ -87,10 +85,10 @@ export const PriestLayout: React.FC = () => {
         <div className="p-4 border-t space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-foreground truncate max-w-[130px]">
+              <p className="text-xs font-semibold text-foreground truncate max-w-32.5">
                 {user?.name}
               </p>
-              <p className="text-[11px] text-muted-foreground">{user?.email}</p>
+              <p className="text-[11px] text-muted-foreground">{user?.email || user?.phoneNumber}</p>
             </div>
             <Badge variant="secondary" className="text-[10px] uppercase">
               PRIEST
@@ -125,7 +123,7 @@ export const PriestLayout: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              {user?.email}
+              {user?.phoneNumber || user?.email}
             </span>
             <Button
               variant="ghost"

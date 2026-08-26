@@ -31,17 +31,17 @@ export const AddressModal: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
 
   useEffect(() => {
     if (editingAddress) {
-      setLabel(editingAddress.label);
-      setRecipientName(editingAddress.recipientName);
-      setPhoneNumber(editingAddress.phoneNumber);
-      setHouseBuilding(editingAddress.houseBuilding);
-      setStreet(editingAddress.street);
-      setLocality(editingAddress.locality);
+      setLabel(editingAddress.label || 'HOME');
+      setRecipientName(editingAddress.recipientName || '');
+      setPhoneNumber(editingAddress.phoneNumber || '');
+      setHouseBuilding(editingAddress.houseBuilding || editingAddress.houseNo || '');
+      setStreet(editingAddress.street || '');
+      setLocality(editingAddress.locality || editingAddress.villageTown || '');
       setLandmark(editingAddress.landmark || '');
-      setPincode(editingAddress.pincode);
-      setCity(editingAddress.city);
-      setDistrict(editingAddress.district);
-      setState(editingAddress.state);
+      setPincode(editingAddress.pincode || editingAddress.pinCode || '');
+      setCity(editingAddress.city || '');
+      setDistrict(editingAddress.district || '');
+      setState(editingAddress.state || '');
     } else {
       setLabel('HOME');
       setRecipientName('');

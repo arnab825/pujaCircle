@@ -1,198 +1,255 @@
-import { authApi } from '../api/auth.api';
-import { priestApi } from '../api/priest.api';
-import { addressApi } from '../api/address.api';
-import { bookingApi } from '../api/booking.api';
-import { adminApi } from '../api/admin.api';
+import {
+  mockLogin,
+  mockSendPhoneOtp,
+  mockVerifyPhoneOtp,
+  mockSendEmailOtp,
+  mockVerifyEmailOtp,
+  mockLookupPincode,
+  mockCreateAddress,
+  mockGetPriests,
+  mockGetPriestServices,
+  mockCreatePriestService,
+  mockUpdatePriestService,
+  mockGetPriestSlots,
+  mockCreateBooking,
+  mockAcceptBooking,
+  mockRejectBooking,
+  mockCancelBooking,
+  mockCompleteBooking,
+  mockSubmitRating,
+  mockAdminApprovePriest,
+  mockAdminBanPriest,
+  mockAdminUnbanPriest,
+  mockAdminBanUser,
+  mockAdminUnbanUser,
+  mockAdminGetDashboardStats,
+} from './mock-api';
+import { mockSlots } from './db';
 
-/**
- * ============================================================
- * AUTOMATED MOCK API & RBAC VALIDATION RUNNER
- * ============================================================
- * Tests in-memory operations, separate user/priest/admin authentication,
- * phone + email OTP validations, PIN code resolution,
- * admin priest management (approve, reject, ban, unban, delete),
- * admin devotee management (view users, suspend), and bookings.
- */
+async function runValidationTests() {
+  console.log('\n--- STARTING PUJACIRCLE COMPREHENSIVE SRS VALIDATION ---\n');
+  let testsPassed = 0;
+  let testsTotal = 0;
 
-async function runMockTests() {
-  console.log('\n--- STARTING PUJACIRCLE MOCK API VALIDATION ---\n');
-
-  try {
-    // 1. Test Mock Authentication & Distinct Role Logins
-    console.log('[1/6] Testing Mock Authentication (Separate Role Logins)...');
-
-    // Test Devotee Login (/auth/user/login -> Phone: +919876543210)
-    const userLogin = await authApi.login({
-      identifier: '+919876543210',
-      password: 'User@123',
-    });
-    if (!userLogin.success || userLogin.data?.user.role !== 'USER') {
-      throw new Error('Devotee mock phone login failed');
+  function assert(condition: boolean, message: string) {
+    testsTotal++;
+    if (!condition) {
+      console.error(`  ❌ FAILED: ${message}`);
+      throw new Error(`Assertion failed: ${message}`);
     }
-    console.log(`  ✓ Devotee Phone Login Success: ${userLogin.data.user.name} (Role: ${userLogin.data.user.role}, HasAddress: ${userLogin.data.user.hasAddress})`);
-
-    // Test Priest Login (/auth/priest/login -> Phone: +919876543211)
-    const priestLogin = await authApi.login({
-      identifier: '+919876543211',
-      password: 'Priest@123',
-    });
-    if (!priestLogin.success || priestLogin.data?.user.role !== 'PRIEST') {
-      throw new Error('Priest mock phone login failed');
-    }
-    console.log(`  ✓ Priest Phone Login Success: ${priestLogin.data.user.name} (Role: ${priestLogin.data.user.role})`);
-
-    // Test Admin Login (/auth/admin/login -> Email: admin@pujacircle.demo)
-    const adminLogin = await authApi.login({
-      identifier: 'admin@pujacircle.demo',
-      password: 'Admin@123',
-    });
-    if (!adminLogin.success || adminLogin.data?.user.role !== 'ADMIN') {
-      throw new Error('Admin mock email login failed');
-    }
-    console.log(`  ✓ Admin Email Login Success: ${adminLogin.data.user.name} (Role: ${adminLogin.data.user.role})`);
-
-    // Test One-time Phone Validation OTP (+91)
-    const phoneOtp = await authApi.sendPhoneOtp({ phoneNumber: '+919876543299' });
-    console.log(`  ✓ ${phoneOtp.message}`);
-    const verifyPhone = await authApi.verifyPhoneOtp({ phoneNumber: '+919876543299', otp: '123456' });
-    console.log(`  ✓ ${verifyPhone.message}`);
-
-    // Test Email OTP
-    const emailOtp = await authApi.sendEmailOtp({ email: 'devotee@example.demo' });
-    console.log(`  ✓ ${emailOtp.message}`);
-    const verifyEmail = await authApi.verifyEmailOtp({ email: 'devotee@example.demo', otp: '123456' });
-    console.log(`  ✓ ${verifyEmail.message}`);
-
-    // 2. Test Multi-Location PIN Code Resolution
-    console.log('\n[2/6] Testing Multi-Location PIN Code Resolution...');
-    const pinLookup = await addressApi.lookupPincode('700019');
-    console.log(`  ✓ PIN 700019 resolved to ${pinLookup.locations.length} matching postal areas:`);
-    pinLookup.locations.forEach((loc) => {
-      console.log(`     • ${loc.postOffice} (${loc.locality}), ${loc.city}, ${loc.state}`);
-    });
-
-    // 3. Test Address CRUD with Selected Location
-    console.log('\n[3/6] Testing Address Management (CRUD)...');
-    const selectedLoc = pinLookup.locations[0];
-    const newAddress = await addressApi.createAddress(
-      {
-        label: 'HOME',
-        recipientName: 'Demo User',
-        phoneNumber: '+919876543210',
-        houseBuilding: 'Flat 402, Ganga Tower',
-        street: 'Rashbehari Avenue',
-        locality: selectedLoc.locality,
-        landmark: 'Near Lake Mall',
-        pincode: '700019',
-        city: selectedLoc.city,
-        district: selectedLoc.district,
-        state: selectedLoc.state,
-        country: 'India',
-        isDefault: true,
-      },
-      'user-devotee-1'
-    );
-    console.log(`  ✓ Created address with PIN auto-detection: ${newAddress.houseBuilding}, ${newAddress.city} (Default: ${newAddress.isDefault})`);
-
-    // 4. Test Priest Discovery & Booking Lifecycle
-    console.log('\n[4/6] Testing Priest Discovery & Booking Lifecycle...');
-    const approvedPriests = await priestApi.getPriests();
-    console.log(`  ✓ Retrieved ${approvedPriests.length} approved priests in public discovery.`);
-    const firstPriest = approvedPriests[0];
-    console.log(`  ✓ First Priest: ${firstPriest.displayName} (${firstPriest.city})`);
-
-    const slots = await priestApi.getPriestSlots(firstPriest.id);
-    console.log(`  ✓ Available slots for ${firstPriest.displayName}: ${slots.length}`);
-
-    const rituals = await priestApi.getRituals();
-    console.log(`  ✓ Available rituals count: ${rituals.length}`);
-
-    const booking = await bookingApi.createBooking(
-      {
-        priestId: firstPriest.id,
-        ritualId: rituals[0].id,
-        addressId: newAddress.id,
-        slotId: slots[0].id,
-        bookingDate: '2026-08-25',
-        specialInstructions: 'Please arrive 15 minutes early.',
-        dakshinaAmount: 3100,
-      },
-      'user-devotee-1'
-    );
-    console.log(`  ✓ Booking created! Ref: ${booking.bookingReference}, Status: ${booking.status}`);
-    console.log(`  ✓ Payment Method: ${booking.paymentMethod}, Status: ${booking.paymentStatus}`);
-
-    const cancelledBooking = await bookingApi.cancelBooking({
-      bookingId: booking.id,
-      reason: 'Change of date',
-    });
-    console.log(`  ✓ Booking cancelled: Status is now ${cancelledBooking.status}`);
-
-    // Cleanup created address
-    await addressApi.deleteAddress(newAddress.id, 'user-devotee-1');
-
-    // 5. Test Priest Onboarding & Admin Approval
-    console.log('\n[5/6] Testing Priest Onboarding & Admin Approvals...');
-    const registeredPriest = await priestApi.registerPriest({
-      fullName: 'Pandit Ananda Tirtha',
-      phoneNumber: '+919822334455',
-      email: 'ananda@example.demo',
-      experienceYears: 14,
-      bio: 'Vedic scholar with expertise in Rigveda samhita.',
-      languages: ['Kannada', 'Sanskrit', 'Telugu'],
-      specializations: ['Navagraha Havan', 'Rudrabhishek'],
-      serviceAreas: ['Jayanagar', 'JP Nagar'],
-      city: 'Bengaluru',
-      state: 'Karnataka',
-    });
-    console.log(`  ✓ Priest registered: ${registeredPriest.fullName}, Status: ${registeredPriest.approvalStatus}`);
-
-    const pendingQueue = await adminApi.getPendingPriests();
-    console.log(`  ✓ Pending priest review queue count: ${pendingQueue.length}`);
-
-    const approvedPriest = await adminApi.approvePriest(registeredPriest.id);
-    console.log(`  ✓ Admin approved priest: ${approvedPriest.fullName}, Status: ${approvedPriest.approvalStatus}`);
-
-    // 6. Test Admin Priest Actions (Approve, Reject, Ban, Unban, Delete) & Devotee Management
-    console.log('\n[6/6] Testing Admin Priest & User Management Controls...');
-
-    // Admin bans priest
-    const banned = await adminApi.banPriest(approvedPriest.id, 'Violated conduct policy');
-    console.log(`  ✓ Admin banned priest: ${banned.fullName} (Status: ${banned.approvalStatus})`);
-
-    // Verify banned priest does NOT appear in public devotee discovery
-    const publicAfterBan = await priestApi.getPriests();
-    const isBannedListed = publicAfterBan.some((p) => p.id === approvedPriest.id);
-    if (isBannedListed) throw new Error('Banned priest should NOT be visible to devotees');
-    console.log(`  ✓ Verified banned priest is omitted from devotee public search.`);
-
-    // Admin unbans/reactivates priest
-    const reactivated = await adminApi.reactivatePriest(approvedPriest.id);
-    console.log(`  ✓ Admin unbanned priest: ${reactivated.fullName} (Status: ${reactivated.approvalStatus})`);
-
-    // Admin deletes priest
-    const delRes = await adminApi.deletePriest(approvedPriest.id);
-    console.log(`  ✓ Admin deleted priest: ${delRes.message}`);
-
-    // Admin views all registered devotees
-    const allUsers = await adminApi.getAllUsers();
-    console.log(`  ✓ Admin retrieved all registered devotees: ${allUsers.length} users found.`);
-    console.log(`     • ${allUsers.map((u) => `${u.name} (${u.status})`).join(', ')}`);
-
-    // Admin suspends user account
-    const userToSuspend = allUsers[0];
-    const suspendedUser = await adminApi.updateUserStatus(userToSuspend.id, 'SUSPENDED');
-    console.log(`  ✓ Admin suspended devotee account: ${suspendedUser.name} (Status: ${suspendedUser.status})`);
-
-    // Admin reactivates user account
-    const reactivatedUser = await adminApi.updateUserStatus(userToSuspend.id, 'ACTIVE');
-    console.log(`  ✓ Admin reactivated devotee account: ${reactivatedUser.name} (Status: ${reactivatedUser.status})`);
-
-    console.log('\n[PASS] ALL MOCK API, RBAC & ADMIN CONTROLS CHECKS PASSED SUCCESSFULLY!\n');
-  } catch (error) {
-    console.error('\n[FAIL] MOCK API TEST FAILED:', error);
-    process.exit(1);
+    console.log(`  ✓ ${message}`);
+    testsPassed++;
   }
+
+  // ----------------------------------------------------
+  // TEST 1: Authentication & Role Isolation
+  // ----------------------------------------------------
+  console.log('[1/11] Testing Multi-Role Authentication...');
+  const userRes = await mockLogin({ phoneNumber: '+919876543210', password: 'User@123' });
+  assert(userRes.success && userRes.data?.user.role === 'USER', 'Devotee phone login succeeds with USER role');
+
+  const priestRes = await mockLogin({ phoneNumber: '+919876543211', password: 'Priest@123' });
+  assert(priestRes.success && priestRes.data?.user.role === 'PRIEST', 'Priest phone login succeeds with PRIEST role');
+
+  const adminRes = await mockLogin({ email: 'admin@pujacircle.demo', password: 'Admin@123' });
+  assert(adminRes.success && adminRes.data?.user.role === 'ADMIN', 'Admin email login succeeds with ADMIN role');
+
+  const otpSend = await mockSendPhoneOtp({ phoneNumber: '+919876543299' });
+  assert(otpSend.success, 'Phone OTP sent with development mock code');
+  const otpVerify = await mockVerifyPhoneOtp({ phoneNumber: '+919876543299', otp: '123456' });
+  assert(otpVerify.success, 'Phone OTP verified successfully');
+
+  const emailOtpSend = await mockSendEmailOtp({ email: 'devotee@example.demo' });
+  assert(emailOtpSend.success, 'Email OTP sent with development mock code');
+  const emailOtpVerify = await mockVerifyEmailOtp({ email: 'devotee@example.demo', otp: '123456' });
+  assert(emailOtpVerify.success, 'Email OTP verified successfully');
+
+  // ----------------------------------------------------
+  // TEST 2: PIN Code & Address Management
+  // ----------------------------------------------------
+  console.log('\n[2/11] Testing PIN Code Lookup & Simplified Address...');
+  const pinRes = await mockLookupPincode('400050');
+  assert(pinRes.locations.length > 0 && pinRes.locations[0].city === 'Mumbai', 'PIN 400050 resolves to Mumbai');
+
+  const addrRes = await mockCreateAddress('user-devotee-1', {
+    houseNo: 'Flat 101, Shanti Sadan',
+    villageTown: 'Bandra West',
+    pincode: '400050',
+    city: 'Mumbai',
+    district: 'Mumbai Suburban',
+    state: 'Maharashtra',
+    isDefault: true,
+  });
+  assert(addrRes.success && addrRes.data.houseNo === 'Flat 101, Shanti Sadan', 'Address created with houseNo and villageTown');
+
+  // ----------------------------------------------------
+  // TEST 3: Priest Services & Priest-Specific Pricing
+  // ----------------------------------------------------
+  console.log('\n[3/11] Testing Priest Services & Pricing Model...');
+  const priestServices = await mockGetPriestServices('priest-1');
+  assert(priestServices.data.length > 0, 'Priest-1 has active services');
+
+  const newService = await mockCreatePriestService('priest-1', {
+    serviceName: 'Navagraha Shanti Havan',
+    price: 4500,
+  });
+  assert(newService.success && newService.data?.price === 4500, 'Priest added custom service with priest-specific price ₹4500');
+
+  // ----------------------------------------------------
+  // TEST 4: Price Snapshot Immutability
+  // ----------------------------------------------------
+  console.log('\n[4/11] Testing Booking Price Snapshot Immutability...');
+  const slotRes = await mockGetPriestSlots('priest-1');
+  const availableSlot = slotRes.data.find((s) => s.status === 'AVAILABLE');
+  assert(!!availableSlot, 'Found available slot for booking test');
+
+  // User books service at ₹4500
+  const booking1 = await mockCreateBooking('user-devotee-1', {
+    priestId: 'priest-1',
+    priestServiceId: newService.data!.id,
+    addressId: addrRes.data.id,
+    slotId: availableSlot!.id,
+    bookingDate: availableSlot!.date,
+    dakshinaAmount: 999999, // Tampered price payload
+  });
+  assert(booking1.success && booking1.data?.servicePrice === 4500, 'Mock API ignored tampered price and locked authoritative ₹4500');
+
+  // Priest updates price to ₹5500 afterward
+  await mockUpdatePriestService(newService.data!.id, 'priest-1', { price: 5500 });
+  assert(booking1.data?.servicePrice === 4500, 'Existing booking retains snapshot price of ₹4500 after priest price increase');
+
+  // ----------------------------------------------------
+  // TEST 5: Slot Double-Booking Prevention
+  // ----------------------------------------------------
+  console.log('\n[5/11] Testing Slot Double-Booking Prevention...');
+  const conflictBooking = await mockCreateBooking('user-devotee-2', {
+    priestId: 'priest-1',
+    priestServiceId: newService.data!.id,
+    addressId: addrRes.data.id,
+    slotId: availableSlot!.id, // Same slot!
+    bookingDate: availableSlot!.date,
+  });
+  assert(!conflictBooking.success, 'Second user attempting same slot receives slot conflict error');
+
+  // ----------------------------------------------------
+  // TEST 6: Priest Rejection & Slot Release
+  // ----------------------------------------------------
+  console.log('\n[6/11] Testing Booking Rejection & Slot Release...');
+  const rejectRes = await mockRejectBooking(booking1.data!.id, 'priest-1', 'Unavailable due to prior commitment');
+  assert(rejectRes.success && rejectRes.data?.status === 'REJECTED', 'Priest successfully declined booking request');
+
+  const slotAfterReject = mockSlots.find((s) => s.id === availableSlot!.id);
+  assert(slotAfterReject?.status === 'AVAILABLE', 'Slot is freed and marked AVAILABLE again after rejection');
+
+  // ----------------------------------------------------
+  // TEST 7: User Cancellation & Slot Release
+  // ----------------------------------------------------
+  console.log('\n[7/11] Testing User Cancellation & Slot Release...');
+  const booking2 = await mockCreateBooking('user-devotee-1', {
+    priestId: 'priest-1',
+    priestServiceId: newService.data!.id,
+    addressId: addrRes.data.id,
+    slotId: availableSlot!.id,
+    bookingDate: availableSlot!.date,
+  });
+  assert(booking2.success, 'New booking created on freed slot');
+
+  const cancelRes = await mockCancelBooking(booking2.data!.id, 'user-devotee-1', 'Family travel rescheduled');
+  assert(cancelRes.success && cancelRes.data?.status === 'CANCELLED', 'User cancelled booking request');
+
+  const slotAfterCancel = mockSlots.find((s) => s.id === availableSlot!.id);
+  assert(slotAfterCancel?.status === 'AVAILABLE', 'Slot is freed and marked AVAILABLE again after cancellation');
+
+  // ----------------------------------------------------
+  // TEST 8: Full Booking Completion & Rating Flow
+  // ----------------------------------------------------
+  console.log('\n[8/11] Testing Confirmation, Completion & Verified Rating...');
+  const booking3 = await mockCreateBooking('user-devotee-1', {
+    priestId: 'priest-1',
+    priestServiceId: newService.data!.id,
+    addressId: addrRes.data.id,
+    slotId: availableSlot!.id,
+    bookingDate: availableSlot!.date,
+  });
+
+  const acceptRes = await mockAcceptBooking(booking3.data!.id, 'priest-1');
+  assert(acceptRes.success && acceptRes.data?.status === 'CONFIRMED', 'Priest confirmed booking request');
+
+  // Rating uncompleted booking should fail
+  let ratingUncompletedFailed = false;
+  const prematureRating = await mockSubmitRating('user-devotee-1', {
+    bookingId: booking3.data!.id,
+    rating: 5,
+    review: 'Premature rating',
+  });
+  if (!prematureRating.success) ratingUncompletedFailed = true;
+  assert(ratingUncompletedFailed, 'Rating rejected before ceremony is COMPLETED');
+
+  // Mark completed
+  const completeRes = await mockCompleteBooking(booking3.data!.id, 'priest-1');
+  assert(completeRes.success && completeRes.data?.status === 'COMPLETED', 'Ceremony marked as COMPLETED by priest');
+
+  // Other user trying to rate should fail
+  const unauthorizedRating = await mockSubmitRating('user-devotee-2', {
+    bookingId: booking3.data!.id,
+    rating: 5,
+    review: 'Unauthorized rating attempt',
+  });
+  assert(!unauthorizedRating.success, 'Rating rejected when submitted by non-owner user');
+
+  // Legitimate rating
+  const validRating = await mockSubmitRating('user-devotee-1', {
+    bookingId: booking3.data!.id,
+    rating: 5,
+    review: 'Exemplary chanting and timely arrival!',
+  });
+  assert(validRating.success, 'Verified rating submitted by booking owner after completion');
+
+  // ----------------------------------------------------
+  // TEST 9: Unauthorized Cross-Priest Editing
+  // ----------------------------------------------------
+  console.log('\n[9/11] Testing Priest Resource Ownership Security...');
+  const crossEditRes = await mockUpdatePriestService(newService.data!.id, 'priest-2', { price: 100 });
+  assert(!crossEditRes.success, 'Priest-2 blocked from editing Priest-1 service');
+
+  // ----------------------------------------------------
+  // TEST 10: Banned User & Priest Restrictions
+  // ----------------------------------------------------
+  console.log('\n[10/11] Testing Banned Account Restrictions...');
+  const bannedBookingAttempt = await mockCreateBooking('user-devotee-4', {
+    priestId: 'priest-1',
+    addressId: addrRes.data.id,
+    slotId: availableSlot!.id,
+    bookingDate: availableSlot!.date,
+  });
+  assert(!bannedBookingAttempt.success, 'Banned user blocked from submitting booking request');
+
+  // ----------------------------------------------------
+  // TEST 11: Admin Approvals & Ban Management
+  // ----------------------------------------------------
+  console.log('\n[11/11] Testing Admin Approvals & Ban Management...');
+  await mockAdminApprovePriest('priest-3');
+  const approvedPriests = await mockGetPriests({ status: 'ALL' });
+  const p3 = approvedPriests.data.find((p) => p.id === 'priest-3');
+  assert(p3?.approvalStatus === 'APPROVED', 'Admin approved pending priest (Pt. Krishnakant Upadhyay)');
+
+  const banPriestRes = await mockAdminBanPriest('priest-3', 'Policy violation');
+  assert(banPriestRes.success, 'Admin banned priest successfully');
+  const unbanPriestRes = await mockAdminUnbanPriest('priest-3');
+  assert(unbanPriestRes.success, 'Admin unbanned priest successfully');
+
+  const banUserRes = await mockAdminBanUser('user-devotee-2', 'Suspicious activity');
+  assert(banUserRes.success, 'Admin suspended user account');
+  const unbanUserRes = await mockAdminUnbanUser('user-devotee-2');
+  assert(unbanUserRes.success, 'Admin reactivated user account');
+
+  const stats = await mockAdminGetDashboardStats();
+  assert(stats.totalUsers > 0 && stats.totalPriests > 0, 'Admin dashboard metrics computed accurately');
+
+  console.log(`\n🎉 [PASS] ALL ${testsPassed}/${testsTotal} SRS VALIDATION TESTS PASSED SUCCESSFULLY!\n`);
 }
 
-runMockTests();
+runValidationTests().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

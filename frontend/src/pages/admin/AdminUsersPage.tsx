@@ -73,7 +73,9 @@ import { AuthUser } from '@/types/auth.types';
 
 // Devotee record shape with optional metadata
 export type DevoteeRecord = AuthUser & {
-  status?: 'ACTIVE' | 'SUSPENDED';
+  status?: 'ACTIVE' | 'BANNED' | 'SUSPENDED';
+  accountStatus?: 'ACTIVE' | 'BANNED';
+  banReason?: string;
   primaryCity?: string;
   bookingCount?: number;
   createdAt?: string;
@@ -96,7 +98,7 @@ const AdminUsersPage: React.FC = () => {
     .filter((u) => u.role === 'USER')
     .map((u) => ({
       ...u,
-      status: u.status || 'ACTIVE',
+      status: (u.accountStatus === 'BANNED' || u.status === 'BANNED') ? 'BANNED' : 'ACTIVE',
       primaryCity: u.primaryCity || 'Mumbai',
       bookingCount: u.bookingCount ?? 1,
       createdAt: u.createdAt || '2026-01-15T00:00:00.000Z',
@@ -234,12 +236,12 @@ const AdminUsersPage: React.FC = () => {
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Active Accounts
             </CardTitle>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600">
               <UserCheck className="w-4 h-4" />
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-4">
-            <div className="text-2xl font-bold font-serif text-emerald-600 dark:text-emerald-400">
+            <div className="text-2xl font-bold font-serif text-emerald-600">
               {activeDevotees}
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -254,12 +256,12 @@ const AdminUsersPage: React.FC = () => {
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Suspended Accounts
             </CardTitle>
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400">
+            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600">
               <UserX className="w-4 h-4" />
             </div>
           </CardHeader>
           <CardContent className="px-5 pb-4">
-            <div className="text-2xl font-bold font-serif text-rose-600 dark:text-rose-400">
+            <div className="text-2xl font-bold font-serif text-rose-600">
               {suspendedDevotees}
             </div>
             <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -449,7 +451,7 @@ const AdminUsersPage: React.FC = () => {
                                 {devotee.status === 'ACTIVE' ? (
                                   <DropdownMenuItem
                                     onClick={() => openSuspendDialog(devotee)}
-                                    className="cursor-pointer text-destructive focus:text-destructive gap-2 font-medium"
+                                    className="cursor-pointer text-destructive gap-2 font-medium"
                                   >
                                     <Ban className="w-3.5 h-3.5" />
                                     Suspend Devotee Account...
@@ -457,7 +459,7 @@ const AdminUsersPage: React.FC = () => {
                                 ) : (
                                   <DropdownMenuItem
                                     onClick={() => handleReactivate(devotee.id, devotee.name)}
-                                    className="cursor-pointer text-emerald-700 dark:text-emerald-400 font-medium gap-2"
+                                    className="cursor-pointer text-emerald-700 font-medium gap-2"
                                   >
                                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                                     Reactivate Account
@@ -468,7 +470,7 @@ const AdminUsersPage: React.FC = () => {
 
                                 <DropdownMenuItem
                                   onClick={() => openDeleteDialog(devotee)}
-                                  className="cursor-pointer text-destructive focus:text-destructive gap-2"
+                                  className="cursor-pointer text-destructive gap-2"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
                                   Delete Devotee Record
@@ -601,7 +603,7 @@ const AdminUsersPage: React.FC = () => {
                 placeholder="E.g., Fraudulent payment activity, repeated policy violation..."
                 value={suspendReason}
                 onChange={(e) => setSuspendReason(e.target.value)}
-                className="text-xs min-h-[90px]"
+                className="text-xs min-h-22.5"
               />
             </div>
           </div>

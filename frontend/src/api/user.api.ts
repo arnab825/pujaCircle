@@ -20,7 +20,12 @@ export const userApi = {
     await delay(300);
     const index = mockUsers.findIndex((u) => u.id === userId);
     if (index === -1) throw new Error('User not found');
-    mockUsers[index] = { ...mockUsers[index], ...data };
+    mockUsers[index] = {
+      ...mockUsers[index],
+      name: data.name ?? mockUsers[index].name,
+      email: data.email ?? mockUsers[index].email,
+      phoneNumber: data.phoneNumber ?? mockUsers[index].phoneNumber,
+    };
     const user = mockUsers[index];
     return {
       id: user.id,

@@ -10,9 +10,9 @@ interface GuestOnlyRouteProps {
  * GuestOnlyRoute
  * Prevents authenticated users from viewing unauthenticated marketing and auth pages.
  * - Logged-out -> allowed to access marketing/landing and auth pages.
- * - USER       -> redirected to /rituals (Customer workspace)
- * - PRIEST     -> redirected to /priest/dashboard (Priest workspace)
- * - ADMIN      -> redirected to /admin/dashboard (Admin workspace)
+ * - USER       -> redirected to /user/home
+ * - PRIEST     -> redirected to /priest/dashboard
+ * - ADMIN      -> redirected to /admin/dashboard
  */
 export const GuestOnlyRoute: React.FC<GuestOnlyRouteProps> = ({ children }) => {
   const { user, isAuthenticated } = useAuthStore();
@@ -24,7 +24,7 @@ export const GuestOnlyRoute: React.FC<GuestOnlyRouteProps> = ({ children }) => {
     if (user.role === 'ADMIN') {
       return <Navigate to="/admin/dashboard" replace />;
     }
-    return <Navigate to="/rituals" replace />;
+    return <Navigate to="/user/home" replace />;
   }
 
   return <>{children}</>;

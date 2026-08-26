@@ -1,6 +1,16 @@
 export type PriestApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'BANNED';
 export type SlotStatus = 'AVAILABLE' | 'BOOKED' | 'BLOCKED';
 
+export interface PriestService {
+  id: string;
+  priestId: string;
+  serviceName: string;
+  price: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Priest {
   id: string;
   fullName: string;
@@ -8,6 +18,7 @@ export interface Priest {
   phoneNumber: string;
   email?: string;
   isPhoneVerified: boolean;
+  isEmailVerified?: boolean;
   approvalStatus: PriestApprovalStatus;
   experienceYears: number;
   bio: string;
@@ -21,6 +32,9 @@ export interface Priest {
   reviewCount?: number;
   dakshinaSuggested?: number;
   statusReason?: string;
+  rejectionReason?: string;
+  banReason?: string;
+  services?: PriestService[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -61,9 +75,15 @@ export interface PriestRegistrationRequest {
 
 export interface PriestFilterParams {
   city?: string;
+  serviceName?: string;
   ritualSlug?: string;
   language?: string;
   specialization?: string;
   searchQuery?: string;
+  date?: string;
   status?: PriestApprovalStatus | 'ALL';
+  minPrice?: number;
+  maxPrice?: number;
+  minExperience?: number;
+  minRating?: number;
 }

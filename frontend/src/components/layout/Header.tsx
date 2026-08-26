@@ -2,14 +2,14 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth.store';
-import { Sparkles, Calendar, MapPin, User, LogOut } from 'lucide-react';
+import { Sparkles, Calendar, MapPin, User, LogOut, Home, Search } from 'lucide-react';
 
 /**
  * Public Website Header (Used in PublicLayout)
  * Purely customer-facing navigation:
- * - Unauthenticated visitors: About, Contact, Sign In (/auth/user/login), Create Account (/auth/user/register)
- * - Authenticated USER: Rituals, Find a Priest, My Bookings, Saved Addresses, Profile, Logout
- * - Never displays Priest or Admin links.
+ * - Unauthenticated visitors: Home (/), About (/about), Contact (/contact), Sign In (/user/login), Create Account (/user/register)
+ * - Authenticated USER: Home (/user/home), Find Priests (/user/priests), My Bookings (/user/bookings), Addresses (/user/addresses), Profile (/user/profile), Logout
+ * - Never displays Admin login links.
  */
 export const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -21,18 +21,18 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
       <div className="container flex h-16 items-center justify-between">
         {/* Brand Logo */}
         <Link
-          to={isAuthenticated && user?.role === 'USER' ? '/rituals' : '/'}
-          className="flex items-center gap-2 font-bold text-xl text-brand-maroon tracking-tight"
+          to={isAuthenticated && user?.role === 'USER' ? '/user/home' : '/'}
+          className="flex items-center gap-2 font-bold text-xl text-foreground tracking-tight"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <Sparkles className="h-5 w-5" />
           </div>
-          <span>
-            Puja<span className="text-primary">Circle</span>
+          <span className="font-serif">
+            Puja<span className="text-primary font-sans font-bold">Circle</span>
           </span>
         </Link>
 
@@ -41,28 +41,33 @@ export const Header: React.FC = () => {
           {isAuthenticated && user?.role === 'USER' ? (
             /* Authenticated Customer Navigation */
             <>
-              <Link to="/rituals" className="hover:text-primary transition-colors">
-                Rituals & Pujas
+              <Link to="/user/home" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Home className="h-4 w-4" />
+                <span>Home</span>
               </Link>
-              <Link to="/priests" className="hover:text-primary transition-colors">
-                Find a Priest
+              <Link to="/user/priests" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Search className="h-4 w-4" />
+                <span>Find Priests</span>
               </Link>
-              <Link to="/bookings" className="hover:text-primary transition-colors flex items-center gap-1">
-                <Calendar className="h-3.5 w-3.5" />
+              <Link to="/user/bookings" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <Calendar className="h-4 w-4" />
                 <span>My Bookings</span>
               </Link>
-              <Link to="/addresses" className="hover:text-primary transition-colors flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5" />
+              <Link to="/user/addresses" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" />
                 <span>Saved Addresses</span>
               </Link>
-              <Link to="/profile" className="hover:text-primary transition-colors flex items-center gap-1">
-                <User className="h-3.5 w-3.5" />
+              <Link to="/user/profile" className="hover:text-primary transition-colors flex items-center gap-1.5">
+                <User className="h-4 w-4" />
                 <span>Profile</span>
               </Link>
             </>
           ) : (
             /* Unauthenticated Marketing Navigation */
             <>
+              <Link to="/" className="hover:text-primary transition-colors">
+                Home
+              </Link>
               <Link to="/about" className="hover:text-primary transition-colors">
                 About Us
               </Link>
@@ -77,10 +82,10 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-3">
           {isAuthenticated && user?.role === 'USER' ? (
             <div className="flex items-center gap-2 sm:gap-3">
-              <Link to="/profile">
+              <Link to="/user/profile">
                 <Button variant="ghost" size="sm" className="gap-2 text-xs">
                   <User className="h-3.5 w-3.5 text-primary" />
-                  <span className="max-w-[120px] truncate">{user.name}</span>
+                  <span className="max-w-30 truncate">{user.name}</span>
                 </Button>
               </Link>
               <Button
@@ -95,11 +100,11 @@ export const Header: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Link to="/auth/user/login">
-                <Button variant="ghost" size="sm">Sign In</Button>
+              <Link to="/user/login">
+                <Button variant="ghost" size="sm" className="text-xs">Sign In</Button>
               </Link>
-              <Link to="/auth/user/register">
-                <Button size="sm">Create Account</Button>
+              <Link to="/user/register">
+                <Button size="sm" className="text-xs">Create Account</Button>
               </Link>
             </div>
           )}
