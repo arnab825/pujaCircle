@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { mockGetPriests } from '@/mocks/mock-api';
 import { Priest } from '@/types/priest.types';
+import { PriestCard } from '@/components/priest/PriestCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   Search,
   MapPin,
-  Star,
   Sparkles,
   SlidersHorizontal,
-  Calendar,
-  CheckCircle2,
-  ArrowRight,
 } from 'lucide-react';
 
 export const PriestListingPage: React.FC = () => {
@@ -188,106 +184,9 @@ export const PriestListingPage: React.FC = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4">
-          {priests.map((priest) => {
-            const activeServices = priest.services || [];
-            const prices = activeServices.map((s) => s.price);
-            const minPrice = prices.length > 0 ? Math.min(...prices) : 2100;
-
-            return (
-              <Card
-                key={priest.id}
-                className="border-border/80 hover:border-primary/40 transition-colors shadow-xs"
-              >
-                <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row gap-5 items-start">
-                  {/* Avatar / Photo */}
-                  <img
-                    src={priest.profileImageUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'}
-                    alt={priest.fullName}
-                    className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover border border-border/80 shrink-0 bg-muted"
-                  />
-
-                  {/* Main Info */}
-                  <div className="flex-1 space-y-2.5 min-w-0">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-lg font-bold font-serif text-foreground">
-                            {priest.displayName || priest.fullName}
-                          </h2>
-                          <Badge
-                            variant="outline"
-                            className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1 text-[10px] py-0"
-                          >
-                            <CheckCircle2 className="h-3 w-3" /> Verified
-                          </Badge>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1 font-semibold text-amber-600">
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                            {priest.rating ? priest.rating.toFixed(1) : '5.0'} ({priest.reviewCount || 10}+ reviews)
-                          </span>
-                          <span>•</span>
-                          <span>{priest.experienceYears} Years Experience</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3 text-primary" /> {priest.city}, {priest.state}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Starting Price Pill */}
-                      <div className="text-right shrink-0">
-                        <span className="text-[11px] text-muted-foreground block">Starting from</span>
-                        <span className="text-lg font-bold text-foreground font-mono">
-                          ₹{minPrice.toLocaleString('en-IN')}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground block">(Offline Cash)</span>
-                      </div>
-                    </div>
-
-                    {/* Bio Snippet */}
-                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                      {priest.bio}
-                    </p>
-
-                    {/* Services Offered Tags */}
-                    {activeServices.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[11px] font-medium text-muted-foreground mr-1">
-                          Key Ceremonies:
-                        </span>
-                        {activeServices.slice(0, 3).map((srv) => (
-                          <Badge key={srv.id} variant="secondary" className="text-[11px] font-normal py-0">
-                            {srv.serviceName} (₹{srv.price})
-                          </Badge>
-                        ))}
-                        {activeServices.length > 3 && (
-                          <span className="text-[11px] text-muted-foreground">
-                            +{activeServices.length - 3} more
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Footer Actions */}
-                    <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-border/40">
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Calendar className="h-3.5 w-3.5 text-primary" />
-                        <span>Languages: <strong>{priest.languages?.join(', ') || 'Hindi, Sanskrit'}</strong></span>
-                      </div>
-
-                      <Link to={`/user/priests/${priest.id}`}>
-                        <Button size="sm" className="gap-1.5 text-xs h-8">
-                          <span>View Profile & Book</span>
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {priests.map((priest) => (
+            <PriestCard key={priest.id} priest={priest} />
+          ))}
         </div>
       )}
     </div>

@@ -122,7 +122,7 @@ async function runValidationTests() {
   const pinRes = await mockLookupPincode('400050');
   assert(pinRes.locations.length > 0 && pinRes.locations[0].city === 'Mumbai', 'PIN 400050 resolves to Mumbai');
 
-  const addrRes = await mockCreateAddress('user-devotee-1', {
+  const addrRes = await mockCreateAddress('user-devotee-2', {
     houseNo: 'Flat 101, Shanti Sadan',
     villageTown: 'Bandra West',
     pincode: '400050',
@@ -133,7 +133,7 @@ async function runValidationTests() {
   });
   assert(addrRes.success && addrRes.data?.houseNo === 'Flat 101, Shanti Sadan', 'Address created with houseNo and PIN code');
 
-  const badPinRes = await mockCreateAddress('user-devotee-1', {
+  const badPinRes = await mockCreateAddress('user-devotee-2', {
     houseNo: '102',
     villageTown: 'Bandra',
     pincode: '1234',
@@ -143,7 +143,7 @@ async function runValidationTests() {
   });
   assert(!badPinRes.success, 'Invalid PIN code (< 6 digits) strictly rejected by addressSchema');
 
-  const zeroPinRes = await mockCreateAddress('user-devotee-1', {
+  const zeroPinRes = await mockCreateAddress('user-devotee-2', {
     houseNo: '102',
     villageTown: 'Bandra',
     pincode: '012345',

@@ -129,6 +129,7 @@ export const appRouter = createBrowserRouter([
       // Backward-Compatible Redirects
       { path: 'rituals', element: <Navigate to="/user/priests" replace /> },
       { path: 'priests', element: <Navigate to="/user/priests" replace /> },
+      { path: 'priests/:id', element: <UserRouteGuard>{LazyPage(PriestDetailsPage)}</UserRouteGuard> },
       { path: 'bookings', element: <Navigate to="/user/bookings" replace /> },
       { path: 'addresses', element: <Navigate to="/user/addresses" replace /> },
       { path: 'profile', element: <Navigate to="/user/profile" replace /> },

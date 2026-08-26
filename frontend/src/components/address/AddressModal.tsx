@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useAddressStore } from '@/store/address.store';
 import { addressApi } from '@/api/address.api';
 import { toast } from 'sonner';
+import { safeToastError } from '@/lib/errorHandler';
 import { AddressLabel } from '@/types/address.types';
 
 export const AddressModal: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
@@ -116,7 +117,7 @@ export const AddressModal: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }
       closeAddressModal();
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save address');
+      safeToastError('AddressModal.handleSubmit', err, 'Failed to save address. Please verify your details.');
     } finally {
       setIsLoading(false);
     }

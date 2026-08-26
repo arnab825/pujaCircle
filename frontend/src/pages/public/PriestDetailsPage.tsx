@@ -254,17 +254,17 @@ export const PriestDetailsPage: React.FC = () => {
 
           <div className="space-y-3">
             {!priest.services || priest.services.length === 0 ? (
-              <Card className="p-6 text-center text-xs text-muted-foreground border-dashed">
+              <Card className="p-6 text-center text-xs text-muted-foreground border-dashed bg-card">
                 This priest has not published specific service rates yet.
               </Card>
             ) : (
               priest.services.map((srv) => (
                 <Card
                   key={srv.id}
-                  className={`border-border/80 cursor-pointer transition-all shadow-2xs ${
+                  className={`border cursor-pointer transition-all shadow-xs bg-card ${
                     selectedService?.id === srv.id
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
-                      : 'hover:border-primary/40'
+                      ? 'border-primary ring-2 ring-primary/40 shadow-sm'
+                      : 'border-border/80 hover:border-primary/40'
                   }`}
                   onClick={() => setSelectedService(srv)}
                 >
@@ -312,7 +312,7 @@ export const PriestDetailsPage: React.FC = () => {
             <Clock className="h-4 w-4 text-primary" /> Available Time Slots
           </h2>
 
-          <Card className="border-border/80 shadow-xs">
+          <Card className="border-border/80 shadow-xs bg-card">
             <CardHeader className="pb-3 border-b space-y-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-serif">Select Date</CardTitle>
@@ -349,10 +349,10 @@ export const PriestDetailsPage: React.FC = () => {
                 activeBookableSlots.map((slot) => (
                   <div
                     key={slot.id}
-                    className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                    className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-card ${
                       selectedSlot?.id === slot.id
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
-                        : 'border-border/70 hover:bg-muted/40'
+                        ? 'border-primary ring-2 ring-primary/40 shadow-sm'
+                        : 'border-border/70 hover:border-primary/40'
                     }`}
                     onClick={() => {
                       setSelectedSlot(slot);
@@ -451,10 +451,10 @@ export const PriestDetailsPage: React.FC = () => {
                     <div
                       key={addr.id}
                       onClick={() => setSelectedAddressId(addr.id)}
-                      className={`p-2.5 rounded-lg border cursor-pointer flex items-center justify-between ${
+                      className={`p-2.5 rounded-lg border cursor-pointer flex items-center justify-between bg-card ${
                         selectedAddressId === addr.id
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
-                          : 'border-border hover:bg-muted/30'
+                          ? 'border-primary ring-2 ring-primary/30 shadow-xs'
+                          : 'border-border hover:bg-muted/40'
                       }`}
                     >
                       <div>
