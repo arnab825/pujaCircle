@@ -21,7 +21,6 @@ import {
   Edit2,
   CalendarOff,
   Calendar as CalendarIcon,
-  Sparkles,
   AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';

@@ -13,6 +13,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Sparkles,
   ShieldCheck,
@@ -29,6 +38,7 @@ import {
   Loader2,
   Camera,
   Trash2,
+  Upload,
   Search,
   ExternalLink,
 } from 'lucide-react';
@@ -54,6 +64,7 @@ export const PriestProfilePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSearchingPin, setIsSearchingPin] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   // Form States
   const [priest, setPriest] = useState<Priest | null>(null);
@@ -190,7 +201,8 @@ export const PriestProfilePage: React.FC = () => {
     reader.onload = () => {
       const result = reader.result as string;
       setProfileImageUrl(result);
-      toast.success('Profile photo uploaded! Click "Save Changes" to apply.');
+      setIsAvatarModalOpen(false);
+      toast.success('Profile photo updated! Click "Save Changes" to persist.');
     };
     reader.readAsDataURL(file);
   };
@@ -198,7 +210,8 @@ export const PriestProfilePage: React.FC = () => {
   const handleRemoveAvatar = () => {
     setProfileImageUrl('');
     if (fileInputRef.current) fileInputRef.current.value = '';
-    toast.info('Profile photo removed.');
+    setIsAvatarModalOpen(false);
+    toast.success('Profile photo removed.');
   };
 
   // 4. Language toggles
@@ -320,6 +333,74 @@ export const PriestProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-4xl space-y-6 pb-16">
+      {/* Hidden File Input for Avatar */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleAvatarUpload}
+        accept="image/png, image/jpeg, image/webp"
+        className="hidden"
+      />
+
+      {/* Profile Picture Management Modal (Identical to Devotee Profile) */}
+      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Profile Picture</DialogTitle>
+            <DialogDescription className="text-xs">
+              Upload a clear photo for your Purohit profile or reset to default initials.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
+            <div className="p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md">
+              <Avatar className="w-28 h-28 border-2 border-background">
+                {profileImageUrl ? (
+                  <AvatarImage src={profileImageUrl} alt={fullName} className="object-cover" />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-3xl font-bold">
+                  {getInitials(fullName)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <p className="text-xs text-muted-foreground">Supported formats: JPG, PNG, WEBP (Max 5MB)</p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
+            {profileImageUrl ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleRemoveAvatar}
+                className="w-full sm:w-auto text-xs"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove Photo
+              </Button>
+            ) : <div />}
+
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="flex-1 sm:flex-none text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 sm:flex-none text-xs gap-1.5"
+              >
+                <Upload className="w-4 h-4" />
+                Upload New Photo
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 1. Header & Primary Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
@@ -365,52 +446,32 @@ export const PriestProfilePage: React.FC = () => {
         </Button>
       </div>
 
-      {/* 2. Top Summary Card with Interactive Avatar Upload / Remove */}
+      {/* 2. Top Summary Card with Interactive Avatar Trigger */}
       <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
         <div className="flex items-center gap-4">
-          {/* Avatar with Upload and Remove Overlay Buttons */}
+          {/* Clickable Avatar to Open Profile Picture Modal */}
           <div className="relative group shrink-0">
-            {profileImageUrl ? (
-              <img
-                src={profileImageUrl}
-                alt={fullName}
-                className="w-20 h-20 rounded-full object-cover border-2 border-primary/50 shadow-md"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-primary/20 text-primary border-2 border-primary/40 flex items-center justify-center font-serif text-xl font-bold shadow-xs">
-                {getInitials(fullName)}
+            <button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="relative block p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-transform hover:scale-105"
+              title="Click to change profile picture"
+            >
+              <Avatar className="w-20 h-20 border-2 border-background">
+                {profileImageUrl ? (
+                  <AvatarImage src={profileImageUrl} alt={fullName} className="object-cover" />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-2xl font-bold">
+                  {getInitials(fullName)}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Camera Overlay on Hover */}
+              <div className="absolute inset-1 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                <Camera className="w-5 h-5 mb-0.5" />
+                <span className="text-[9px] font-medium tracking-wide uppercase">Edit</span>
               </div>
-            )}
-
-            {/* Quick Actions Overlay */}
-            <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                title="Upload Photo"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground p-1.5 rounded-full shadow-md transition-transform hover:scale-105"
-              >
-                <Camera className="w-3.5 h-3.5" />
-              </button>
-              {profileImageUrl && (
-                <button
-                  type="button"
-                  onClick={handleRemoveAvatar}
-                  title="Remove Photo"
-                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground p-1.5 rounded-full shadow-md transition-transform hover:scale-105"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleAvatarUpload}
-              accept="image/*"
-              className="hidden"
-            />
+            </button>
           </div>
 
           <div className="space-y-1">
@@ -428,12 +489,13 @@ export const PriestProfilePage: React.FC = () => {
               <span>{city}, {state}</span>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Click the camera icon on your avatar to upload or update your profile picture.
+              Click your avatar to upload a new profile photo or remove your picture.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto text-xs text-muted-foreground bg-background/80 px-3 py-1.5 rounded-lg border">
+        {/* Locality Quick Badge */}
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border shadow-2xs text-xs text-muted-foreground self-start sm:self-auto">
           <MapPin className="w-3.5 h-3.5 text-primary" />
           <span>{serviceAreas.length} Active Localities</span>
         </div>
