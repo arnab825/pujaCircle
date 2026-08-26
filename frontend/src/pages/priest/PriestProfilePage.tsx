@@ -447,9 +447,9 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 2. Top Summary Card with Interactive Avatar Trigger */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-row items-center justify-between gap-4 sm:gap-5">
-        <div className="flex flex-row items-center gap-3 sm:gap-4 min-w-0 flex-1">
-          {/* Clickable Avatar to Open Profile Picture Modal */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 w-full sm:w-auto text-center sm:text-left">
+          {/* Clickable Avatar on Top for Mobile */}
           <div className="relative group shrink-0">
             <button
               type="button"
@@ -457,46 +457,47 @@ export const PriestProfilePage: React.FC = () => {
               className="relative block p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-transform hover:scale-105"
               title="Click to change profile picture"
             >
-              <Avatar className="w-16 h-16 sm:w-20 sm:h-20 border-2 border-background">
+              <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-background">
                 {profileImageUrl ? (
                   <AvatarImage src={profileImageUrl} alt={fullName} className="object-cover" />
                 ) : null}
-                <AvatarFallback className="bg-primary/10 text-primary font-serif text-xl sm:text-2xl font-bold">
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-2xl font-bold">
                   {getInitials(fullName)}
                 </AvatarFallback>
               </Avatar>
 
               {/* Camera Overlay on Hover */}
               <div className="absolute inset-1 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
-                <Camera className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
-                <span className="text-[8px] sm:text-[9px] font-medium tracking-wide uppercase">Edit</span>
+                <Camera className="w-5 h-5 mb-0.5" />
+                <span className="text-[9px] font-medium tracking-wide uppercase">Edit</span>
               </div>
             </button>
           </div>
 
-          <div className="space-y-1 min-w-0 flex-1">
-            <h2 className="text-base sm:text-xl font-bold font-serif text-foreground truncate">
+          {/* Details on Bottom for Mobile */}
+          <div className="space-y-1.5 flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold font-serif text-foreground">
               {fullName || 'Pandit Ji'}
             </h2>
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{experienceYears} Yrs Exp</span>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">{experienceYears} Years Vedic Experience</span>
               <span>•</span>
-              <span className="flex items-center gap-1 text-amber-600 font-semibold">
+              <span className="flex items-center gap-1 text-amber-600 font-bold">
                 <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                {priest?.rating || 4.9} ({priest?.reviewCount || 0})
+                {priest?.rating || 4.9} ({priest?.reviewCount || 0} reviews)
               </span>
               <span>•</span>
-              <span className="truncate">{city}, {state}</span>
+              <span>{city}, {state}</span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-muted-foreground line-clamp-1">
-              Tap avatar to edit or remove photo.
+            <p className="text-xs text-muted-foreground">
+              Tap avatar to upload a new profile photo or remove your picture.
             </p>
           </div>
         </div>
 
         {/* Locality Quick Badge */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border shadow-2xs text-xs text-muted-foreground shrink-0">
-          <MapPin className="w-3.5 h-3.5 text-primary" />
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border shadow-2xs text-xs text-muted-foreground shrink-0">
+          <MapPin className="w-4 h-4 text-primary" />
           <span>{serviceAreas.length} Active Localities</span>
         </div>
       </div>
@@ -715,23 +716,25 @@ export const PriestProfilePage: React.FC = () => {
 
         {/* 7. Active Puja Services & Offerings (Catalog & Dakshina) */}
         <Card className="border-border/80 shadow-xs">
-          <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <CardTitle className="text-base font-serif">
-                  Puja Services Provided ({services.filter((s) => s.isActive).length})
-                </CardTitle>
+          <CardHeader className="p-4 sm:p-5 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                  <CardTitle className="text-base font-serif font-bold text-foreground">
+                    Puja Services Provided ({services.filter((s) => s.isActive).length})
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Ceremonies and rituals you currently offer to devotees.
+                </CardDescription>
               </div>
-              <CardDescription className="text-xs">
-                Ceremonies and rituals you currently offer to devotees.
-              </CardDescription>
+              <Link to="/priest/services" className="self-start sm:self-auto">
+                <Button variant="outline" size="sm" className="text-xs text-primary hover:text-primary gap-1.5 h-8 px-2.5">
+                  Manage Services <ExternalLink className="w-3 h-3" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/priest/services">
-              <Button variant="ghost" size="sm" className="text-xs text-primary gap-1 h-7 px-2">
-                Manage Services <ExternalLink className="w-3 h-3" />
-              </Button>
-            </Link>
           </CardHeader>
           <CardContent className="p-4 sm:p-5 space-y-3 text-xs">
             {services.length > 0 ? (
@@ -739,29 +742,27 @@ export const PriestProfilePage: React.FC = () => {
                 {services.map((srv) => (
                   <div
                     key={srv.id}
-                    className="p-2.5 rounded-lg bg-muted/40 border flex items-center justify-between gap-2 hover:bg-muted/60 transition-colors"
+                    className="p-3 rounded-xl bg-muted/40 border border-border/80 flex items-center justify-between gap-3 hover:bg-muted/60 transition-colors"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="font-medium text-foreground">{srv.serviceName}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="font-medium text-foreground text-xs truncate">{srv.serviceName}</span>
                     </div>
-                    <span className="font-mono font-semibold text-primary">
+                    <span className="font-mono font-bold text-xs text-primary shrink-0">
                       {formatINR(srv.price)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <p>No active services configured yet.</p>
+              <div className="text-center py-4 space-y-2">
+                <p className="text-muted-foreground text-xs">No active ceremony offerings.</p>
                 <Link to="/priest/services">
-                  <Button size="sm" variant="outline" className="mt-2 text-xs gap-1">
-                    <Plus className="w-3 h-3" /> Add First Service
-                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs">Add Services</Button>
                 </Link>
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground pt-1">
+            <p className="text-[11px] text-muted-foreground pt-1">
               To add or change rituals, prices, or activate/pause services, use the dedicated Services page.
             </p>
           </CardContent>
