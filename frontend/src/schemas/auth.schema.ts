@@ -1,55 +1,69 @@
 import { z } from 'zod';
 
+// Reusable primitives for strict validation
+const indianPhoneRegex = /^(\+91)?[6-9]\d{9}$/;
+const numericOtpRegex = /^\d{6}$/;
+
 // ==========================================
 // 1. LOGIN SCHEMAS
 // ==========================================
 
-export const userLoginSchema = z.object({
-  phoneNumber: z
-    .string()
-    .min(10, 'Mobile number must be at least 10 digits')
-    .regex(/^(\+91)?[6-9]\d{9}$/, 'Enter a valid Indian mobile number (+91 or 10 digits)'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+export const phoneLoginSchema = z
+  .object({
+    phoneNumber: z
+      .string()
+      .trim()
+      .min(10, 'Mobile number must be at least 10 digits')
+      .max(15, 'Mobile number is too long')
+      .regex(indianPhoneRegex, 'Enter a valid Indian mobile number (+91 or 10 digits)'),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password is too long'),
+  })
+  .strict();
 
-export const priestLoginSchema = z.object({
-  phoneNumber: z
-    .string()
-    .min(10, 'Mobile number must be at least 10 digits')
-    .regex(/^(\+91)?[6-9]\d{9}$/, 'Enter a valid Indian mobile number (+91 or 10 digits)'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+export const userLoginSchema = phoneLoginSchema;
+export const priestLoginSchema = phoneLoginSchema;
 
-export const adminLoginSchema = z.object({
-  email: z.string().email('Please enter a valid administrator email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+export const adminLoginSchema = z
+  .object({
+    email: z.string().trim().email('Please enter a valid administrator email address').max(150),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(100),
+  })
+  .strict();
 
 // ==========================================
 // 2. OTP & RECOVERY SCHEMAS
 // ==========================================
 
-export const sendOtpSchema = z.object({
-  phoneNumber: z
-    .string()
-    .min(10, 'Phone number must be at least 10 digits')
-    .regex(/^(\+91)?[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number'),
-});
+export const sendOtpSchema = z
+  .object({
+    phoneNumber: z
+      .string()
+      .trim()
+      .min(10, 'Phone number must be at least 10 digits')
+      .max(15, 'Phone number is too long')
+      .regex(indianPhoneRegex, 'Please enter a valid 10-digit Indian mobile number'),
+  })
+  .strict();
 
-export const verifyOtpSchema = z.object({
-  otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d{6}$/, 'OTP must contain numbers only'),
-});
+export const verifyOtpSchema = z
+  .object({
+    otp: z.string().trim().length(6, 'OTP must be exactly 6 digits').regex(numericOtpRegex, 'OTP must contain numbers only'),
+  })
+  .strict();
 
-export const forgotPasswordSchema = z.object({
-  email: z.string().email('Please enter a valid registered email address'),
-});
+export const forgotPasswordSchema = z
+  .object({
+    email: z.string().trim().email('Please enter a valid registered email address').max(150),
+  })
+  .strict();
 
 export const resetPasswordSchema = z
   .object({
-    otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d{6}$/, 'OTP must contain numbers only'),
-    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
-    confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+    otp: z.string().trim().length(6, 'OTP must be exactly 6 digits').regex(numericOtpRegex, 'OTP must contain numbers only'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters').max(100),
+    confirmPassword: z.string().min(6, 'Password must be at least 6 characters').max(100),
   })
+  .strict()
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword'],
@@ -59,25 +73,33 @@ export const resetPasswordSchema = z
 // 3. REGISTRATION SCHEMAS
 // ==========================================
 
-export const registerUserPersonalSchema = z.object({
-  fullName: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),
-  phoneNumber: z
-    .string()
-    .min(10, 'Enter a valid Indian phone number')
-    .regex(/^(\+91)?[6-9]\d{9}$/, 'Invalid mobile number format'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+export const registerUserPersonalSchema = z
+  .object({
+    fullName: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),
+    phoneNumber: z
+      .string()
+      .trim()
+      .min(10, 'Enter a valid Indian phone number')
+      .max(15)
+      .regex(indianPhoneRegex, 'Invalid mobile number format'),
+    email: z.string().trim().email('Invalid email address').max(150),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(100),
+  })
+  .strict();
 
-export const registerPriestPersonalSchema = z.object({
-  fullName: z.string().min(2, 'Name & title must be at least 2 characters').max(100, 'Name is too long'),
-  phoneNumber: z
-    .string()
-    .min(10, 'Enter a valid Indian phone number')
-    .regex(/^(\+91)?[6-9]\d{9}$/, 'Invalid mobile number format'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+export const registerPriestPersonalSchema = z
+  .object({
+    fullName: z.string().trim().min(2, 'Name & title must be at least 2 characters').max(100, 'Name is too long'),
+    phoneNumber: z
+      .string()
+      .trim()
+      .min(10, 'Enter a valid Indian phone number')
+      .max(15)
+      .regex(indianPhoneRegex, 'Invalid mobile number format'),
+    email: z.string().trim().email('Invalid email address').max(150),
+    password: z.string().min(6, 'Password must be at least 6 characters').max(100),
+  })
+  .strict();
 
 // Inferred Types
 export type UserLoginInput = z.infer<typeof userLoginSchema>;

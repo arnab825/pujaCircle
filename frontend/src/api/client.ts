@@ -4,7 +4,6 @@ import { config } from '@/lib/config';
 /**
  * Axios HTTP Client Template
  * Preconfigured for future Backend API connection with HTTP-only cookies and JSON headers.
- * In Phase 1 initial development, the api services delegate directly to the mock API layer.
  */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: config.apiBaseUrl,
@@ -16,7 +15,7 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor placeholder
+// Request interceptor
 apiClient.interceptors.request.use(
   (requestConfig) => {
     return requestConfig;
@@ -26,11 +25,25 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor placeholder
+// Response interceptor with strict error sanitization
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.message || error.message || 'An unexpected error occurred';
-    return Promise.reject(new Error(message));
+    // 1. Sanitized server-returned operational message
+    if (error.response?.data?.message && typeof error.response.data.message === 'string') {
+      return Promise.reject(new Error(error.response.data.message));
+    }
+
+    // 2. Network connectivity issue
+    if (!error.response) {
+      return Promise.reject(
+        new Error('Unable to connect to the PujaCircle server. Please check your internet connection.')
+      );
+    }
+
+    // 3. Fallback for 500 or unexpected exceptions
+    return Promise.reject(
+      new Error('An unexpected server error occurred. Please try again in a few moments.')
+    );
   }
 );
