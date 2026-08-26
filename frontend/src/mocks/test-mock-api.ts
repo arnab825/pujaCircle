@@ -7,6 +7,8 @@ import {
   mockLookupPincode,
   mockCreateAddress,
   mockGetPriests,
+  mockGetPriestById,
+  mockUpdatePriestProfile,
   mockGetPriestServices,
   mockCreatePriestService,
   mockUpdatePriestService,
@@ -83,9 +85,18 @@ async function runValidationTests() {
   assert(addrRes.success && addrRes.data.houseNo === 'Flat 101, Shanti Sadan', 'Address created with houseNo and villageTown');
 
   // ----------------------------------------------------
-  // TEST 3: Priest Services & Priest-Specific Pricing
+  // TEST 3: Priest Profile & Services Model
   // ----------------------------------------------------
-  console.log('\n[3/11] Testing Priest Services & Pricing Model...');
+  console.log('\n[3/11] Testing Priest Profile & Services Model...');
+  const priestProfile = await mockGetPriestById('priest-1');
+  assert(!!(priestProfile.success && priestProfile.data?.fullName.includes('Shastri')), 'Priest profile retrieved from mock DB');
+
+  const updateProfileRes = await mockUpdatePriestProfile('priest-1', {
+    experienceYears: 19,
+    bio: 'Updated Vedic scholar trained in Varanasi Gurukul with 19 years of ritual expertise.',
+  });
+  assert(updateProfileRes.success && updateProfileRes.data?.experienceYears === 19, 'Priest profile updated successfully in mock DB');
+
   const priestServices = await mockGetPriestServices('priest-1');
   assert(priestServices.data.length > 0, 'Priest-1 has active services');
 

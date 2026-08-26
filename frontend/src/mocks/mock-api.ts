@@ -387,6 +387,46 @@ export async function mockGetPriestById(priestId: string): Promise<{ success: bo
   return { success: true, data: populatedPriest };
 }
 
+export async function mockUpdatePriestProfile(
+  priestId: string,
+  updates: Partial<Priest>
+): Promise<{ success: boolean; data?: Priest; message: string }> {
+  await delay(350);
+  const priest = mockPriests.find((p) => p.id === priestId);
+  if (!priest) {
+    return { success: false, message: 'Priest not found.' };
+  }
+
+  if (updates.fullName !== undefined) priest.fullName = updates.fullName.trim();
+  if (updates.displayName !== undefined) priest.displayName = updates.displayName.trim();
+  if (updates.experienceYears !== undefined) priest.experienceYears = Number(updates.experienceYears);
+  if (updates.bio !== undefined) priest.bio = updates.bio.trim();
+  if (updates.languages !== undefined) priest.languages = updates.languages;
+  if (updates.specializations !== undefined) priest.specializations = updates.specializations;
+  if (updates.serviceAreas !== undefined) priest.serviceAreas = updates.serviceAreas;
+  if (updates.city !== undefined) priest.city = updates.city.trim();
+  if (updates.state !== undefined) priest.state = updates.state.trim();
+  if (updates.profileImageUrl !== undefined) priest.profileImageUrl = updates.profileImageUrl.trim();
+  priest.updatedAt = new Date().toISOString();
+
+  // Also sync with mockUsers if priest user matches
+  const priestUser = mockUsers.find(
+    (u) => u.id === 'user-priest-1' || u.phoneNumber === priest.phoneNumber || (priest.email && u.email === priest.email)
+  );
+  if (priestUser && updates.fullName) {
+    priestUser.name = updates.fullName;
+  }
+
+  return {
+    success: true,
+    data: {
+      ...priest,
+      services: mockPriestServices.filter((s) => s.priestId === priest.id && s.isActive),
+    },
+    message: 'Vedic profile & credentials updated successfully!',
+  };
+}
+
 export async function mockGetRituals(): Promise<{ success: boolean; data: Ritual[] }> {
   await delay(250);
   return { success: true, data: mockRituals };
@@ -497,14 +537,20 @@ export async function mockGetBookings(userId?: string, priestId?: string): Promi
   });
 
   // Populate references
-  const populated = list.map((b) => ({
-    ...b,
-    priest: mockPriests.find((p) => p.id === b.priestId),
-    priestService: mockPriestServices.find((s) => s.id === b.priestServiceId),
-    ritual: mockRituals.find((r) => r.id === b.ritualId),
-    address: mockAddresses.find((a) => a.id === b.addressId),
-    slot: mockSlots.find((s) => s.id === b.slotId),
-  }));
+  const populated = list.map((b) => {
+    const devotee = mockUsers.find((u) => u.id === b.userId);
+    return {
+      ...b,
+      user: devotee ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email } : undefined,
+      userName: devotee?.name,
+      userPhone: devotee?.phoneNumber,
+      priest: mockPriests.find((p) => p.id === b.priestId),
+      priestService: mockPriestServices.find((s) => s.id === b.priestServiceId),
+      ritual: mockRituals.find((r) => r.id === b.ritualId),
+      address: mockAddresses.find((a) => a.id === b.addressId),
+      slot: mockSlots.find((s) => s.id === b.slotId),
+    };
+  });
 
   return { success: true, data: populated };
 }
@@ -514,10 +560,15 @@ export async function mockGetBookingById(bookingId: string): Promise<{ success: 
   const booking = mockBookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
 
+  const devotee = mockUsers.find((u) => u.id === booking.userId);
+
   return {
     success: true,
     data: {
       ...booking,
+      user: devotee ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email } : undefined,
+      userName: devotee?.name,
+      userPhone: devotee?.phoneNumber,
       priest: mockPriests.find((p) => p.id === booking.priestId),
       priestService: mockPriestServices.find((s) => s.id === booking.priestServiceId),
       ritual: mockRituals.find((r) => r.id === booking.ritualId),
