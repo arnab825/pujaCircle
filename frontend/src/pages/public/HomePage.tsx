@@ -23,7 +23,7 @@ import {
  */
 export const HomePage: React.FC = () => {
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-background bg-grid space-y-12 sm:space-y-16 md:space-y-20 py-8 sm:py-12 md:py-16 px-4">
+    <div className="space-y-12 sm:space-y-16 md:space-y-20 py-8 sm:py-12 md:py-16 px-4">
       {/* 1. Hero Section */}
       <section className="container max-w-4xl text-center space-y-5 sm:space-y-6">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] sm:text-xs font-medium">

@@ -262,6 +262,6 @@
 @utility bg-grid {
   background-size: 64px 64px;
   background-image: 
-    linear-gradient(to right, hsl(var(--primary) / 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, hsl(var(--primary) / 0.08) 1px, transparent 1px);
+    linear-gradient(to right, hsl(var(--primary) / 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--primary) / 0.12) 1px, transparent 1px);
 }

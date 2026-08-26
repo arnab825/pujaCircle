@@ -50,7 +50,7 @@ export const UserHomePage: React.FC = () => {
   return (
     <div className="container py-8 space-y-8 max-w-5xl">
       {/* 1. Welcome Header Banner */}
-      <div className="rounded-2xl bg-linear-to-r from-primary/15 via-primary/5 to-transparent p-6 sm:p-8 border border-primary/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="rounded-2xl bg-card p-6 sm:p-8 border border-border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
             <Sparkles className="h-3.5 w-3.5" />
