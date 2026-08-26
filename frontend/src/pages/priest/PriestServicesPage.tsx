@@ -92,7 +92,7 @@ export const PriestServicesPage: React.FC = () => {
           </p>
         </div>
 
-        <Button onClick={handleOpenCreate} className="gap-2 text-xs h-9 self-start sm:self-auto">
+        <Button onClick={handleOpenCreate} className="gap-2 text-xs h-9 w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Add Custom Service
         </Button>
       </div>
@@ -110,7 +110,7 @@ export const PriestServicesPage: React.FC = () => {
           {services.length === 0 ? (
             <div className="p-8 text-center space-y-3">
               <p className="text-xs text-muted-foreground">You have not added any services yet.</p>
-              <Button onClick={handleOpenCreate} size="sm" variant="outline" className="text-xs gap-1.5">
+              <Button onClick={handleOpenCreate} size="sm" variant="outline" className="text-xs gap-1.5 w-full sm:w-auto">
                 <Plus className="h-3.5 w-3.5" /> Add Your First Service
               </Button>
             </div>
@@ -142,12 +142,12 @@ export const PriestServicesPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleOpenEdit(service)}
-                      className="h-8 text-xs gap-1.5"
+                      className="h-9 sm:h-8 text-xs gap-1.5 w-full sm:w-auto"
                     >
                       <Edit2 className="h-3.5 w-3.5 text-muted-foreground" /> Edit
                     </Button>
@@ -155,7 +155,7 @@ export const PriestServicesPage: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleToggleActive(service)}
-                      className={`h-8 text-xs gap-1.5 ${
+                      className={`h-9 sm:h-8 text-xs gap-1.5 w-full sm:w-auto ${
                         service.isActive ? 'text-muted-foreground hover:text-destructive' : 'text-emerald-600'
                       }`}
                     >

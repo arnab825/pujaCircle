@@ -8,6 +8,7 @@ import {
   mockResetPassword,
 } from '@/mocks/mock-api';
 import { mockDb } from '@/mocks/db';
+import { updateUserProfileSchema, changePasswordSchema } from '@/schemas/user.schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -155,17 +156,20 @@ export const ProfilePage: React.FC = () => {
   // Handler: Save profile name changes
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      toast.error('Please enter your full name');
+
+    const parseResult = updateUserProfileSchema.safeParse({
+      fullName: fullName.trim(),
+      email: email.trim(),
+    });
+
+    if (!parseResult.success) {
+      toast.error(parseResult.error.errors[0]?.message || 'Invalid profile information.');
       return;
     }
 
     setIsSavingProfile(true);
     try {
-      const res = await mockUpdateUserProfile(devoteeId, {
-        fullName: fullName.trim(),
-        email: email.trim(),
-      });
+      const res = await mockUpdateUserProfile(devoteeId, parseResult.data);
 
       if (res.success && res.data) {
         setUser(res.data);
@@ -190,16 +194,15 @@ export const ProfilePage: React.FC = () => {
   // Handler: Change password
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      toast.error('Please enter your current password.');
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters long.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('New password and confirmation do not match.');
+
+    const parseResult = changePasswordSchema.safeParse({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+
+    if (!parseResult.success) {
+      toast.error(parseResult.error.errors[0]?.message || 'Invalid password format.');
       return;
     }
 
@@ -207,8 +210,8 @@ export const ProfilePage: React.FC = () => {
     try {
       const res = await mockResetPassword({
         otp: '123456',
-        newPassword,
-        confirmPassword,
+        newPassword: parseResult.data.newPassword,
+        confirmPassword: parseResult.data.confirmPassword,
       });
 
       if (res.success) {
@@ -305,14 +308,14 @@ export const ProfilePage: React.FC = () => {
         description="Manage your personal details, verified contacts, and security settings."
         badgeText="Vedic Heritage"
       >
-        <Link to="/addresses">
-          <Button variant="outline" className="border-border hover:border-brand-saffron hover:bg-brand-saffron/5">
+        <Link to="/addresses" className="w-full sm:w-auto">
+          <Button variant="outline" className="border-border hover:border-brand-saffron hover:bg-brand-saffron/5 w-full sm:w-auto h-9 text-xs">
             <MapPin className="w-4 h-4 mr-2 text-brand-saffron" />
             Manage Addresses
           </Button>
         </Link>
-        <Link to="/bookings">
-          <Button className="bg-brand-saffron hover:bg-brand-saffron-dark text-white shadow-sm">
+        <Link to="/bookings" className="w-full sm:w-auto">
+          <Button className="bg-brand-saffron hover:bg-brand-saffron-dark text-white shadow-sm w-full sm:w-auto h-9 text-xs">
             <BookOpen className="w-4 h-4 mr-2" />
             Ceremony Bookings
           </Button>
@@ -320,22 +323,22 @@ export const ProfilePage: React.FC = () => {
       </PageHeader>
 
       {/* Hero Devotee Card */}
-      <div className="relative overflow-hidden rounded-2xl border bg-card p-6 md:p-8 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border bg-card p-5 sm:p-6 md:p-8 shadow-sm">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-brand-saffron/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 -mb-16 w-48 h-48 rounded-full bg-brand-gold/10 blur-2xl pointer-events-none" />
 
-        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
+        <div className="relative flex flex-col md:flex-row items-center md:items-center justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 w-full sm:w-auto text-center sm:text-left">
             {/* Clickable Avatar to Change Photo */}
-            <div className="relative group">
+            <div className="relative group shrink-0">
               <button
                 type="button"
                 onClick={() => setIsAvatarModalOpen(true)}
                 className="relative block p-1 rounded-full bg-gradient-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md focus:outline-none focus:ring-2 focus:ring-brand-saffron focus:ring-offset-2 transition-transform hover:scale-105"
                 title="Click to change profile picture"
               >
-                <Avatar className="w-20 h-20 border-2 border-background">
+                <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-background">
                   {avatarUrl ? (
                     <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
                   ) : null}
@@ -357,9 +360,9 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             {/* Devotee Info */}
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-2xl font-bold font-serif text-foreground">{fullName}</h2>
+            <div className="space-y-1.5 flex-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold font-serif text-foreground">{fullName}</h2>
                 <Badge className="bg-brand-maroon text-white hover:bg-brand-maroon/90 text-xs">
                   Devotee
                 </Badge>
@@ -369,7 +372,7 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               {/* Verified Contact Badges */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground pt-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-muted-foreground pt-1">
                 <div className="flex items-center gap-1.5 bg-muted/60 px-2.5 py-1 rounded-md" title="Verified Mobile">
                   <Phone className="w-3.5 h-3.5 text-brand-saffron" />
                   <span className="font-mono font-medium text-foreground">{phoneNumber}</span>
@@ -383,7 +386,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 text-xs text-muted-foreground pt-0.5">
+              <div className="flex items-center justify-center sm:justify-start gap-4 text-xs text-muted-foreground pt-0.5">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                   Member since {memberSince}
@@ -393,13 +396,13 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           {/* Quick Action Button */}
-          <div className="flex items-center gap-2 self-stretch md:self-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
             {!isEditing ? (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditing(true)}
-                className="border-border hover:border-brand-saffron hover:bg-brand-saffron/5"
+                className="border-border hover:border-brand-saffron hover:bg-brand-saffron/5 w-full sm:w-auto h-9 text-xs"
               >
                 <Edit3 className="w-4 h-4 mr-1.5 text-brand-saffron" />
                 Edit Profile
@@ -409,7 +412,7 @@ export const ProfilePage: React.FC = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleCancelEdit}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground w-full sm:w-auto h-9 text-xs"
               >
                 <X className="w-4 h-4 mr-1.5" />
                 Cancel
@@ -419,8 +422,8 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* Devotee Quick Stats Row */}
-        <Separator className="my-6" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Separator className="my-5" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex flex-col justify-center">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
@@ -455,7 +458,7 @@ export const ProfilePage: React.FC = () => {
 
       {/* Main Tabs Section */}
       <Tabs defaultValue="personal" className="w-full space-y-6">
-        <TabsList className="grid grid-cols-2 max-w-sm bg-muted/80 p-1 border">
+        <TabsList className="grid grid-cols-2 w-full sm:max-w-sm bg-muted/80 p-1 border">
           <TabsTrigger value="personal" className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
             <User className="w-4 h-4 mr-1.5 hidden sm:inline-block text-brand-saffron" />
             Personal Details
@@ -469,11 +472,11 @@ export const ProfilePage: React.FC = () => {
         {/* TAB 1: Personal Details */}
         <TabsContent value="personal" className="space-y-6 focus-visible:outline-none">
           <Card className="border shadow-sm">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl font-serif">Personal Information</CardTitle>
-                  <CardDescription>
+            <CardHeader className="p-4 sm:p-6 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <CardTitle className="text-lg sm:text-xl font-serif">Personal Information</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Your primary profile details used during ritual bookings and priest communication.
                   </CardDescription>
                 </div>
@@ -482,7 +485,7 @@ export const ProfilePage: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="border-brand-saffron/40 hover:border-brand-saffron text-brand-saffron hover:bg-brand-saffron/10"
+                    className="border-brand-saffron/40 hover:border-brand-saffron text-brand-saffron hover:bg-brand-saffron/10 w-full sm:w-auto h-9 text-xs shrink-0"
                   >
                     <Edit3 className="w-3.5 h-3.5 mr-1" />
                     Edit
@@ -559,14 +562,14 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 {isEditing && (
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t">
-                    <Button type="button" variant="outline" onClick={handleCancelEdit}>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t">
+                    <Button type="button" variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto h-9 text-xs">
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSavingProfile}
-                      className="bg-brand-saffron hover:bg-brand-saffron-dark text-white"
+                      className="bg-brand-saffron hover:bg-brand-saffron-dark text-white w-full sm:w-auto h-9 text-xs"
                     >
                       <Save className="w-4 h-4 mr-2" />
                       {isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
@@ -655,7 +658,7 @@ export const ProfilePage: React.FC = () => {
                 <Button
                   type="submit"
                   disabled={isUpdatingPassword}
-                  className="bg-brand-saffron hover:bg-brand-saffron-dark text-white"
+                  className="bg-brand-saffron hover:bg-brand-saffron-dark text-white w-full sm:w-auto h-9 text-xs"
                 >
                   <Lock className="w-4 h-4 mr-2" />
                   {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}

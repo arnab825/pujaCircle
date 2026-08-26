@@ -8,11 +8,21 @@ import {
   mockLookupPincode,
 } from '@/mocks/mock-api';
 import { Priest, PriestService } from '@/types/priest.types';
+import { updatePriestProfileSchema } from '@/schemas/priest.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import {
   Sparkles,
   ShieldCheck,
@@ -29,6 +39,7 @@ import {
   Loader2,
   Camera,
   Trash2,
+  Upload,
   Search,
   ExternalLink,
 } from 'lucide-react';
@@ -54,6 +65,7 @@ export const PriestProfilePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSearchingPin, setIsSearchingPin] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   // Form States
   const [priest, setPriest] = useState<Priest | null>(null);
@@ -190,7 +202,8 @@ export const PriestProfilePage: React.FC = () => {
     reader.onload = () => {
       const result = reader.result as string;
       setProfileImageUrl(result);
-      toast.success('Profile photo uploaded! Click "Save Changes" to apply.');
+      setIsAvatarModalOpen(false);
+      toast.success('Profile photo updated! Click "Save Changes" to persist.');
     };
     reader.readAsDataURL(file);
   };
@@ -198,7 +211,8 @@ export const PriestProfilePage: React.FC = () => {
   const handleRemoveAvatar = () => {
     setProfileImageUrl('');
     if (fileInputRef.current) fileInputRef.current.value = '';
-    toast.info('Profile photo removed.');
+    setIsAvatarModalOpen(false);
+    toast.success('Profile photo removed.');
   };
 
   // 4. Language toggles
@@ -249,44 +263,31 @@ export const PriestProfilePage: React.FC = () => {
 
   // 6. Save Changes handler
   const handleSave = async () => {
-    if (!fullName.trim()) {
-      toast.error('Full Legal Name is required.');
+    const parseResult = updatePriestProfileSchema.safeParse({
+      fullName: fullName.trim(),
+      displayName: fullName.trim(),
+      experienceYears: Number(experienceYears) || 0,
+      bio: bio.trim(),
+      languages,
+      serviceAreas,
+      city: city.trim(),
+      state: state.trim(),
+      profileImageUrl: profileImageUrl.trim(),
+    });
+
+    if (!parseResult.success) {
+      toast.error(parseResult.error.errors[0]?.message || 'Invalid priest profile information.');
       return;
     }
+
     if (!pincode.trim() || pincode.length !== 6) {
       toast.error('Please enter a valid 6-digit PIN code.');
-      return;
-    }
-    if (!city.trim() || !state.trim()) {
-      toast.error('City and State are required. Please check your PIN code.');
-      return;
-    }
-    if (!bio.trim() || bio.trim().length < 20) {
-      toast.error('Bio must be at least 20 characters describing your Vedic background.');
-      return;
-    }
-    if (languages.length === 0) {
-      toast.error('Please select at least one language.');
-      return;
-    }
-    if (serviceAreas.length === 0) {
-      toast.error('Please specify at least one service area / locality.');
       return;
     }
 
     setIsSaving(true);
     try {
-      const res = await mockUpdatePriestProfile(priestId, {
-        fullName: fullName.trim(),
-        displayName: fullName.trim(),
-        experienceYears: Number(experienceYears) || 0,
-        bio: bio.trim(),
-        languages,
-        serviceAreas,
-        city: city.trim(),
-        state: state.trim(),
-        profileImageUrl: profileImageUrl.trim(),
-      });
+      const res = await mockUpdatePriestProfile(priestId, parseResult.data);
 
       if (res.success && res.data) {
         setPriest(res.data);
@@ -295,7 +296,7 @@ export const PriestProfilePage: React.FC = () => {
         toast.error(res.message || 'Failed to update profile.');
       }
     } catch {
-      toast.error('Failed to save profile changes.');
+      toast.error('An error occurred while saving profile changes.');
     } finally {
       setIsSaving(false);
     }
@@ -320,6 +321,74 @@ export const PriestProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-4xl space-y-6 pb-16">
+      {/* Hidden File Input for Avatar */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleAvatarUpload}
+        accept="image/png, image/jpeg, image/webp"
+        className="hidden"
+      />
+
+      {/* Profile Picture Management Modal (Identical to Devotee Profile) */}
+      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Profile Picture</DialogTitle>
+            <DialogDescription className="text-xs">
+              Upload a clear photo for your Purohit profile or reset to default initials.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col items-center justify-center py-6 gap-4">
+            <div className="p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md">
+              <Avatar className="w-28 h-28 border-2 border-background">
+                {profileImageUrl ? (
+                  <AvatarImage src={profileImageUrl} alt={fullName} className="object-cover" />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-3xl font-bold">
+                  {getInitials(fullName)}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <p className="text-xs text-muted-foreground">Supported formats: JPG, PNG, WEBP (Max 5MB)</p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
+            {profileImageUrl ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleRemoveAvatar}
+                className="w-full sm:w-auto text-xs"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove Photo
+              </Button>
+            ) : <div />}
+
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="flex-1 sm:flex-none text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 sm:flex-none text-xs gap-1.5"
+              >
+                <Upload className="w-4 h-4" />
+                Upload New Photo
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 1. Header & Primary Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
         <div>
@@ -365,76 +434,58 @@ export const PriestProfilePage: React.FC = () => {
         </Button>
       </div>
 
-      {/* 2. Top Summary Card with Interactive Avatar Upload / Remove */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
-          {/* Avatar with Upload and Remove Overlay Buttons */}
+      {/* 2. Top Summary Card with Interactive Avatar Trigger */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 w-full sm:w-auto text-center sm:text-left">
+          {/* Clickable Avatar on Top for Mobile */}
           <div className="relative group shrink-0">
-            {profileImageUrl ? (
-              <img
-                src={profileImageUrl}
-                alt={fullName}
-                className="w-20 h-20 rounded-full object-cover border-2 border-primary/50 shadow-md"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-primary/20 text-primary border-2 border-primary/40 flex items-center justify-center font-serif text-xl font-bold shadow-xs">
-                {getInitials(fullName)}
+            <button
+              type="button"
+              onClick={() => setIsAvatarModalOpen(true)}
+              className="relative block p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-transform hover:scale-105"
+              title="Click to change profile picture"
+            >
+              <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-background">
+                {profileImageUrl ? (
+                  <AvatarImage src={profileImageUrl} alt={fullName} className="object-cover" />
+                ) : null}
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-2xl font-bold">
+                  {getInitials(fullName)}
+                </AvatarFallback>
+              </Avatar>
+
+              {/* Camera Overlay on Hover */}
+              <div className="absolute inset-1 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                <Camera className="w-5 h-5 mb-0.5" />
+                <span className="text-[9px] font-medium tracking-wide uppercase">Edit</span>
               </div>
-            )}
-
-            {/* Quick Actions Overlay */}
-            <div className="absolute -bottom-1 -right-1 flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                title="Upload Photo"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground p-1.5 rounded-full shadow-md transition-transform hover:scale-105"
-              >
-                <Camera className="w-3.5 h-3.5" />
-              </button>
-              {profileImageUrl && (
-                <button
-                  type="button"
-                  onClick={handleRemoveAvatar}
-                  title="Remove Photo"
-                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground p-1.5 rounded-full shadow-md transition-transform hover:scale-105"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleAvatarUpload}
-              accept="image/*"
-              className="hidden"
-            />
+            </button>
           </div>
 
-          <div className="space-y-1">
-            <h2 className="text-lg sm:text-xl font-bold font-serif text-foreground">
+          {/* Details on Bottom for Mobile */}
+          <div className="space-y-1.5 flex-1">
+            <h2 className="text-xl sm:text-2xl font-bold font-serif text-foreground">
               {fullName || 'Pandit Ji'}
             </h2>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{experienceYears} Years Vedic Experience</span>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">{experienceYears} Years Vedic Experience</span>
               <span>•</span>
-              <span className="flex items-center gap-1 text-amber-600 font-semibold">
+              <span className="flex items-center gap-1 text-amber-600 font-bold">
                 <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                 {priest?.rating || 4.9} ({priest?.reviewCount || 0} reviews)
               </span>
               <span>•</span>
               <span>{city}, {state}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Click the camera icon on your avatar to upload or update your profile picture.
+            <p className="text-xs text-muted-foreground">
+              Tap avatar to upload a new profile photo or remove your picture.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto text-xs text-muted-foreground bg-background/80 px-3 py-1.5 rounded-lg border">
-          <MapPin className="w-3.5 h-3.5 text-primary" />
+        {/* Locality Quick Badge */}
+        <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-card border border-border shadow-2xs text-xs text-muted-foreground shrink-0">
+          <MapPin className="w-4 h-4 text-primary" />
           <span>{serviceAreas.length} Active Localities</span>
         </div>
       </div>
@@ -653,23 +704,25 @@ export const PriestProfilePage: React.FC = () => {
 
         {/* 7. Active Puja Services & Offerings (Catalog & Dakshina) */}
         <Card className="border-border/80 shadow-xs">
-          <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <CardTitle className="text-base font-serif">
-                  Puja Services Provided ({services.filter((s) => s.isActive).length})
-                </CardTitle>
+          <CardHeader className="p-4 sm:p-5 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary shrink-0" />
+                  <CardTitle className="text-base font-serif font-bold text-foreground">
+                    Puja Services Provided ({services.filter((s) => s.isActive).length})
+                  </CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Ceremonies and rituals you currently offer to devotees.
+                </CardDescription>
               </div>
-              <CardDescription className="text-xs">
-                Ceremonies and rituals you currently offer to devotees.
-              </CardDescription>
+              <Link to="/priest/services" className="self-start sm:self-auto">
+                <Button variant="outline" size="sm" className="text-xs text-primary hover:text-primary gap-1.5 h-8 px-2.5">
+                  Manage Services <ExternalLink className="w-3 h-3" />
+                </Button>
+              </Link>
             </div>
-            <Link to="/priest/services">
-              <Button variant="ghost" size="sm" className="text-xs text-primary gap-1 h-7 px-2">
-                Manage Services <ExternalLink className="w-3 h-3" />
-              </Button>
-            </Link>
           </CardHeader>
           <CardContent className="p-4 sm:p-5 space-y-3 text-xs">
             {services.length > 0 ? (
@@ -677,29 +730,27 @@ export const PriestProfilePage: React.FC = () => {
                 {services.map((srv) => (
                   <div
                     key={srv.id}
-                    className="p-2.5 rounded-lg bg-muted/40 border flex items-center justify-between gap-2 hover:bg-muted/60 transition-colors"
+                    className="p-3 rounded-xl bg-muted/40 border border-border/80 flex items-center justify-between gap-3 hover:bg-muted/60 transition-colors"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="font-medium text-foreground">{srv.serviceName}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="font-medium text-foreground text-xs truncate">{srv.serviceName}</span>
                     </div>
-                    <span className="font-mono font-semibold text-primary">
+                    <span className="font-mono font-bold text-xs text-primary shrink-0">
                       {formatINR(srv.price)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-4 text-muted-foreground">
-                <p>No active services configured yet.</p>
+              <div className="text-center py-4 space-y-2">
+                <p className="text-muted-foreground text-xs">No active ceremony offerings.</p>
                 <Link to="/priest/services">
-                  <Button size="sm" variant="outline" className="mt-2 text-xs gap-1">
-                    <Plus className="w-3 h-3" /> Add First Service
-                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs">Add Services</Button>
                 </Link>
               </div>
             )}
-            <p className="text-[10px] text-muted-foreground pt-1">
+            <p className="text-[11px] text-muted-foreground pt-1">
               To add or change rituals, prices, or activate/pause services, use the dedicated Services page.
             </p>
           </CardContent>

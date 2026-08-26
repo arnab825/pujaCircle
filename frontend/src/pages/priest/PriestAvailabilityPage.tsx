@@ -21,7 +21,6 @@ import {
   Edit2,
   CalendarOff,
   Calendar as CalendarIcon,
-  Sparkles,
   AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -189,32 +188,20 @@ export const PriestAvailabilityPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             onClick={() => setIsExceptionModalOpen(true)}
-            className="gap-1.5 text-xs h-9"
+            className="gap-1.5 text-xs h-9 w-full sm:w-auto"
           >
             <CalendarOff className="h-4 w-4" /> Add Date Exception
           </Button>
           <Button
             onClick={() => handleOpenAddRule(1)}
-            className="gap-1.5 text-xs h-9"
+            className="gap-1.5 text-xs h-9 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" /> Add Working Hours
           </Button>
-        </div>
-      </div>
-
-      {/* Info Notice Banner */}
-      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3 text-xs">
-        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <span className="font-semibold text-foreground">Recurring Schedule Active: </span>
-          <span className="text-muted-foreground">
-            You do not need to generate dates one by one. Your weekly schedule applies continuously. Use
-            exceptions for holidays, travel, or custom puja muhurats.
-          </span>
         </div>
       </div>
 
@@ -242,37 +229,49 @@ export const PriestAvailabilityPage: React.FC = () => {
                 <Card key={dayIdx} className="border-border/80 shadow-2xs overflow-hidden">
                   <div className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {/* Day Name & Status */}
-                    <div className="flex items-center gap-3 w-40 shrink-0">
-                      <div
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          isAvailable ? 'bg-emerald-500' : 'bg-muted-foreground/30'
-                        }`}
-                      />
-                      <div>
-                        <h3 className="font-semibold text-sm text-foreground font-serif">{dayName}</h3>
-                        <p className="text-[11px] text-muted-foreground">
-                          {isAvailable ? `${rulesForDay.length} time range(s)` : 'Not available'}
-                        </p>
+                    <div className="flex items-center gap-3 w-full sm:w-40 shrink-0 justify-between sm:justify-start">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-2.5 w-2.5 rounded-full ${
+                            isAvailable ? 'bg-emerald-500' : 'bg-muted-foreground/30'
+                          }`}
+                        />
+                        <div>
+                          <h3 className="font-semibold text-sm text-foreground font-serif">{dayName}</h3>
+                          <p className="text-[11px] text-muted-foreground">
+                            {isAvailable ? `${rulesForDay.length} time range(s)` : 'Not available'}
+                          </p>
+                        </div>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenAddRule(dayIdx)}
+                        className="h-8 text-xs gap-1 hover:text-primary sm:hidden"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add
+                      </Button>
                     </div>
 
                     {/* Time Ranges List */}
-                    <div className="flex-1 space-y-2">
+                    <div className="flex-1 space-y-2 w-full">
                       {isAvailable ? (
                         <div className="flex flex-wrap gap-2">
                           {rulesForDay.map((rule) => (
                             <div
                               key={rule.id}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border text-xs"
+                              className="inline-flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border text-xs"
                             >
-                              <span className="font-mono font-semibold text-foreground">
-                                {formatTime(rule.startTime)} – {formatTime(rule.endTime)}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">
-                                ({rule.slotDurationMinutes}m slots
-                                {rule.bufferMinutes > 0 ? ` + ${rule.bufferMinutes}m rest` : ''})
-                              </span>
-                              <div className="flex items-center gap-0.5 ml-1 border-l pl-1.5 border-border">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-semibold text-foreground">
+                                  {formatTime(rule.startTime)} – {formatTime(rule.endTime)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                  ({rule.slotDurationMinutes}m slots
+                                  {rule.bufferMinutes > 0 ? ` + ${rule.bufferMinutes}m rest` : ''})
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-0.5 ml-1 border-l pl-1.5 border-border shrink-0">
                                 <button
                                   type="button"
                                   onClick={() => handleOpenEditRule(rule)}
@@ -300,8 +299,8 @@ export const PriestAvailabilityPage: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Action */}
-                    <div className="self-end sm:self-auto shrink-0">
+                    {/* Desktop Action */}
+                    <div className="hidden sm:block shrink-0">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -321,7 +320,7 @@ export const PriestAvailabilityPage: React.FC = () => {
 
       {/* SECTION 2: DAYS OFF & DATE EXCEPTIONS */}
       <div className="space-y-4 pt-2">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold font-serif text-foreground">Days Off & Special Dates</h2>
             <p className="text-xs text-muted-foreground">
@@ -333,7 +332,7 @@ export const PriestAvailabilityPage: React.FC = () => {
             size="sm"
             variant="outline"
             onClick={() => setIsExceptionModalOpen(true)}
-            className="h-8 text-xs gap-1.5"
+            className="h-9 sm:h-8 text-xs gap-1.5 w-full sm:w-auto"
           >
             <Plus className="h-3.5 w-3.5" /> Block Date / Exception
           </Button>
@@ -411,19 +410,19 @@ export const PriestAvailabilityPage: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-foreground">
+        <CardContent className="p-4 sm:p-6">
+          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border/50">
+            <h4 className="text-xs font-semibold text-foreground font-serif">
               Slots for {formatFullDate(selectedDate)}
             </h4>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-md font-medium">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" /> Available
               </span>
-              <span className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2 py-0.5 rounded-md font-medium">
                 <span className="h-2 w-2 rounded-full bg-primary" /> Booked
               </span>
-              <span className="flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5 bg-destructive/10 text-destructive px-2 py-0.5 rounded-md font-medium">
                 <span className="h-2 w-2 rounded-full bg-destructive" /> Blocked
               </span>
             </div>

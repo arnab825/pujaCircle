@@ -55,8 +55,15 @@ import {
   baseWeeklyAvailabilityRuleSchema,
   weeklyAvailabilityRuleSchema,
   availabilityExceptionSchema,
+  availabilitySlotSchema,
+  updatePriestProfileSchema,
 } from '@/schemas/priest.schema';
 import { updateUserProfileSchema } from '@/schemas/user.schema';
+import {
+  adminRejectPriestSchema,
+  adminBanPriestSchema,
+  adminBanUserSchema,
+} from '@/schemas/admin.schema';
 
 function deepClone<T>(item: T): T {
   return JSON.parse(JSON.stringify(item));
@@ -410,7 +417,16 @@ export async function mockCreateAddress(
 
   const validated = parseResult.data;
 
-  if (validated.isDefault) {
+  // Enforce maximum 2 addresses rule
+  const userAddresses = mockDb.addresses.filter((a) => a.userId === userId);
+  if (userAddresses.length >= 2) {
+    return {
+      success: false,
+      message: 'You cannot add more than 2 addresses. Please edit or delete an existing address.',
+    };
+  }
+
+  if (validated.isDefault || userAddresses.length === 0) {
     mockDb.addresses.forEach((a) => {
       if (a.userId === userId) a.isDefault = false;
     });
@@ -434,7 +450,7 @@ export async function mockCreateAddress(
     district: validated.district,
     state: validated.state,
     country: validated.country || 'India',
-    isDefault: validated.isDefault ?? true,
+    isDefault: validated.isDefault !== undefined ? validated.isDefault : userAddresses.length === 0,
     createdAt: new Date().toISOString(),
   };
 
@@ -447,6 +463,29 @@ export async function mockCreateAddress(
     success: true,
     data: deepClone(newAddress),
     message: 'Address saved successfully!',
+  };
+}
+
+export async function mockSetDefaultAddress(
+  userId: string,
+  addressId: string
+): Promise<{ success: boolean; data?: Address; message: string }> {
+  await delay(250);
+  const target = mockDb.addresses.find((a) => a.id === addressId && a.userId === userId);
+  if (!target) {
+    return { success: false, message: 'Address not found or unauthorized.' };
+  }
+
+  mockDb.addresses.forEach((a) => {
+    if (a.userId === userId) {
+      a.isDefault = a.id === addressId;
+    }
+  });
+
+  return {
+    success: true,
+    data: deepClone(target),
+    message: 'Default address updated successfully.',
   };
 }
 
@@ -505,7 +544,15 @@ export async function mockDeleteAddress(
   const idx = mockDb.addresses.findIndex((a) => a.id === addressId && a.userId === userId);
   if (idx === -1) return { success: false, message: 'Address not found or unauthorized.' };
 
+  const wasDefault = mockDb.addresses[idx].isDefault;
   mockDb.addresses.splice(idx, 1);
+
+  // If deleted was default, make the remaining one default
+  if (wasDefault) {
+    const remaining = mockDb.addresses.find((a) => a.userId === userId);
+    if (remaining) remaining.isDefault = true;
+  }
+
   return { success: true, message: 'Address deleted successfully.' };
 }
 
@@ -689,19 +736,29 @@ export async function mockUpdatePriestProfile(
   updates: Partial<Priest>
 ): Promise<{ success: boolean; data?: Priest; message: string }> {
   await delay(300);
+
+  const parseResult = updatePriestProfileSchema.safeParse(updates);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid priest profile updates.',
+    };
+  }
+
   const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
-  if (updates.fullName !== undefined) priest.fullName = updates.fullName.trim();
-  if (updates.displayName !== undefined) priest.displayName = updates.displayName.trim();
-  if (updates.experienceYears !== undefined) priest.experienceYears = Number(updates.experienceYears);
-  if (updates.bio !== undefined) priest.bio = updates.bio.trim();
-  if (updates.languages !== undefined) priest.languages = updates.languages;
-  if (updates.specializations !== undefined) priest.specializations = updates.specializations;
-  if (updates.serviceAreas !== undefined) priest.serviceAreas = updates.serviceAreas;
-  if (updates.city !== undefined) priest.city = updates.city.trim();
-  if (updates.state !== undefined) priest.state = updates.state.trim();
-  if (updates.profileImageUrl !== undefined) priest.profileImageUrl = updates.profileImageUrl.trim();
+  const valid = parseResult.data;
+  if (valid.fullName !== undefined) priest.fullName = valid.fullName.trim();
+  if (valid.displayName !== undefined) priest.displayName = valid.displayName.trim();
+  if (valid.experienceYears !== undefined) priest.experienceYears = Number(valid.experienceYears);
+  if (valid.bio !== undefined) priest.bio = valid.bio.trim();
+  if (valid.languages !== undefined) priest.languages = valid.languages;
+  if (valid.specializations !== undefined) priest.specializations = valid.specializations;
+  if (valid.serviceAreas !== undefined) priest.serviceAreas = valid.serviceAreas;
+  if (valid.city !== undefined) priest.city = valid.city.trim();
+  if (valid.state !== undefined) priest.state = valid.state.trim();
+  if (valid.profileImageUrl !== undefined) priest.profileImageUrl = valid.profileImageUrl.trim();
   priest.updatedAt = new Date().toISOString();
 
   return {
@@ -1057,12 +1114,22 @@ export async function mockCreatePriestSlot(
   data: { date: string; startTime: string; endTime: string }
 ): Promise<{ success: boolean; data?: PriestSlot; message: string }> {
   await delay(250);
+
+  const parseResult = availabilitySlotSchema.safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid slot timing format.',
+    };
+  }
+
+  const valid = parseResult.data;
   const newSlot: PriestSlot = {
     id: `slot-${Date.now()}`,
     priestId,
-    date: data.date,
-    startTime: data.startTime,
-    endTime: data.endTime,
+    date: valid.date,
+    startTime: valid.startTime,
+    endTime: valid.endTime,
     status: 'AVAILABLE',
   };
   mockDb.availabilitySlots.unshift(newSlot);
@@ -1522,11 +1589,20 @@ export async function mockAdminRejectPriest(
   reason: string
 ): Promise<{ success: boolean; message: string }> {
   await delay(250);
+
+  const parseResult = adminRejectPriestSchema.safeParse({ priestId, reason });
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid rejection reason format.',
+    };
+  }
+
   const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
   priest.approvalStatus = 'REJECTED';
-  priest.rejectionReason = reason;
+  priest.rejectionReason = parseResult.data.reason;
   return { success: true, message: 'Priest application rejected.' };
 }
 
@@ -1535,11 +1611,20 @@ export async function mockAdminBanPriest(
   reason: string
 ): Promise<{ success: boolean; message: string }> {
   await delay(250);
+
+  const parseResult = adminBanPriestSchema.safeParse({ priestId, reason });
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid ban reason format.',
+    };
+  }
+
   const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
   priest.accountStatus = 'BANNED';
-  priest.banReason = reason;
+  priest.banReason = parseResult.data.reason;
   return { success: true, message: `Priest account has been banned.` };
 }
 
@@ -1563,12 +1648,21 @@ export async function mockAdminBanUser(
   reason: string
 ): Promise<{ success: boolean; message: string }> {
   await delay(250);
+
+  const parseResult = adminBanUserSchema.safeParse({ userId, reason });
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid suspension reason format.',
+    };
+  }
+
   const user = mockDb.users.find((u) => u.id === userId);
   if (!user) return { success: false, message: 'User not found.' };
 
   user.accountStatus = 'BANNED';
   user.status = 'BANNED';
-  user.banReason = reason;
+  user.banReason = parseResult.data.reason;
   return { success: true, message: 'User account suspended.' };
 }
 

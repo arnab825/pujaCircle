@@ -8,8 +8,7 @@ import { Sparkles, Phone, Mail, Clock, MessageSquare } from 'lucide-react';
  */
 export const ContactPage: React.FC = () => {
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-background bg-grid py-8 sm:py-12 md:py-16 px-4">
-      <div className="container max-w-3xl space-y-8 sm:space-y-10">
+    <div className="container max-w-3xl py-8 sm:py-12 md:py-16 px-4 space-y-8 sm:space-y-10">
         {/* 1. Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] sm:text-xs font-medium">
@@ -82,7 +81,6 @@ export const ContactPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-      </div>
     </div>
   );
 };

@@ -10,8 +10,7 @@ import { Sparkles, ShieldCheck, HeartHandshake, CheckCircle2, ArrowRight } from 
  */
 export const AboutPage: React.FC = () => {
   return (
-    <div className="relative min-h-[calc(100vh-4rem)] bg-background bg-grid py-8 sm:py-12 md:py-16 px-4">
-      <div className="container max-w-4xl space-y-10 sm:space-y-12">
+    <div className="container max-w-4xl py-8 sm:py-12 md:py-16 px-4 space-y-10 sm:space-y-12">
         {/* 1. Header */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[11px] sm:text-xs font-medium">
@@ -84,7 +83,6 @@ export const AboutPage: React.FC = () => {
             </Link>
           </div>
         </div>
-      </div>
     </div>
   );
 };

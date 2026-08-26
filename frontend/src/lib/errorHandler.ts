@@ -1,13 +1,14 @@
+import { toast } from 'sonner';
+
 /**
  * PujaCircle Centralized Error Handling & Safe Logging Service
  *
  * Principles:
- * 1. Users NEVER see raw database exceptions, stack traces, or internal file paths.
- * 2. Full error contexts and stack traces are safely logged server-side / console for development and production debugging.
- * 3. User-facing messages are guaranteed to be clean, actionable, and friendly.
+ * 1. Users NEVER see raw database exceptions, stack traces, internal file paths, or uncaught server errors.
+ * 2. Full error contexts and stack traces are logged server-side / developer console for fast debugging.
+ * 3. User-facing messages are guaranteed to be clean, friendly, and actionable.
  */
 
-// Note: Do NOT use global /g flag with RegExp.prototype.test() to prevent lastIndex state bugs
 const SENSITIVE_PATTERNS: RegExp[] = [
   /\/Users\/[^\s:]+/i,                    // Unix/Mac file paths
   /[C-Z]:\\[^\s:]+/i,                    // Windows file paths
@@ -15,12 +16,20 @@ const SENSITIVE_PATTERNS: RegExp[] = [
   /\bat\s+eval\b/i,                       // Eval stack frames
   /\bfile:\/\//i,                         // file:// URI links
   /\b\w+\.(?:js|ts|tsx|jsx):\d+/i,        // Code file line pointers
-  /\b(?:select|insert|update|delete|drop|table|sql|database|pg_|sqlite|mongo|mongodb)\b/i, // Raw DB keywords
+  /\b(?:select|insert|update|delete|drop|table|sql|database|pg_|sqlite|mongo|mongodb|prisma|knex|sequelize|typeorm|relation|column|foreign key|syntax error at or near)\b/i, // Raw DB keywords
   /\bnode_modules\b/i,
   /\berror:\s*uncaught\b/i,
   /\bTypeError:\b/i,
   /\bReferenceError:\b/i,
   /\bSyntaxError:\b/i,
+  /\bRangeError:\b/i,
+  /\bEvalError:\b/i,
+  /\bURIError:\b/i,
+  /\bECONNREFUSED\b/i,
+  /\bETIMEDOUT\b/i,
+  /\bENOTFOUND\b/i,
+  /\bAxiosError\b/i,
+  /\[object Object\]/i,
 ];
 
 /**
@@ -60,6 +69,10 @@ export function getUserFriendlyErrorMessage(
   }
 
   if (error instanceof Error) {
+    // Check for network errors
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      return 'Unable to reach the server. Please check your internet connection.';
+    }
     return sanitizeErrorMessage(error.message, fallbackMessage);
   }
 
@@ -89,4 +102,18 @@ export function logAppError(
     stack: errorObj.stack,
     metadata,
   });
+}
+
+/**
+ * Helper to log error server-side and display a sanitized toast to the user.
+ */
+export function safeToastError(
+  context: string,
+  error: unknown,
+  fallbackMessage: string = 'An unexpected error occurred. Please try again.',
+  metadata?: Record<string, unknown>
+): void {
+  logAppError(context, error, metadata);
+  const friendlyMsg = getUserFriendlyErrorMessage(error, fallbackMessage);
+  toast.error(friendlyMsg);
 }

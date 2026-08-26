@@ -137,28 +137,34 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold font-serif flex items-center gap-2">
-            <Clock className="h-5 w-5 text-primary" />
-            {editingRule ? 'Edit Weekly Schedule Rule' : 'Add Weekly Working Hours'}
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Set your recurring available hours. Devotee booking slots will be generated automatically.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-lg p-6 sm:p-7">
+        <DialogHeader className="space-y-2 text-left">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg sm:text-xl font-bold font-serif text-foreground">
+                {editingRule ? 'Edit Weekly Schedule Rule' : 'Add Weekly Working Hours'}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Set your recurring available hours. Devotee booking slots will be generated automatically.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
           {/* Day of Week */}
           <div className="space-y-1.5">
-            <Label htmlFor="dayOfWeek" className="text-xs font-semibold">
+            <Label htmlFor="dayOfWeek" className="text-xs font-semibold text-foreground">
               Day of the Week
             </Label>
             <Select
               value={String(selectedDay)}
               onValueChange={(val) => setValue('dayOfWeek', Number(val), { shouldValidate: true })}
             >
-              <SelectTrigger id="dayOfWeek" className="h-9 text-xs">
+              <SelectTrigger id="dayOfWeek" className="h-10 text-xs">
                 <SelectValue placeholder="Select day" />
               </SelectTrigger>
               <SelectContent>
@@ -177,14 +183,14 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
           {/* Time Range */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="startTime" className="text-xs font-semibold">
+              <Label htmlFor="startTime" className="text-xs font-semibold text-foreground">
                 Start Time
               </Label>
               <Input
                 id="startTime"
                 type="time"
                 {...register('startTime')}
-                className="h-9 text-xs"
+                className="h-10 text-xs"
               />
               {errors.startTime && (
                 <p className="text-[11px] text-destructive">{errors.startTime.message}</p>
@@ -192,14 +198,14 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="endTime" className="text-xs font-semibold">
+              <Label htmlFor="endTime" className="text-xs font-semibold text-foreground">
                 End Time
               </Label>
               <Input
                 id="endTime"
                 type="time"
                 {...register('endTime')}
-                className="h-9 text-xs"
+                className="h-10 text-xs"
               />
               {errors.endTime && (
                 <p className="text-[11px] text-destructive">{errors.endTime.message}</p>
@@ -210,7 +216,7 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
           {/* Slot Duration & Buffer */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="slotDuration" className="text-xs font-semibold">
+              <Label htmlFor="slotDuration" className="text-xs font-semibold text-foreground">
                 Slot Duration
               </Label>
               <Select
@@ -219,7 +225,7 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
                   setValue('slotDurationMinutes', Number(val), { shouldValidate: true })
                 }
               >
-                <SelectTrigger id="slotDuration" className="h-9 text-xs">
+                <SelectTrigger id="slotDuration" className="h-10 text-xs">
                   <SelectValue placeholder="Duration" />
                 </SelectTrigger>
                 <SelectContent>
@@ -233,7 +239,7 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="buffer" className="text-xs font-semibold">
+              <Label htmlFor="buffer" className="text-xs font-semibold text-foreground">
                 Rest / Travel Buffer
               </Label>
               <Select
@@ -242,7 +248,7 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
                   setValue('bufferMinutes', Number(val), { shouldValidate: true })
                 }
               >
-                <SelectTrigger id="buffer" className="h-9 text-xs">
+                <SelectTrigger id="buffer" className="h-10 text-xs">
                   <SelectValue placeholder="Buffer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -257,17 +263,17 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
           </div>
 
           {/* Live Preview Box */}
-          <div className="p-3 bg-muted/40 rounded-xl border border-border/80 space-y-1.5">
+          <div className="p-3.5 bg-muted/30 rounded-xl border border-border/80 space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span>Calculated Slots ({previewList.length})</span>
+              <span>Calculated Bookable Slots ({previewList.length})</span>
             </div>
             {previewList.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-1">
+              <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pt-0.5">
                 {previewList.map((slotText, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-0.5 text-[11px] font-mono bg-card rounded-md border border-border text-foreground shadow-2xs"
+                    className="px-2.5 py-1 text-[11px] font-mono font-medium bg-card rounded-lg border border-border/80 text-foreground shadow-2xs"
                   >
                     {slotText}
                   </span>
@@ -280,18 +286,23 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
             )}
           </div>
 
-          <DialogFooter className="pt-2 gap-2">
+          <DialogFooter className="pt-3 gap-2.5 sm:space-x-0">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
-              className="text-xs"
+              className="text-xs h-9 px-4"
               disabled={isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit" size="sm" className="text-xs" disabled={isSubmitting || previewList.length === 0}>
+            <Button
+              type="submit"
+              size="sm"
+              className="text-xs h-9 px-5 font-medium shadow-xs"
+              disabled={isSubmitting || previewList.length === 0}
+            >
               {isSubmitting ? 'Saving...' : editingRule ? 'Update Schedule' : 'Save Working Hours'}
             </Button>
           </DialogFooter>

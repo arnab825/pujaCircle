@@ -1,9 +1,14 @@
-import React from "react";
+import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Sparkles,
   LayoutDashboard,
@@ -12,17 +17,19 @@ import {
   UserCheck,
   LogOut,
   IndianRupee,
+  Menu,
 } from "lucide-react";
 
 /**
  * PriestLayout
  * Dedicated workspace layout for Purohits (PRIEST role).
- * Features a priest sidebar, top bar with priest badge, and main content area.
+ * Features a fixed desktop sidebar, mobile toggle drawer, top bar, and responsive main workspace.
  */
 export const PriestLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -39,11 +46,11 @@ export const PriestLayout: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-muted/20">
-      {/* Priest Sidebar */}
-      <aside className="w-64 border-r bg-card flex-col justify-between hidden md:flex">
-        <div>
+      {/* Priest Sidebar - Fixed / Non-scrollable with page */}
+      <aside className="fixed inset-y-0 left-0 z-30 w-64 border-r bg-card flex flex-col justify-between hidden md:flex h-screen">
+        <div className="flex-1 overflow-y-auto">
           {/* Workspace Branding */}
-          <div className="h-16 border-b flex items-center gap-2 px-6">
+          <div className="h-16 border-b flex items-center gap-2 px-6 shrink-0 bg-card">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
               <Sparkles className="h-4 w-4" />
             </div>
@@ -82,7 +89,7 @@ export const PriestLayout: React.FC = () => {
         </div>
 
         {/* Sidebar Footer User Info & Logout */}
-        <div className="p-4 border-t space-y-3">
+        <div className="p-4 border-t space-y-3 shrink-0 bg-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-foreground truncate max-w-32.5">
@@ -105,20 +112,107 @@ export const PriestLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Main Content Area - Shifted for fixed sidebar */}
+      <div className="flex-1 flex flex-col min-w-0 md:pl-64">
         {/* Top Header Bar */}
-        <header className="h-16 border-b bg-card flex items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-foreground">
-              Purohit Portal
-            </span>
-            <Badge
-              variant="outline"
-              className="text-[10px] text-primary border-primary/40"
-            >
-              Verified Scholar
-            </Badge>
+        <header className="sticky top-0 z-20 h-16 border-b bg-card/95 backdrop-blur-xs flex items-center justify-between px-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            {/* Mobile Sidebar Hamburger Toggle */}
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden h-9 w-9 text-foreground"
+                  aria-label="Open Navigation Menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-72 bg-card border-r flex flex-col justify-between">
+                <div>
+                  {/* Workspace Branding */}
+                  <div className="h-16 border-b flex items-center gap-2 px-6 shrink-0 bg-card">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="font-bold text-sm text-foreground font-serif">
+                        PujaCircle
+                      </span>
+                      <p className="text-[10px] uppercase font-semibold text-primary font-sans">
+                        Purohit Workspace
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Mobile Navigation Links */}
+                  <nav className="p-4 space-y-1.5">
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = location.pathname === item.path;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            className={`w-full justify-start gap-3 text-sm font-medium ${
+                              isActive
+                                ? "bg-primary/10 text-primary hover:bg-primary/15"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Button>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                </div>
+
+                {/* Mobile Sidebar Footer */}
+                <div className="p-4 border-t space-y-3 shrink-0 bg-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-foreground truncate max-w-36">
+                        {user?.name}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">{user?.email || user?.phoneNumber}</p>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] uppercase">
+                      PRIEST
+                    </Badge>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground hover:text-destructive gap-2"
+                    onClick={() => {
+                      setMobileOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    <LogOut className="h-3.5 w-3.5" /> Logout
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-foreground">
+                Purohit Portal
+              </span>
+              <Badge
+                variant="outline"
+                className="text-[10px] text-primary border-primary/40 hidden xs:inline-flex"
+              >
+                Verified Scholar
+              </Badge>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -128,16 +222,17 @@ export const PriestLayout: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden text-xs gap-1.5"
+              className="text-xs gap-1.5"
               onClick={handleLogout}
             >
-              <LogOut className="h-3.5 w-3.5" /> Logout
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Logout</span>
             </Button>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

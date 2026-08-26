@@ -112,7 +112,7 @@ export const AdminUsersPage: React.FC = () => {
             Monitor registered devotees, bookings history, and manage account statuses.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchUsers} className="gap-1.5 text-xs w-fit">
+        <Button variant="outline" size="sm" onClick={fetchUsers} className="gap-1.5 text-xs w-full sm:w-auto h-9 font-medium">
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
         </Button>

@@ -103,8 +103,24 @@ export const availabilitySlotSchema = z
     }
   );
 
+export const updatePriestProfileSchema = z
+  .object({
+    fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100, 'Name is too long').optional(),
+    displayName: z.string().trim().min(2, 'Display name must be at least 2 characters').max(100, 'Display name too long').optional(),
+    experienceYears: z.coerce.number().int('Experience must be an integer').min(0, 'Experience cannot be negative').max(70, 'Experience cannot exceed 70 years').optional(),
+    bio: z.string().trim().min(10, 'Bio must be at least 10 characters').max(2000, 'Bio cannot exceed 2000 characters').optional(),
+    languages: z.array(z.string().trim().min(1, 'Language cannot be empty').max(50)).min(1, 'Select at least one language').max(20).optional(),
+    specializations: z.array(z.string().trim().min(1, 'Specialization cannot be empty').max(100)).max(50).optional(),
+    serviceAreas: z.array(z.string().trim().min(1, 'Service area cannot be empty').max(100)).max(50).optional(),
+    city: z.string().trim().min(2, 'City is required').max(100).optional(),
+    state: z.string().trim().min(2, 'State is required').max(100).optional(),
+    profileImageUrl: z.string().trim().max(10000000).optional().or(z.literal('')),
+  })
+  .strict();
+
 export type PriestRegistrationInput = z.infer<typeof priestRegistrationSchema>;
 export type PriestServiceInput = z.infer<typeof priestServiceSchema>;
 export type WeeklyAvailabilityRuleInput = z.infer<typeof weeklyAvailabilityRuleSchema>;
 export type AvailabilityExceptionInput = z.infer<typeof availabilityExceptionSchema>;
 export type AvailabilitySlotInput = z.infer<typeof availabilitySlotSchema>;
+export type UpdatePriestProfileInput = z.infer<typeof updatePriestProfileSchema>;
