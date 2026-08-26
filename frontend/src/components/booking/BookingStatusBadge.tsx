@@ -1,49 +1,55 @@
 import React from 'react';
 import { BookingStatus } from '@/types/booking.types';
 import { Badge } from '@/components/ui/badge';
+import { BOOKING_STATUS_CONFIG } from '@/lib/constants';
 import { CheckCircle2, Clock, XCircle, AlertTriangle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface BookingStatusBadgeProps {
   status: BookingStatus;
+  className?: string;
 }
 
-export const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({ status }) => {
+const getStatusIcon = (status: BookingStatus) => {
   switch (status) {
     case 'CONFIRMED':
-      return (
-        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 text-[11px] font-medium">
-          <CheckCircle2 className="h-3 w-3" /> Confirmed
-        </Badge>
-      );
     case 'COMPLETED':
-      return (
-        <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20 gap-1 text-[11px] font-medium">
-          <CheckCircle2 className="h-3 w-3" /> Completed
-        </Badge>
-      );
+      return <CheckCircle2 className="h-3 w-3" />;
     case 'PENDING':
-      return (
-        <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1 text-[11px] font-medium">
-          <Clock className="h-3 w-3" /> Awaiting Confirmation
-        </Badge>
-      );
+      return <Clock className="h-3 w-3" />;
     case 'CANCELLED':
-      return (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 gap-1 text-[11px] font-medium">
-          <XCircle className="h-3 w-3" /> Cancelled
-        </Badge>
-      );
+      return <XCircle className="h-3 w-3" />;
     case 'REJECTED':
-      return (
-        <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 gap-1 text-[11px] font-medium">
-          <AlertTriangle className="h-3 w-3" /> Declined
-        </Badge>
-      );
+      return <AlertTriangle className="h-3 w-3" />;
     default:
-      return (
-        <Badge variant="outline" className="text-muted-foreground text-[11px]">
-          {status}
-        </Badge>
-      );
+      return null;
   }
 };
+
+export const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({ status, className }) => {
+  const config = BOOKING_STATUS_CONFIG[status];
+  const icon = getStatusIcon(status);
+
+  if (!config) {
+    return (
+      <Badge variant="outline" className={cn("text-muted-foreground text-[11px]", className)}>
+        {status}
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "gap-1 text-[11px] font-medium shadow-2xs",
+        config.badgeClass,
+        className
+      )}
+    >
+      {icon}
+      <span>{config.label}</span>
+    </Badge>
+  );
+};
+

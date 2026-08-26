@@ -105,3 +105,48 @@ export const INDIAN_LANGUAGES = [
   'Odia',
   'English',
 ] as const;
+
+/**
+ * Standardized Booking Status Configuration
+ * Central single-source-of-truth for status colors, badges, pills, and labels (DRY).
+ */
+export const BOOKING_STATUS_CONFIG = {
+  CONFIRMED: {
+    label: 'Confirmed',
+    badgeClass: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+    pillClass: 'bg-emerald-500/15 text-emerald-600',
+    dotClass: 'bg-emerald-500',
+  },
+  COMPLETED: {
+    label: 'Completed',
+    badgeClass: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+    pillClass: 'bg-blue-500/15 text-blue-600',
+    dotClass: 'bg-blue-500',
+  },
+  PENDING: {
+    label: 'Awaiting Confirmation',
+    shortLabel: 'Pending',
+    badgeClass: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+    pillClass: 'bg-amber-500/15 text-amber-600',
+    dotClass: 'bg-amber-500',
+  },
+  CANCELLED: {
+    label: 'Cancelled',
+    badgeClass: 'bg-destructive/10 text-destructive border-destructive/20',
+    pillClass: 'bg-destructive/15 text-destructive',
+    dotClass: 'bg-destructive',
+  },
+  REJECTED: {
+    label: 'Declined',
+    badgeClass: 'bg-destructive/10 text-destructive border-destructive/20',
+    pillClass: 'bg-destructive/15 text-destructive',
+    dotClass: 'bg-destructive',
+  },
+  EXPIRED: {
+    label: 'Expired',
+    badgeClass: 'bg-muted-foreground/10 text-muted-foreground border-border',
+    pillClass: 'bg-muted-foreground/15 text-muted-foreground',
+    dotClass: 'bg-muted-foreground',
+  },
+} as const;
+

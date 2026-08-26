@@ -13,7 +13,8 @@ import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { CancelBookingDialog } from '@/components/booking/CancelBookingDialog';
 import { RatingModal } from '@/components/booking/RatingModal';
 import { EmptyState } from '@/components/common/EmptyState';
-import { formatINR, formatDate } from '@/lib/utils';
+import { BOOKING_STATUS_CONFIG } from '@/lib/constants';
+import { formatINR, formatDate, cn } from '@/lib/utils';
 import {
   Calendar,
   Clock,
@@ -104,6 +105,17 @@ export const BookingsPage: React.FC = () => {
     });
   }, [bookings, activeTab, searchQuery]);
 
+  // Tab Counts
+  const counts = useMemo(() => {
+    return {
+      all: bookings.length,
+      pending: bookings.filter((b) => b.status === 'PENDING').length,
+      confirmed: bookings.filter((b) => b.status === 'CONFIRMED').length,
+      completed: bookings.filter((b) => b.status === 'COMPLETED').length,
+      cancelled: bookings.filter((b) => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)).length,
+    };
+  }, [bookings]);
+
   return (
     <div className="container py-8 space-y-6 max-w-5xl">
       {/* Page Title */}
@@ -124,12 +136,64 @@ export const BookingsPage: React.FC = () => {
       {/* Tabs & Search Filter */}
       <div className="space-y-4">
         <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as FilterTab)}>
-          <TabsList className="grid grid-cols-5 w-full max-w-lg h-9">
-            <TabsTrigger value="ALL" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="PENDING" className="text-xs">Pending</TabsTrigger>
-            <TabsTrigger value="CONFIRMED" className="text-xs">Confirmed</TabsTrigger>
-            <TabsTrigger value="COMPLETED" className="text-xs">Done</TabsTrigger>
-            <TabsTrigger value="CANCELLED" className="text-xs">Cancelled</TabsTrigger>
+          <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 w-auto gap-1">
+            <TabsTrigger
+              value="ALL"
+              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+            >
+              <span>All</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                {counts.all}
+              </span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="PENDING"
+              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+            >
+              <span>Pending</span>
+              {counts.pending > 0 ? (
+                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.PENDING.pillClass)}>
+                  {counts.pending}
+                </span>
+              ) : null}
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="CONFIRMED"
+              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+            >
+              <span>Confirmed</span>
+              {counts.confirmed > 0 ? (
+                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CONFIRMED.pillClass)}>
+                  {counts.confirmed}
+                </span>
+              ) : null}
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="COMPLETED"
+              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+            >
+              <span>Completed</span>
+              {counts.completed > 0 ? (
+                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.COMPLETED.pillClass)}>
+                  {counts.completed}
+                </span>
+              ) : null}
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="CANCELLED"
+              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+            >
+              <span>Cancelled</span>
+              {counts.cancelled > 0 ? (
+                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CANCELLED.pillClass)}>
+                  {counts.cancelled}
+                </span>
+              ) : null}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
