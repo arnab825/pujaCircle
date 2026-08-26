@@ -1,39 +1,45 @@
 # Software Requirements Specification (SRS) - PujaCircle 🕉️
 
-## 1. Introduction
+## 1. System Overview & Core Principles
 
 ### 1.1 Purpose
-This document provides a comprehensive specification of functional and non-functional requirements for the PujaCircle web application.
+This document provides the definitive Software Requirements Specification for the PujaCircle web application.
 
-### 1.2 Unauthenticated Marketing Pages Specification
-- **Landing Page (`/`)**: Short, sweet, and focused purely on brand marketing for unauthenticated visitors. Features a hero banner, 3-step "How It Works" overview, featured Vedic rituals preview, and devotee/priest account creation CTAs.
-- **About Us (`/about`)**: Short, sweet introduction to the PujaCircle mission, vetted Vedic Gurukul scholars, and direct cash Dakshina principles.
-- **Contact Us (`/contact`)**: Purely informational direct contact directory — **strictly NO FORM**. Provides Phone Helpline, Email Support, WhatsApp text support, operating hours (6:00 AM – 9:00 PM IST), and active operating cities.
-- **Compact Footer**: Minimal, single-row responsive footer with brand emblem, tagline, essential links, and copyright note.
-- **Strict Visitor Isolation**: When any authenticated user (`USER`, `PRIEST`, `ADMIN`) accesses `/`, `/about`, or `/contact`, they are automatically redirected to their dedicated workspace (`/rituals`, `/priest/dashboard`, or `/admin/dashboard`).
-
-### 1.3 Postal PIN Code API Integration
-- Real postal PIN code auto-detection powered by `https://api.postalpincode.in/pincode/{PINCODE}`.
-- Supports multi-locality selection dropdown and auto-populates City, District, and State for both Devotees and Purohits.
+### 1.2 Core Domain Rules
+1. **Web Only**: Responsive web application; no native mobile SDKs.
+2. **Offline Direct Cash Dakshina**: All priest remunerations are settled directly in cash upon ceremony completion. No online payment gateways or commissions in Phase 1.
+3. **Priest-Specific Pricing**: Price belongs to the relationship between a Purohit and a ceremony (`PriestService`), not a global platform price.
+4. **Authoritative Price Snapshot**: The booking locks the priest's service price at the moment of request creation. Future price changes by the priest do not alter existing bookings.
+5. **Role Isolation & Protected Routing**:
+   - `USER` (Devotee): `/user/home`, `/user/priests`, `/user/priests/:id`, `/user/bookings`, `/user/bookings/:id`, `/user/addresses`, `/user/profile`.
+   - `PRIEST` (Purohit): `/priest/dashboard`, `/priest/services`, `/priest/availability`, `/priest/bookings`, `/priest/profile`, `/priest/pending-approval`.
+   - `ADMIN` (Administrator): `/admin/dashboard`, `/admin/priests`, `/admin/priests/:id`, `/admin/users`, `/admin/profile`.
+   - `GUEST` (Public): `/`, `/about`, `/contact`, `/user/login`, `/priest/login`, `/admin/login`.
+6. **5-Hour Priest Response Window**: Purohits have 5 hours from request submission to accept or decline. Unanswered requests transition to `EXPIRED` and release the slot.
+7. **Verified 5-Star Reviews**: Devotees can submit a 1–5 star rating with review text **only** on ceremonies marked `COMPLETED`. Non-owners and premature ratings are strictly rejected.
+8. **Purohit Approval Lifecycle**: Purohit accounts remain in `PENDING` until an administrator manually verifies credentials and approves the account from `/admin/priests`.
 
 ---
 
 ## 2. Role Access Matrix
 
-| Route | Visitor (Logged Out) | USER | PRIEST | ADMIN |
+| Route / Capability | Guest | Devotee (`USER`) | Purohit (`PRIEST`) | Admin (`ADMIN`) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Landing (`/`)** | YES (Marketing) | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **About (`/about`)** | YES | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Contact (`/contact`)** | YES (No Form) | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **User Sign In (`/auth/user/login`)** | YES | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **User Register (`/auth/user/register`)** | YES | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Priest Sign In (`/auth/priest/login`)** | YES | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Priest Register (`/auth/priest/register`)** | YES | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Admin Sign In (`/auth/admin/login`)** | YES | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Rituals (`/rituals`)** | NO (-> `/auth/user/login`) | YES (Customer Home) | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Priests (`/priests`)** | NO (-> `/auth/user/login`) | YES | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Bookings (`/bookings`)** | NO (-> `/auth/user/login`) | YES | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Addresses (`/addresses`)** | NO (-> `/auth/user/login`) | YES | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Profile (`/profile`)** | NO (-> `/auth/user/login`) | YES | NO (-> `/priest/dashboard`) | NO (-> `/admin/dashboard`) |
-| **Priest Workspace (`/priest/*`)** | NO (-> `/auth/priest/login`) | NO (-> `/rituals`) | YES | NO (-> `/admin/dashboard`) |
-| **Admin Workspace (`/admin/*`)** | NO (-> `/auth/admin/login`) | NO (-> `/rituals`) | NO (-> `/priest/dashboard`) | YES |
+| **Landing (`/`)** | ✅ Marketing | ➡️ Redirect `/user/home` | ➡️ Redirect `/priest/dashboard` | ➡️ Redirect `/admin/dashboard` |
+| **About (`/about`)** | ✅ Marketing | ➡️ Redirect `/user/home` | ➡️ Redirect `/priest/dashboard` | ➡️ Redirect `/admin/dashboard` |
+| **Contact (`/contact`)** | ✅ Directory | ➡️ Redirect `/user/home` | ➡️ Redirect `/priest/dashboard` | ➡️ Redirect `/admin/dashboard` |
+| **Devotee Portal (`/user/*`)** | ❌ (-> Login) | ✅ Full Access | ❌ (-> Dashboard) | ❌ (-> Dashboard) |
+| **Priest Portal (`/priest/*`)** | ❌ (-> Login) | ❌ (-> Home) | ✅ Full Access | ❌ (-> Dashboard) |
+| **Admin Console (`/admin/*`)** | ❌ (-> Login) | ❌ (-> Home) | ❌ (-> Dashboard) | ✅ Full Access |
+
+---
+
+## 3. Booking Status Lifecycle
+
+```
+[ PENDING ] ──(Accept)──> [ CONFIRMED ] ──(Complete Ceremony)──> [ COMPLETED ] ──(Rate)──> [ RATED ]
+     │                          │
+     ├──(Decline)───────────────┼──> [ REJECTED ] (Slot Released)
+     ├──(5h Timeout)────────────┼──> [ EXPIRED ]  (Slot Released)
+     └──(Devotee Cancels)───────┴──> [ CANCELLED ] (Slot Released)
+```
