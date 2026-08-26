@@ -13,8 +13,7 @@ export interface GridBackgroundProps extends React.HTMLAttributes<HTMLDivElement
 
 /**
  * GridBackground
- * Standardized Vedic grid background with a left-to-right glowing shimmer beam
- * powered by framer-motion.
+ * Refined 40px Vedic grid background with an elegant, soft left-to-right glowing shimmer beam.
  */
 export const GridBackground: React.FC<GridBackgroundProps> = ({
   children,
@@ -32,7 +31,7 @@ export const GridBackground: React.FC<GridBackgroundProps> = ({
       {...props}
     >
       {/* 1. Base Static Grid Layer */}
-      <div className="absolute inset-0 bg-grid pointer-events-none opacity-70" />
+      <div className="absolute inset-0 bg-grid pointer-events-none opacity-60" />
 
       {/* 2. Left-to-Right Glowing Shimmer Beam */}
       {shimmer && (
@@ -40,32 +39,32 @@ export const GridBackground: React.FC<GridBackgroundProps> = ({
           {/* Luminous Glowing Grid Beam moving Left to Right */}
           <motion.div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 w-[45%] bg-grid z-0"
+            className="pointer-events-none absolute inset-y-0 w-[40%] bg-grid z-0"
             style={{
-              filter: 'drop-shadow(0 0 12px hsl(var(--primary) / 0.7)) drop-shadow(0 0 24px hsl(var(--primary) / 0.4))',
+              filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.5)) drop-shadow(0 0 16px hsl(var(--primary) / 0.25))',
               maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)',
               WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)',
             }}
             animate={{
-              left: ['-50%', '115%'],
+              left: ['-45%', '110%'],
             }}
             transition={{
-              duration: 6,
+              duration: 7,
               repeat: Infinity,
               ease: 'easeInOut',
               repeatDelay: 1.5,
             }}
           />
 
-          {/* Soft warm light glow band travelling along with the grid beam */}
+          {/* Soft ambient radiance moving alongside the grid shimmer */}
           <motion.div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 w-[40%] bg-linear-to-r from-transparent via-primary/8 to-transparent blur-xl z-0"
+            className="pointer-events-none absolute inset-y-0 w-[35%] bg-linear-to-r from-transparent via-primary/6 to-transparent blur-2xl z-0"
             animate={{
-              left: ['-50%', '115%'],
+              left: ['-45%', '110%'],
             }}
             transition={{
-              duration: 6,
+              duration: 7,
               repeat: Infinity,
               ease: 'easeInOut',
               repeatDelay: 1.5,
