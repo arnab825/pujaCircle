@@ -206,18 +206,6 @@ export const PriestAvailabilityPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Info Notice Banner */}
-      <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3 text-xs">
-        <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <span className="font-semibold text-foreground">Recurring Schedule Active: </span>
-          <span className="text-muted-foreground">
-            You do not need to generate dates one by one. Your weekly schedule applies continuously. Use
-            exceptions for holidays, travel, or custom puja muhurats.
-          </span>
-        </div>
-      </div>
-
       {/* SECTION 1: WEEKLY RECURRING SCHEDULE */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
