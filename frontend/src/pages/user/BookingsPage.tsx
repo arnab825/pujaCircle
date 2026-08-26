@@ -117,7 +117,7 @@ export const BookingsPage: React.FC = () => {
   }, [bookings]);
 
   return (
-    <div className="container py-8 space-y-6 max-w-5xl">
+    <div className="container py-6 sm:py-8 space-y-6 max-w-5xl">
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -126,8 +126,8 @@ export const BookingsPage: React.FC = () => {
             Track upcoming sacred appointments, view Purohit details, and manage completed rituals.
           </p>
         </div>
-        <Link to="/user/priests">
-          <Button size="sm" className="gap-1.5 text-xs w-fit">
+        <Link to="/user/priests" className="w-full sm:w-auto">
+          <Button size="sm" className="gap-1.5 text-xs w-full sm:w-auto h-9">
             Book New Ceremony
           </Button>
         </Link>
@@ -135,67 +135,69 @@ export const BookingsPage: React.FC = () => {
 
       {/* Tabs & Search Filter */}
       <div className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as FilterTab)}>
-          <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 w-auto gap-1">
-            <TabsTrigger
-              value="ALL"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>All</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-                {counts.all}
-              </span>
-            </TabsTrigger>
-
-            <TabsTrigger
-              value="PENDING"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Pending</span>
-              {counts.pending > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.PENDING.pillClass)}>
-                  {counts.pending}
+        <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as FilterTab)}>
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 min-w-max gap-1">
+              <TabsTrigger
+                value="ALL"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>All</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                  {counts.all}
                 </span>
-              ) : null}
-            </TabsTrigger>
+              </TabsTrigger>
 
-            <TabsTrigger
-              value="CONFIRMED"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Confirmed</span>
-              {counts.confirmed > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CONFIRMED.pillClass)}>
-                  {counts.confirmed}
-                </span>
-              ) : null}
-            </TabsTrigger>
+              <TabsTrigger
+                value="PENDING"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Pending</span>
+                {counts.pending > 0 ? (
+                  <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.PENDING.pillClass)}>
+                    {counts.pending}
+                  </span>
+                ) : null}
+              </TabsTrigger>
 
-            <TabsTrigger
-              value="COMPLETED"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Completed</span>
-              {counts.completed > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.COMPLETED.pillClass)}>
-                  {counts.completed}
-                </span>
-              ) : null}
-            </TabsTrigger>
+              <TabsTrigger
+                value="CONFIRMED"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Confirmed</span>
+                {counts.confirmed > 0 ? (
+                  <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CONFIRMED.pillClass)}>
+                    {counts.confirmed}
+                  </span>
+                ) : null}
+              </TabsTrigger>
 
-            <TabsTrigger
-              value="CANCELLED"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Cancelled</span>
-              {counts.cancelled > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CANCELLED.pillClass)}>
-                  {counts.cancelled}
-                </span>
-              ) : null}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+              <TabsTrigger
+                value="COMPLETED"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Completed</span>
+                {counts.completed > 0 ? (
+                  <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.COMPLETED.pillClass)}>
+                    {counts.completed}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="CANCELLED"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Cancelled</span>
+                {counts.cancelled > 0 ? (
+                  <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CANCELLED.pillClass)}>
+                    {counts.cancelled}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -219,7 +221,7 @@ export const BookingsPage: React.FC = () => {
 
             return (
               <Card key={b.id} className="border shadow-xs overflow-hidden hover:shadow-sm transition-all bg-card">
-                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <CardContent className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-2 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-base text-foreground font-serif">
@@ -248,7 +250,7 @@ export const BookingsPage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pt-1 text-xs">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
                       <span className="text-muted-foreground">
                         Dakshina: <strong className="text-foreground">{formatINR(b.servicePrice || b.dakshinaAmount || 2100)}</strong>
                       </span>
@@ -261,10 +263,10 @@ export const BookingsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
-                    <Link to={`/user/bookings/${b.id}`}>
-                      <Button variant="outline" size="sm" className="gap-1 text-xs">
+                  {/* Actions - Block full width on mobile, inline on desktop */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 w-full md:w-auto">
+                    <Link to={`/user/bookings/${b.id}`} className="w-full sm:w-auto">
+                      <Button variant="outline" size="sm" className="gap-1 text-xs w-full sm:w-auto h-9">
                         View Details <ArrowRight className="w-3 h-3" />
                       </Button>
                     </Link>
@@ -276,7 +278,7 @@ export const BookingsPage: React.FC = () => {
                           setBookingToRate(b);
                           setRatingModalOpen(true);
                         }}
-                        className="gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white"
+                        className="gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white w-full sm:w-auto h-9"
                       >
                         <Star className="w-3.5 h-3.5 fill-white" />
                         Rate
@@ -291,7 +293,7 @@ export const BookingsPage: React.FC = () => {
                           setBookingToCancel(b);
                           setCancelModalOpen(true);
                         }}
-                        className="gap-1 text-xs text-destructive hover:text-destructive border-destructive/30"
+                        className="gap-1 text-xs text-destructive hover:text-destructive border-destructive/30 w-full sm:w-auto h-9"
                       >
                         <Ban className="w-3.5 h-3.5" />
                         Cancel
