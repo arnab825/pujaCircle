@@ -89,28 +89,34 @@ export const AddExceptionModal: React.FC<AddExceptionModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-bold font-serif flex items-center gap-2">
-            <CalendarOff className="h-5 w-5 text-primary" />
-            Add Date Exception
-          </DialogTitle>
-          <DialogDescription className="text-xs">
-            Block a day for travel/holidays or configure special custom puja muhurat hours.
-          </DialogDescription>
+      <DialogContent className="sm:max-w-md p-6 sm:p-7">
+        <DialogHeader className="space-y-2 text-left">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CalendarOff className="h-5 w-5" />
+            </div>
+            <div>
+              <DialogTitle className="text-lg sm:text-xl font-bold font-serif text-foreground">
+                Add Date Exception
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                Block a day for travel/holidays or configure special custom puja muhurat hours.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
           {/* Target Date */}
           <div className="space-y-1.5">
-            <Label htmlFor="exceptionDate" className="text-xs font-semibold">
+            <Label htmlFor="exceptionDate" className="text-xs font-semibold text-foreground">
               Date
             </Label>
             <Input
               id="exceptionDate"
               type="date"
               {...register('date')}
-              className="h-9 text-xs"
+              className="h-10 text-xs"
             />
             {errors.date && <p className="text-[11px] text-destructive">{errors.date.message}</p>}
           </div>

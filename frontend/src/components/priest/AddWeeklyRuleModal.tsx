@@ -186,15 +186,12 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
               <Label htmlFor="startTime" className="text-xs font-semibold text-foreground">
                 Start Time
               </Label>
-              <div className="relative">
-                <Input
-                  id="startTime"
-                  type="time"
-                  {...register('startTime')}
-                  className="h-10 text-xs pr-9"
-                />
-                <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
+              <Input
+                id="startTime"
+                type="time"
+                {...register('startTime')}
+                className="h-10 text-xs"
+              />
               {errors.startTime && (
                 <p className="text-[11px] text-destructive">{errors.startTime.message}</p>
               )}
@@ -204,15 +201,12 @@ export const AddWeeklyRuleModal: React.FC<AddWeeklyRuleModalProps> = ({
               <Label htmlFor="endTime" className="text-xs font-semibold text-foreground">
                 End Time
               </Label>
-              <div className="relative">
-                <Input
-                  id="endTime"
-                  type="time"
-                  {...register('endTime')}
-                  className="h-10 text-xs pr-9"
-                />
-                <Clock className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </div>
+              <Input
+                id="endTime"
+                type="time"
+                {...register('endTime')}
+                className="h-10 text-xs"
+              />
               {errors.endTime && (
                 <p className="text-[11px] text-destructive">{errors.endTime.message}</p>
               )}
