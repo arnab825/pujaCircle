@@ -142,17 +142,18 @@ export const PriestBookingsPage: React.FC = () => {
 
       {/* Filter Tabs & Search Bar */}
       <div className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabFilter)}>
-          <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 w-auto gap-1">
-            <TabsTrigger
-              value="ALL"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>All</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-                {counts.all}
-              </span>
-            </TabsTrigger>
+        <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabFilter)}>
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 min-w-max gap-1">
+              <TabsTrigger
+                value="ALL"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>All</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
+                  {counts.all}
+                </span>
+              </TabsTrigger>
 
             <TabsTrigger
               value="PENDING"
@@ -203,6 +204,7 @@ export const PriestBookingsPage: React.FC = () => {
             </TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

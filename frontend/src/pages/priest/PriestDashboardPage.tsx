@@ -35,6 +35,7 @@ import {
   IndianRupee,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatINR } from '@/lib/utils';
 
 export const PriestDashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -151,14 +152,14 @@ export const PriestDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link to="/priest/availability">
-            <Button size="sm" variant="outline" className="text-xs gap-1.5 h-9">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/priest/availability" className="flex-1 sm:flex-none">
+            <Button size="sm" variant="outline" className="w-full text-xs gap-1.5 h-9">
               <Clock className="h-3.5 w-3.5" /> Manage Slots ({availableSlotsCount})
             </Button>
           </Link>
-          <Link to="/priest/services">
-            <Button size="sm" className="text-xs gap-1.5 h-9">
+          <Link to="/priest/services" className="flex-1 sm:flex-none">
+            <Button size="sm" className="w-full text-xs gap-1.5 h-9">
               <IndianRupee className="h-3.5 w-3.5" /> Services ({activeServicesCount})
             </Button>
           </Link>
@@ -166,7 +167,7 @@ export const PriestDashboardPage: React.FC = () => {
       </div>
 
       {/* 2. Key Operational Metrics Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="border-border/80 shadow-xs">
           <CardContent className="p-4 space-y-1">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase">Pending Requests</span>
@@ -205,52 +206,59 @@ export const PriestDashboardPage: React.FC = () => {
       {/* 3. Pending Requests Queue (High Priority) */}
       {pendingRequests.length > 0 && (
         <Card className="border-amber-500/40 bg-amber-500/5 shadow-xs">
-          <CardHeader className="pb-3 border-b border-amber-500/20">
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-4 sm:p-5 border-b border-amber-500/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <CardTitle className="text-base font-serif font-bold text-amber-800">
+                <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+                <CardTitle className="text-sm sm:text-base font-serif font-bold text-amber-900 leading-snug">
                   Action Required: Pending Requests ({pendingRequests.length})
                 </CardTitle>
               </div>
-              <span className="text-xs text-amber-700 font-medium">5-Hour Response Window</span>
+              <Badge variant="outline" className="text-[11px] font-medium text-amber-800 border-amber-500/30 bg-amber-500/10 w-fit">
+                5-Hour Response Window
+              </Badge>
             </div>
           </CardHeader>
           <CardContent className="p-0 divide-y divide-amber-500/10">
             {pendingRequests.map((req) => (
-              <div key={req.id} className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-foreground">{req.serviceName}</span>
-                    <Badge variant="outline" className="font-mono text-[10px] bg-background">
-                      {req.bookingReference}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1 font-medium text-foreground">
-                      <Clock className="h-3.5 w-3.5 text-primary" /> {req.bookingDate} ({req.startTime} - {req.endTime})
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3.5 w-3.5 text-primary" /> {req.address?.city || 'City Location'}
-                    </span>
-                    <span>•</span>
-                    <span>Dakshina: <strong className="font-mono text-foreground">₹{req.servicePrice}</strong> (Direct Cash)</span>
-                  </div>
-                  {req.userNotes && (
-                    <p className="text-[11px] text-muted-foreground italic bg-background/60 p-1.5 rounded border">
-                      Devotee Note: "{req.userNotes}"
-                    </p>
-                  )}
+              <div key={req.id} className="p-4 sm:p-5 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-bold text-sm sm:text-base text-foreground font-serif">
+                    {req.serviceName}
+                  </span>
+                  <Badge variant="outline" className="font-mono text-[10px] bg-background">
+                    {req.bookingReference}
+                  </Badge>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 font-medium text-foreground">
+                    <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{req.bookingDate} ({req.startTime} - {req.endTime})</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span>{req.address?.city || 'City Location'}</span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground pt-0.5">
+                  Dakshina: <strong className="font-mono text-foreground">{formatINR(req.servicePrice || 2100)}</strong> (Direct Cash)
+                </div>
+
+                {req.userNotes && (
+                  <p className="text-[11px] text-muted-foreground italic bg-background/80 p-2 rounded-lg border border-border/60">
+                    Devotee Note: "{req.userNotes}"
+                  </p>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2 border-t border-amber-500/15">
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={isProcessing}
                     onClick={() => handleOpenReject(req)}
-                    className="text-xs h-8 text-destructive hover:bg-destructive/10"
+                    className="text-xs h-9 sm:h-8 text-destructive hover:bg-destructive/10 border-destructive/30 w-full sm:w-auto"
                   >
                     <XCircle className="h-3.5 w-3.5 mr-1" /> Decline
                   </Button>
@@ -258,7 +266,7 @@ export const PriestDashboardPage: React.FC = () => {
                     size="sm"
                     disabled={isProcessing}
                     onClick={() => handleAccept(req.id)}
-                    className="text-xs h-8 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="text-xs h-9 sm:h-8 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto font-semibold"
                   >
                     <Check className="h-3.5 w-3.5" /> Accept Appointment
                   </Button>
@@ -312,12 +320,12 @@ export const PriestDashboardPage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0">
                     <Button
                       size="sm"
                       disabled={isProcessing}
                       onClick={() => handleComplete(b.id)}
-                      className="text-xs h-8 gap-1.5 bg-primary"
+                      className="text-xs h-9 sm:h-8 gap-1.5 bg-primary w-full sm:w-auto"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" /> Mark Completed
                     </Button>

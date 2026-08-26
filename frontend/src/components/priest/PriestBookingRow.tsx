@@ -54,7 +54,7 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 pt-1 text-xs">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
           <span className="text-muted-foreground">
             Dakshina: <strong className="text-foreground">{formatINR(booking.servicePrice || booking.dakshinaAmount || 2100)}</strong> (Cash on Completion)
           </span>
@@ -66,13 +66,13 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
         </div>
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
+      {/* Right Actions - Full-width Block on mobile / Inline on larger screens */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0 w-full md:w-auto">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onViewDetails(booking)}
-          className="gap-1.5 text-xs"
+          className="gap-1.5 text-xs w-full sm:w-auto h-9"
         >
           <Eye className="w-3.5 h-3.5" />
           Details
@@ -84,7 +84,7 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
               size="sm"
               onClick={() => onAccept(booking.id)}
               disabled={isProcessing}
-              className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto h-9"
             >
               <Check className="w-3.5 h-3.5" />
               Accept
@@ -94,7 +94,7 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
               size="sm"
               onClick={() => onOpenReject(booking)}
               disabled={isProcessing}
-              className="gap-1.5 text-xs text-destructive hover:text-destructive border-destructive/30"
+              className="gap-1.5 text-xs text-destructive hover:text-destructive border-destructive/30 w-full sm:w-auto h-9"
             >
               <Ban className="w-3.5 h-3.5" />
               Decline
@@ -107,7 +107,7 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
             size="sm"
             onClick={() => onComplete(booking.id)}
             disabled={isProcessing}
-            className="gap-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="gap-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto h-9"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             Mark Completed

@@ -447,8 +447,8 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 2. Top Summary Card with Interactive Avatar Trigger */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-        <div className="flex items-center gap-4">
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-row items-center justify-between gap-4 sm:gap-5">
+        <div className="flex flex-row items-center gap-3 sm:gap-4 min-w-0 flex-1">
           {/* Clickable Avatar to Open Profile Picture Modal */}
           <div className="relative group shrink-0">
             <button
@@ -457,45 +457,45 @@ export const PriestProfilePage: React.FC = () => {
               className="relative block p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-transform hover:scale-105"
               title="Click to change profile picture"
             >
-              <Avatar className="w-20 h-20 border-2 border-background">
+              <Avatar className="w-16 h-16 sm:w-20 sm:h-20 border-2 border-background">
                 {profileImageUrl ? (
                   <AvatarImage src={profileImageUrl} alt={fullName} className="object-cover" />
                 ) : null}
-                <AvatarFallback className="bg-primary/10 text-primary font-serif text-2xl font-bold">
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-xl sm:text-2xl font-bold">
                   {getInitials(fullName)}
                 </AvatarFallback>
               </Avatar>
 
               {/* Camera Overlay on Hover */}
               <div className="absolute inset-1 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
-                <Camera className="w-5 h-5 mb-0.5" />
-                <span className="text-[9px] font-medium tracking-wide uppercase">Edit</span>
+                <Camera className="w-4 h-4 sm:w-5 sm:h-5 mb-0.5" />
+                <span className="text-[8px] sm:text-[9px] font-medium tracking-wide uppercase">Edit</span>
               </div>
             </button>
           </div>
 
-          <div className="space-y-1">
-            <h2 className="text-lg sm:text-xl font-bold font-serif text-foreground">
+          <div className="space-y-1 min-w-0 flex-1">
+            <h2 className="text-base sm:text-xl font-bold font-serif text-foreground truncate">
               {fullName || 'Pandit Ji'}
             </h2>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">{experienceYears} Years Vedic Experience</span>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{experienceYears} Yrs Exp</span>
               <span>•</span>
               <span className="flex items-center gap-1 text-amber-600 font-semibold">
                 <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                {priest?.rating || 4.9} ({priest?.reviewCount || 0} reviews)
+                {priest?.rating || 4.9} ({priest?.reviewCount || 0})
               </span>
               <span>•</span>
-              <span>{city}, {state}</span>
+              <span className="truncate">{city}, {state}</span>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Click your avatar to upload a new profile photo or remove your picture.
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground line-clamp-1">
+              Tap avatar to edit or remove photo.
             </p>
           </div>
         </div>
 
         {/* Locality Quick Badge */}
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border shadow-2xs text-xs text-muted-foreground self-start sm:self-auto">
+        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-card border border-border shadow-2xs text-xs text-muted-foreground shrink-0">
           <MapPin className="w-3.5 h-3.5 text-primary" />
           <span>{serviceAreas.length} Active Localities</span>
         </div>
