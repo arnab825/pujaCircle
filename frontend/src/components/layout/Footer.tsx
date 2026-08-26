@@ -13,7 +13,7 @@ export const Footer: React.FC = () => {
   const isDevotee = isAuthenticated && user?.role === 'USER';
 
   return (
-    <footer className="border-t bg-card/60 backdrop-blur-sm text-muted-foreground mt-auto py-6">
+    <footer className="border-t border-border bg-card text-muted-foreground mt-auto py-6">
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
         {/* Brand & Tagline */}
         <div className="flex items-center gap-2">
@@ -42,9 +42,6 @@ export const Footer: React.FC = () => {
               <Link to="/user/addresses" className="hover:text-primary transition-colors">
                 Addresses
               </Link>
-              <Link to="/user/profile" className="hover:text-primary transition-colors">
-                Profile
-              </Link>
             </>
           ) : (
             <>
@@ -52,7 +49,7 @@ export const Footer: React.FC = () => {
                 Home
               </Link>
               <Link to="/about" className="hover:text-primary transition-colors">
-                About Us
+                About 
               </Link>
               <Link to="/contact" className="hover:text-primary transition-colors">
                 Contact
@@ -66,7 +63,7 @@ export const Footer: React.FC = () => {
 
         {/* Copyright */}
         <div className="text-[11px] text-muted-foreground/80">
-          © {new Date().getFullYear()} {APP_CONFIG.APP_NAME}. Direct Cash Dakshina.
+          © {new Date().getFullYear()} {APP_CONFIG.APP_NAME} 
         </div>
       </div>
     </footer>
