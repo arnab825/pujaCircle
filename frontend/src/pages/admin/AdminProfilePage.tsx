@@ -24,18 +24,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  adminUpdateProfileSchema,
+  adminUpdatePasswordSchema,
+} from '@/schemas/admin.schema';
 
-/*
-  PAGE: Admin Profile & Settings (/admin/profile)
-  
-  ACCESS:
-  - ADMIN role only
-  
-  PURPOSE:
-  - Dedicated workspace page for Platform Administrators to view account details,
-    update full name, change password, and audit platform security permissions.
-  - Email Address & Phone Number are locked (read-only) for administrative security.
-*/
 const AdminProfilePage: React.FC = () => {
   const { user, setUser } = useAuthStore();
 
@@ -59,8 +52,9 @@ const AdminProfilePage: React.FC = () => {
   // Handle Save Name
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      toast.error('Please enter a valid full name.');
+    const result = adminUpdateProfileSchema.safeParse({ fullName: fullName.trim() });
+    if (!result.success) {
+      toast.error(result.error.errors[0]?.message || 'Invalid administrator name format.');
       return;
     }
 
@@ -70,7 +64,7 @@ const AdminProfilePage: React.FC = () => {
       if (user) {
         setUser({
           ...user,
-          name: fullName.trim(),
+          name: result.data.fullName,
         });
       }
       toast.success('Admin profile name updated successfully!');
@@ -82,16 +76,14 @@ const AdminProfilePage: React.FC = () => {
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!currentPassword) {
-      toast.error('Please enter your current password.');
-      return;
-    }
-    if (!newPassword || newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters long.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('New password and confirm password do not match.');
+    const result = adminUpdatePasswordSchema.safeParse({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+
+    if (!result.success) {
+      toast.error(result.error.errors[0]?.message || 'Invalid password format.');
       return;
     }
 

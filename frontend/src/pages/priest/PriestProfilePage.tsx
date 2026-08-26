@@ -8,6 +8,7 @@ import {
   mockLookupPincode,
 } from '@/mocks/mock-api';
 import { Priest, PriestService } from '@/types/priest.types';
+import { updatePriestProfileSchema } from '@/schemas/priest.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -262,44 +263,31 @@ export const PriestProfilePage: React.FC = () => {
 
   // 6. Save Changes handler
   const handleSave = async () => {
-    if (!fullName.trim()) {
-      toast.error('Full Legal Name is required.');
+    const parseResult = updatePriestProfileSchema.safeParse({
+      fullName: fullName.trim(),
+      displayName: fullName.trim(),
+      experienceYears: Number(experienceYears) || 0,
+      bio: bio.trim(),
+      languages,
+      serviceAreas,
+      city: city.trim(),
+      state: state.trim(),
+      profileImageUrl: profileImageUrl.trim(),
+    });
+
+    if (!parseResult.success) {
+      toast.error(parseResult.error.errors[0]?.message || 'Invalid priest profile information.');
       return;
     }
+
     if (!pincode.trim() || pincode.length !== 6) {
       toast.error('Please enter a valid 6-digit PIN code.');
-      return;
-    }
-    if (!city.trim() || !state.trim()) {
-      toast.error('City and State are required. Please check your PIN code.');
-      return;
-    }
-    if (!bio.trim() || bio.trim().length < 20) {
-      toast.error('Bio must be at least 20 characters describing your Vedic background.');
-      return;
-    }
-    if (languages.length === 0) {
-      toast.error('Please select at least one language.');
-      return;
-    }
-    if (serviceAreas.length === 0) {
-      toast.error('Please specify at least one service area / locality.');
       return;
     }
 
     setIsSaving(true);
     try {
-      const res = await mockUpdatePriestProfile(priestId, {
-        fullName: fullName.trim(),
-        displayName: fullName.trim(),
-        experienceYears: Number(experienceYears) || 0,
-        bio: bio.trim(),
-        languages,
-        serviceAreas,
-        city: city.trim(),
-        state: state.trim(),
-        profileImageUrl: profileImageUrl.trim(),
-      });
+      const res = await mockUpdatePriestProfile(priestId, parseResult.data);
 
       if (res.success && res.data) {
         setPriest(res.data);
@@ -308,7 +296,7 @@ export const PriestProfilePage: React.FC = () => {
         toast.error(res.message || 'Failed to update profile.');
       }
     } catch {
-      toast.error('Failed to save profile changes.');
+      toast.error('An error occurred while saving profile changes.');
     } finally {
       setIsSaving(false);
     }

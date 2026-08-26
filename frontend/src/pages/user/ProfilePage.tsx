@@ -8,6 +8,7 @@ import {
   mockResetPassword,
 } from '@/mocks/mock-api';
 import { mockDb } from '@/mocks/db';
+import { updateUserProfileSchema, changePasswordSchema } from '@/schemas/user.schema';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -155,17 +156,20 @@ export const ProfilePage: React.FC = () => {
   // Handler: Save profile name changes
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      toast.error('Please enter your full name');
+
+    const parseResult = updateUserProfileSchema.safeParse({
+      fullName: fullName.trim(),
+      email: email.trim(),
+    });
+
+    if (!parseResult.success) {
+      toast.error(parseResult.error.errors[0]?.message || 'Invalid profile information.');
       return;
     }
 
     setIsSavingProfile(true);
     try {
-      const res = await mockUpdateUserProfile(devoteeId, {
-        fullName: fullName.trim(),
-        email: email.trim(),
-      });
+      const res = await mockUpdateUserProfile(devoteeId, parseResult.data);
 
       if (res.success && res.data) {
         setUser(res.data);
@@ -190,16 +194,15 @@ export const ProfilePage: React.FC = () => {
   // Handler: Change password
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentPassword) {
-      toast.error('Please enter your current password.');
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters long.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error('New password and confirmation do not match.');
+
+    const parseResult = changePasswordSchema.safeParse({
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+
+    if (!parseResult.success) {
+      toast.error(parseResult.error.errors[0]?.message || 'Invalid password format.');
       return;
     }
 
@@ -207,8 +210,8 @@ export const ProfilePage: React.FC = () => {
     try {
       const res = await mockResetPassword({
         otp: '123456',
-        newPassword,
-        confirmPassword,
+        newPassword: parseResult.data.newPassword,
+        confirmPassword: parseResult.data.confirmPassword,
       });
 
       if (res.success) {
