@@ -49,6 +49,11 @@ export interface Booking {
   priestService?: PriestService;
   address?: Address;
   slot?: PriestSlot;
+  user?: { id: string; name: string; phoneNumber: string; email?: string };
+  userName?: string;
+  userPhone?: string;
+  rating?: number;
+  review?: string;
 }
 
 export interface CreateBookingRequest {

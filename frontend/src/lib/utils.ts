@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Formats Indian Rupee currency amounts
+ * Formats Indian Rupee currency amounts (e.g. ₹2,500)
  */
 export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
@@ -17,6 +17,23 @@ export function formatCurrency(amount: number): string {
     currency: 'INR',
     maximumFractionDigits: 0,
   }).format(amount);
+}
+
+export function formatINR(amount: number): string {
+  return `₹${amount.toLocaleString('en-IN')}`;
+}
+
+/**
+ * Standard date formatter (e.g., "15 Oct 2026")
+ */
+export function formatDate(dateInput: string | Date): string {
+  const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  if (isNaN(d.getTime())) return String(dateInput);
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /**

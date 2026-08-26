@@ -8,39 +8,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
+import { CancelBookingDialog } from '@/components/booking/CancelBookingDialog';
 import { RatingModal } from '@/components/booking/RatingModal';
+import { EmptyState } from '@/components/common/EmptyState';
+import { formatINR, formatDate } from '@/lib/utils';
 import {
   Calendar,
   Clock,
   MapPin,
-  Sparkles,
   Search,
   Phone,
   ArrowRight,
   Star,
-  XCircle,
+  Ban,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type FilterTab = 'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
-
-const QUICK_CANCEL_REASONS = [
-  'Schedule clash or change of plans',
-  'Personal or family emergency',
-  'Want to reschedule to another auspicious Muhurat',
-  'Purohit requested change of date',
-  'Other reasons',
-];
 
 export const BookingsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -49,14 +35,9 @@ export const BookingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Cancel Dialog State
+  // Dialog States
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
-  const [selectedReason, setSelectedReason] = useState<string>(QUICK_CANCEL_REASONS[0]);
-  const [customReasonText, setCustomReasonText] = useState<string>('');
-  const [isCancelling, setIsCancelling] = useState(false);
-
-  // Rating Modal State
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [bookingToRate, setBookingToRate] = useState<Booking | null>(null);
 
@@ -79,378 +60,211 @@ export const BookingsPage: React.FC = () => {
     loadBookings();
   }, [user?.id]);
 
-  const handleOpenCancelDialog = (booking: Booking) => {
-    setBookingToCancel(booking);
-    setSelectedReason(QUICK_CANCEL_REASONS[0]);
-    setCustomReasonText('');
-    setCancelModalOpen(true);
-  };
-
-  const handleConfirmCancel = async () => {
+  const handleConfirmCancel = async (reason: string) => {
     if (!bookingToCancel || !user) return;
-    const finalReason = selectedReason === 'Other reasons' ? customReasonText.trim() : selectedReason;
-    if (!finalReason) {
-      toast.error('Please specify a cancellation reason.');
-      return;
+    const res = await mockCancelBooking(bookingToCancel.id, user.id, reason);
+    if (res.success) {
+      toast.success('Puja appointment cancelled.');
+      setCancelModalOpen(false);
+      loadBookings();
+    } else {
+      toast.error(res.message || 'Failed to cancel.');
     }
-
-    setIsCancelling(true);
-    try {
-      const res = await mockCancelBooking(bookingToCancel.id, user.id, finalReason);
-      if (res.success) {
-        toast.success(res.message);
-        setCancelModalOpen(false);
-        loadBookings();
-      } else {
-        toast.error(res.message);
-      }
-    } finally {
-      setIsCancelling(false);
-    }
-  };
-
-  const handleOpenRatingModal = (booking: Booking) => {
-    setBookingToRate(booking);
-    setRatingModalOpen(true);
   };
 
   const handleRatingSubmit = async (data: RatingInput) => {
-    if (!user) return;
-    try {
-      const res = await mockSubmitRating(user.id, data);
-      if (res.success) {
-        toast.success(res.message);
-        loadBookings();
-      } else {
-        toast.error(res.message);
-      }
-    } catch {
-      toast.error('Failed to submit rating.');
+    if (!user || !bookingToRate) return;
+    const res = await mockSubmitRating(user.id, data);
+    if (res.success) {
+      toast.success('Thank you for rating your Purohit!');
+      setRatingModalOpen(false);
+      loadBookings();
+    } else {
+      toast.error(res.message || 'Failed to submit rating.');
     }
   };
 
-  // Filter and Search Logic
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
-      // Tab Filtering
+      // Tab filter
       if (activeTab === 'PENDING' && b.status !== 'PENDING') return false;
       if (activeTab === 'CONFIRMED' && b.status !== 'CONFIRMED') return false;
       if (activeTab === 'COMPLETED' && b.status !== 'COMPLETED') return false;
-      if (
-        activeTab === 'CANCELLED' &&
-        b.status !== 'CANCELLED' &&
-        b.status !== 'REJECTED' &&
-        b.status !== 'EXPIRED'
-      )
-        return false;
+      if (activeTab === 'CANCELLED' && !['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)) return false;
 
-      // Query Search
+      // Search query
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const refMatch = b.bookingReference.toLowerCase().includes(q);
-        const srvMatch = b.serviceName?.toLowerCase().includes(q);
-        const priestMatch = b.priest?.displayName?.toLowerCase().includes(q);
-        return refMatch || srvMatch || priestMatch;
+        const query = searchQuery.toLowerCase();
+        const refMatch = (b.bookingReference || b.id).toLowerCase().includes(query);
+        const ritualMatch = (b.serviceName || '').toLowerCase().includes(query);
+        const priestMatch = (b.priest?.displayName || b.priest?.fullName || '').toLowerCase().includes(query);
+        return refMatch || ritualMatch || priestMatch;
       }
-
       return true;
     });
   }, [bookings, activeTab, searchQuery]);
 
   return (
     <div className="container py-8 space-y-6 max-w-5xl">
-      {/* Header */}
+      {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-            <Sparkles className="h-3.5 w-3.5" />
-            <span>Devotee Appointments</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">
-            My Ceremony Bookings
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Track status, view locked Dakshina amounts, cancel pending requests, and rate completed pujas.
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">My Puja Bookings</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+            Track upcoming sacred appointments, view Purohit details, and manage completed rituals.
           </p>
         </div>
-
         <Link to="/user/priests">
-          <Button size="sm" className="gap-2 text-xs self-start sm:self-auto">
-            <Sparkles className="h-3.5 w-3.5" /> Book New Puja
+          <Button size="sm" className="gap-1.5 text-xs w-fit">
+            Book New Ceremony
           </Button>
         </Link>
       </div>
 
-      {/* Filter Tabs & Search Strip */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-1.5 p-1 bg-muted/60 rounded-xl border">
-          {(
-            [
-              { id: 'ALL', label: 'All' },
-              { id: 'PENDING', label: 'Pending Request' },
-              { id: 'CONFIRMED', label: 'Upcoming' },
-              { id: 'COMPLETED', label: 'Completed' },
-              { id: 'CANCELLED', label: 'Past / Cancelled' },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-card text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Tabs & Search Filter */}
+      <div className="space-y-4">
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as FilterTab)}>
+          <TabsList className="grid grid-cols-5 w-full max-w-lg h-9">
+            <TabsTrigger value="ALL" className="text-xs">All</TabsTrigger>
+            <TabsTrigger value="PENDING" className="text-xs">Pending</TabsTrigger>
+            <TabsTrigger value="CONFIRMED" className="text-xs">Confirmed</TabsTrigger>
+            <TabsTrigger value="COMPLETED" className="text-xs">Done</TabsTrigger>
+            <TabsTrigger value="CANCELLED" className="text-xs">Cancelled</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search booking ref or priest..."
+            placeholder="Search bookings by ceremony, purohit, or reference ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 text-xs h-9"
+            className="pl-9 text-xs h-9"
           />
         </div>
       </div>
 
       {/* Bookings List */}
       {isLoading ? (
-        <div className="text-center py-12 text-xs text-muted-foreground">
-          Loading your ceremonies...
-        </div>
-      ) : filteredBookings.length === 0 ? (
-        <Card className="border-border/80 text-center py-12 px-4 shadow-xs">
-          <div className="max-w-md mx-auto space-y-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-              <Calendar className="h-6 w-6" />
-            </div>
-            <h2 className="text-base font-bold font-serif text-foreground">No Bookings Found</h2>
-            <p className="text-xs text-muted-foreground">
-              {activeTab === 'ALL'
-                ? 'You have not scheduled any Vedic ceremonies yet.'
-                : `No ceremonies found under the "${activeTab}" status.`}
-            </p>
-            <Link to="/user/priests">
-              <Button size="sm" className="text-xs">Find Available Purohits</Button>
-            </Link>
-          </div>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredBookings.map((booking) => (
-            <Card
-              key={booking.id}
-              className="border-border/80 hover:border-primary/40 transition-colors shadow-xs"
-            >
-              <CardContent className="p-5 sm:p-6 space-y-4">
-                {/* Header row */}
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold text-foreground">
-                      {booking.bookingReference}
-                    </span>
-                    <span className="text-muted-foreground text-xs">•</span>
-                    <span className="text-xs text-muted-foreground">
-                      Requested {new Date(booking.createdAt).toLocaleDateString('en-IN')}
-                    </span>
-                  </div>
+        <div className="py-12 text-center text-xs text-muted-foreground">Loading your bookings...</div>
+      ) : filteredBookings.length > 0 ? (
+        <div className="space-y-4">
+          {filteredBookings.map((b) => {
+            const canCancel = b.status === 'PENDING' || b.status === 'CONFIRMED';
+            const canRate = b.status === 'COMPLETED' && !b.ratingSubmitted;
 
-                  <BookingStatusBadge status={booking.status} />
-                </div>
+            return (
+              <Card key={b.id} className="border shadow-xs overflow-hidden hover:shadow-sm transition-all bg-card">
+                <CardContent className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold text-base text-foreground font-serif">
+                        {b.serviceName || 'Puja Ceremony'}
+                      </span>
+                      <BookingStatusBadge status={b.status} />
+                      <Badge variant="outline" className="font-mono text-[10px]">
+                        {b.bookingReference || b.id.slice(0, 8)}
+                      </Badge>
+                    </div>
 
-                {/* Main Content */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <img
-                      src={
-                        booking.priest?.profileImageUrl ||
-                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'
-                      }
-                      alt={booking.priest?.displayName || 'Priest'}
-                      className="h-14 w-14 rounded-xl object-cover border shrink-0 bg-muted"
-                    />
-
-                    <div className="space-y-1">
-                      <h2 className="font-bold text-base font-serif text-foreground">
-                        {booking.serviceName}
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Purohit: <strong className="text-foreground">{booking.priest?.displayName || 'Vedic Scholar'}</strong>
-                      </p>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-0.5">
-                        <span className="flex items-center gap-1 font-medium text-foreground">
-                          <Clock className="h-3.5 w-3.5 text-primary" />
-                          {booking.bookingDate} ({booking.startTime} - {booking.endTime})
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-3.5 w-3.5 text-primary" />
-                          {booking.address?.city || 'In-home Ceremony'}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span>{formatDate(b.bookingDate)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span>{b.slot ? `${b.slot.startTime} - ${b.slot.endTime}` : 'Morning Muhurat'}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span className="truncate">
+                          {b.address ? `${b.address.villageTown || b.address.city}, ${b.address.city}` : 'Home Address'}
                         </span>
                       </div>
                     </div>
+
+                    <div className="flex items-center gap-3 pt-1 text-xs">
+                      <span className="text-muted-foreground">
+                        Dakshina: <strong className="text-foreground">{formatINR(b.servicePrice || b.dakshinaAmount || 2100)}</strong>
+                      </span>
+                      {b.status === 'CONFIRMED' && b.priest?.phoneNumber && (
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Phone className="w-3 h-3 text-primary" />
+                          <strong className="text-foreground font-mono">{b.priest.phoneNumber}</strong>
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Price & Locked Dakshina */}
-                  <div className="text-right shrink-0 self-end sm:self-auto space-y-1">
-                    <span className="text-[11px] text-muted-foreground block">Locked Dakshina</span>
-                    <span className="text-base font-bold font-mono text-foreground">
-                      ₹{(booking.servicePrice || booking.dakshinaAmount).toLocaleString('en-IN')}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground block">(Offline Cash)</span>
-                  </div>
-                </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 shrink-0 border-t md:border-t-0 pt-3 md:pt-0">
+                    <Link to={`/user/bookings/${b.id}`}>
+                      <Button variant="outline" size="sm" className="gap-1 text-xs">
+                        View Details <ArrowRight className="w-3 h-3" />
+                      </Button>
+                    </Link>
 
-                {/* Footer Actions */}
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border/40">
-                  {/* Status specific helpers */}
-                  <div className="text-xs text-muted-foreground">
-                    {booking.status === 'PENDING' && (
-                      <span className="text-amber-600 font-medium">
-                        ⏳ Response deadline: Pandit Ji has 5 hours to accept.
-                      </span>
+                    {canRate && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setBookingToRate(b);
+                          setRatingModalOpen(true);
+                        }}
+                        className="gap-1.5 text-xs bg-amber-500 hover:bg-amber-600 text-white"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-white" />
+                        Rate
+                      </Button>
                     )}
-                    {booking.status === 'CONFIRMED' && (
-                      <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                        <Phone className="h-3.5 w-3.5" /> Pandit Ji Mobile:{' '}
-                        <strong className="font-mono">{booking.priest?.phoneNumber || '+919876543211'}</strong>
-                      </span>
-                    )}
-                    {booking.status === 'REJECTED' && (
-                      <span className="text-destructive font-medium">
-                        Declined reason: {booking.rejectionReason || 'Prior commitment.'}
-                      </span>
-                    )}
-                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    {(booking.status === 'PENDING' || booking.status === 'CONFIRMED') && (
+                    {canCancel && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleOpenCancelDialog(booking)}
-                        className="text-xs h-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setBookingToCancel(b);
+                          setCancelModalOpen(true);
+                        }}
+                        className="gap-1 text-xs text-destructive hover:text-destructive border-destructive/30"
                       >
-                        <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
+                        <Ban className="w-3.5 h-3.5" />
+                        Cancel
                       </Button>
                     )}
-
-                    {booking.status === 'COMPLETED' && !booking.ratingSubmitted && (
-                      <Button
-                        size="sm"
-                        onClick={() => handleOpenRatingModal(booking)}
-                        className="text-xs h-8 gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
-                      >
-                        <Star className="h-3.5 w-3.5 fill-white" /> Rate Priest
-                      </Button>
-                    )}
-
-                    {booking.status === 'COMPLETED' && booking.ratingSubmitted && (
-                      <Badge variant="outline" className="text-xs text-emerald-600 border-emerald-500/30">
-                        ✓ Rating Submitted
-                      </Badge>
-                    )}
-
-                    <Link to={`/user/bookings/${booking.id}`}>
-                      <Button variant="ghost" size="sm" className="text-xs h-8 gap-1">
-                        <span>Details</span>
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </Link>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
-      )}
-
-      {/* Cancel Booking Dialog */}
-      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-lg text-destructive">Cancel Ceremony Booking</DialogTitle>
-            <DialogDescription className="text-xs">
-              Are you sure you wish to cancel booking ref <strong>{bookingToCancel?.bookingReference}</strong>? The Purohit will be notified immediately.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2 text-xs">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold">Select Reason (Required)</label>
-              <div className="space-y-1.5">
-                {QUICK_CANCEL_REASONS.map((r) => (
-                  <label
-                    key={r}
-                    className="flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:bg-muted/30 text-xs"
-                  >
-                    <input
-                      type="radio"
-                      name="cancelReason"
-                      value={r}
-                      checked={selectedReason === r}
-                      onChange={() => setSelectedReason(r)}
-                      className="text-primary"
-                    />
-                    <span>{r}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {selectedReason === 'Other reasons' && (
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Please specify reason</label>
-                <Textarea
-                  placeholder="Enter details..."
-                  rows={2}
-                  value={customReasonText}
-                  onChange={(e) => setCustomReasonText(e.target.value)}
-                  className="text-xs resize-none"
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="pt-2 gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCancelModalOpen(false)} className="text-xs">
-              Keep Booking
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={isCancelling}
-              onClick={handleConfirmCancel}
-              className="text-xs"
-            >
-              {isCancelling ? 'Cancelling...' : 'Confirm Cancellation'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Rating Modal */}
-      {bookingToRate && (
-        <RatingModal
-          isOpen={ratingModalOpen}
-          onClose={() => {
-            setRatingModalOpen(false);
-            setBookingToRate(null);
-          }}
-          bookingId={bookingToRate.id}
-          priestName={bookingToRate.priest?.displayName}
-          serviceName={bookingToRate.serviceName}
-          onSubmit={handleRatingSubmit}
+      ) : (
+        <EmptyState
+          icon={Calendar}
+          title="No bookings found"
+          description={
+            searchQuery ? 'No appointments match your search criteria.' : 'You have no bookings in this category.'
+          }
         />
       )}
+
+      {/* Modals */}
+      <CancelBookingDialog
+        isOpen={cancelModalOpen}
+        onClose={() => setCancelModalOpen(false)}
+        onConfirm={handleConfirmCancel}
+        bookingReference={bookingToCancel?.bookingReference || bookingToCancel?.id}
+      />
+
+      <RatingModal
+        isOpen={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+        bookingId={bookingToRate?.id || ''}
+        priestName={bookingToRate?.priest?.displayName || bookingToRate?.priest?.fullName}
+        serviceName={bookingToRate?.serviceName}
+        onSubmit={handleRatingSubmit}
+      />
     </div>
   );
 };
