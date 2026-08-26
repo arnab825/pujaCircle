@@ -497,14 +497,20 @@ export async function mockGetBookings(userId?: string, priestId?: string): Promi
   });
 
   // Populate references
-  const populated = list.map((b) => ({
-    ...b,
-    priest: mockPriests.find((p) => p.id === b.priestId),
-    priestService: mockPriestServices.find((s) => s.id === b.priestServiceId),
-    ritual: mockRituals.find((r) => r.id === b.ritualId),
-    address: mockAddresses.find((a) => a.id === b.addressId),
-    slot: mockSlots.find((s) => s.id === b.slotId),
-  }));
+  const populated = list.map((b) => {
+    const devotee = mockUsers.find((u) => u.id === b.userId);
+    return {
+      ...b,
+      user: devotee ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email } : undefined,
+      userName: devotee?.name,
+      userPhone: devotee?.phoneNumber,
+      priest: mockPriests.find((p) => p.id === b.priestId),
+      priestService: mockPriestServices.find((s) => s.id === b.priestServiceId),
+      ritual: mockRituals.find((r) => r.id === b.ritualId),
+      address: mockAddresses.find((a) => a.id === b.addressId),
+      slot: mockSlots.find((s) => s.id === b.slotId),
+    };
+  });
 
   return { success: true, data: populated };
 }
@@ -514,10 +520,15 @@ export async function mockGetBookingById(bookingId: string): Promise<{ success: 
   const booking = mockBookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
 
+  const devotee = mockUsers.find((u) => u.id === booking.userId);
+
   return {
     success: true,
     data: {
       ...booking,
+      user: devotee ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email } : undefined,
+      userName: devotee?.name,
+      userPhone: devotee?.phoneNumber,
       priest: mockPriests.find((p) => p.id === booking.priestId),
       priestService: mockPriestServices.find((s) => s.id === booking.priestServiceId),
       ritual: mockRituals.find((r) => r.id === booking.ritualId),
