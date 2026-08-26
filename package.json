@@ -9,6 +9,7 @@
     "backend": "npm run dev --prefix backend",
     "build:frontend": "npm run build --prefix frontend",
     "build": "npm run build --prefix frontend",
+    "typecheck": "npm run typecheck --prefix frontend",
     "test:mock": "tsx --tsconfig frontend/tsconfig.json frontend/src/mocks/test-mock-api.ts",
     "lint:frontend": "npm run lint --prefix frontend"
   },

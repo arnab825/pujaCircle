@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Search, UserCheck, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
-type StatusFilter = 'ALL' | PriestApprovalStatus;
+type StatusFilter = 'ALL' | PriestApprovalStatus | 'BANNED';
 
 export const AdminPriestsPage: React.FC = () => {
   const [priests, setPriests] = useState<Priest[]>([]);
@@ -48,16 +48,15 @@ export const AdminPriestsPage: React.FC = () => {
     fetchPriests();
   }, []);
 
-  // Handlers
   const handleApprove = async (priestId: string) => {
     setIsProcessing(true);
     try {
       const res = await mockAdminApprovePriest(priestId);
       if (res.success) {
-        toast.success('Purohit application approved!');
+        toast.success(res.message);
         fetchPriests();
       } else {
-        toast.error(res.message || 'Failed to approve purohit.');
+        toast.error(res.message || 'Failed to approve priest.');
       }
     } finally {
       setIsProcessing(false);
@@ -68,10 +67,10 @@ export const AdminPriestsPage: React.FC = () => {
     if (!rejectTarget) return;
     const res = await mockAdminRejectPriest(rejectTarget.id, reason);
     if (res.success) {
-      toast.success('Purohit application rejected.');
+      toast.success(res.message);
       fetchPriests();
     } else {
-      toast.error(res.message || 'Failed to reject.');
+      toast.error(res.message || 'Failed to reject application.');
     }
   };
 
@@ -79,78 +78,103 @@ export const AdminPriestsPage: React.FC = () => {
     if (!banTarget) return;
     const res = await mockAdminBanPriest(banTarget.id, reason);
     if (res.success) {
-      toast.success('Purohit banned from platform.');
+      toast.success(res.message);
       fetchPriests();
     } else {
-      toast.error(res.message || 'Failed to ban.');
+      toast.error(res.message || 'Failed to ban priest.');
     }
   };
 
   const handleUnban = async (priestId: string) => {
     const res = await mockAdminUnbanPriest(priestId);
     if (res.success) {
-      toast.success('Purohit unbanned successfully.');
+      toast.success(res.message);
       fetchPriests();
     } else {
-      toast.error(res.message || 'Failed to unban.');
+      toast.error(res.message || 'Failed to reactivate priest.');
     }
   };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
+    toast.success(`Priest ${deleteTarget.fullName} record removed.`);
     setPriests((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-    toast.success('Purohit record deleted permanently.');
     setDeleteTarget(null);
   };
 
-  // Filtered List
+  // Filtered Priests Calculation
   const filteredPriests = useMemo(() => {
     return priests.filter((p) => {
-      if (activeTab !== 'ALL' && p.approvalStatus !== activeTab) return false;
+      if (activeTab === 'BANNED') {
+        if (p.accountStatus !== 'BANNED') return false;
+      } else if (activeTab !== 'ALL') {
+        if (p.approvalStatus !== activeTab) return false;
+      }
 
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const nameMatch = p.fullName.toLowerCase().includes(query);
-        const cityMatch = p.city.toLowerCase().includes(query);
-        const phoneMatch = p.phoneNumber.includes(query);
-        return nameMatch || cityMatch || phoneMatch;
+        const q = searchQuery.toLowerCase();
+        const matchesName = (p.fullName || '').toLowerCase().includes(q);
+        const matchesPhone = (p.phoneNumber || '').includes(q);
+        const matchesCity = (p.city || '').toLowerCase().includes(q);
+        return matchesName || matchesPhone || matchesCity;
       }
       return true;
     });
   }, [priests, activeTab, searchQuery]);
 
+  const pendingCount = priests.filter((p) => p.approvalStatus === 'PENDING').length;
+  const approvedCount = priests.filter((p) => p.approvalStatus === 'APPROVED').length;
+  const rejectedCount = priests.filter((p) => p.approvalStatus === 'REJECTED').length;
+  const bannedCount = priests.filter((p) => p.accountStatus === 'BANNED').length;
+
   return (
-    <div className="space-y-6 pb-12 max-w-5xl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Purohit Directory & Verification</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Review qualifications, approve pending purohits, and manage platform bans.
+          <h1 className="text-2xl font-bold font-serif text-foreground">
+            Priest Applications & Directory
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Review onboarding requests, verify Gurukul credentials, and moderate priest accounts.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchPriests} className="gap-1.5 text-xs w-fit">
+        <Button variant="outline" size="sm" onClick={fetchPriests} className="h-9 gap-1.5 text-xs self-start sm:self-auto">
           <RefreshCw className="w-3.5 h-3.5" />
-          Refresh
+          Refresh List
         </Button>
       </div>
 
-      {/* Tabs & Search */}
-      <div className="space-y-4">
-        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as StatusFilter)}>
-          <TabsList className="grid grid-cols-5 w-full max-w-lg h-9">
-            <TabsTrigger value="ALL" className="text-xs">All</TabsTrigger>
-            <TabsTrigger value="PENDING" className="text-xs">Pending</TabsTrigger>
-            <TabsTrigger value="APPROVED" className="text-xs">Approved</TabsTrigger>
-            <TabsTrigger value="REJECTED" className="text-xs">Rejected</TabsTrigger>
-            <TabsTrigger value="BANNED" className="text-xs">Banned</TabsTrigger>
+      {/* Filter Tabs & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as StatusFilter)}
+          className="w-full sm:w-auto"
+        >
+          <TabsList className="grid grid-cols-5 w-full sm:w-auto text-xs h-9">
+            <TabsTrigger value="ALL" className="text-xs">
+              All ({priests.length})
+            </TabsTrigger>
+            <TabsTrigger value="PENDING" className="text-xs text-amber-600 font-semibold">
+              Pending ({pendingCount})
+            </TabsTrigger>
+            <TabsTrigger value="APPROVED" className="text-xs text-emerald-600">
+              Approved ({approvedCount})
+            </TabsTrigger>
+            <TabsTrigger value="REJECTED" className="text-xs text-destructive">
+              Rejected ({rejectedCount})
+            </TabsTrigger>
+            <TabsTrigger value="BANNED" className="text-xs text-muted-foreground">
+              Banned ({bannedCount})
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        <div className="relative">
+        <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by Purohit name, city, or phone number..."
+            placeholder="Search by name, city, phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 text-xs h-9"
@@ -158,8 +182,18 @@ export const AdminPriestsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Table */}
-      {filteredPriests.length > 0 ? (
+      {/* Main Table or Empty State */}
+      {filteredPriests.length === 0 ? (
+        <EmptyState
+          icon={UserCheck}
+          title={
+            activeTab === 'PENDING'
+              ? 'No pending applications'
+              : 'No priests match the selected filter'
+          }
+          description="Try adjusting your search criteria or switching status tabs."
+        />
+      ) : (
         <PriestApprovalTable
           priests={filteredPriests}
           onApprove={handleApprove}
@@ -169,37 +203,29 @@ export const AdminPriestsPage: React.FC = () => {
           onOpenDelete={(p) => setDeleteTarget(p)}
           isProcessing={isProcessing}
         />
-      ) : (
-        <EmptyState
-          icon={UserCheck}
-          title="No Purohits found"
-          description={
-            searchQuery ? 'No purohits match your search criteria.' : 'No purohits in this category.'
-          }
-        />
       )}
 
-      {/* Dialogs */}
+      {/* Action Dialogs */}
       <RejectPriestDialog
         isOpen={!!rejectTarget}
         onClose={() => setRejectTarget(null)}
-        onConfirm={handleRejectConfirm}
         priest={rejectTarget}
+        onConfirm={handleRejectConfirm}
       />
 
       <BanPriestDialog
         isOpen={!!banTarget}
         onClose={() => setBanTarget(null)}
-        onConfirm={handleBanConfirm}
         priest={banTarget}
+        onConfirm={handleBanConfirm}
       />
 
       <DeleteConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
+        title={`Delete Record for ${deleteTarget?.fullName}?`}
+        description="This will permanently delete the priest application from the directory. This action cannot be undone."
         onConfirm={handleDeleteConfirm}
-        title="Delete Purohit Record"
-        description={`Are you sure you want to permanently delete ${deleteTarget?.fullName}? This action cannot be undone.`}
       />
     </div>
   );

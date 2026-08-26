@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
-import {
-  mockGetPriestById,
-  mockGetPriestSlots,
-  mockGetAddresses,
-  mockCreateBooking,
-} from '@/mocks/mock-api';
+import { priestApi } from '@/api/priest.api';
+import { addressApi } from '@/api/address.api';
+import { bookingApi } from '@/api/booking.api';
 import { Priest, PriestSlot, PriestService } from '@/types/priest.types';
 import { Address } from '@/types/address.types';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -22,6 +20,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { formatCurrency, formatTime, formatFullDate } from '@/lib/utils';
 import {
   Sparkles,
   MapPin,
@@ -42,9 +41,14 @@ export const PriestDetailsPage: React.FC = () => {
   const { user, isAuthenticated } = useAuthStore();
 
   const [priest, setPriest] = useState<Priest | null>(null);
-  const [slots, setSlots] = useState<PriestSlot[]>([]);
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Date & Dynamic Slot Picker
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [availableSlots, setAvailableSlots] = useState<PriestSlot[]>([]);
+  const [isSlotsLoading, setIsSlotsLoading] = useState(false);
 
   // Booking Flow State
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -55,43 +59,53 @@ export const PriestDetailsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
+    async function loadPriestAndAddresses() {
       if (!id) return;
       setIsLoading(true);
       try {
-        const [priestRes, slotsRes] = await Promise.all([
-          mockGetPriestById(id),
-          mockGetPriestSlots(id),
-        ]);
-
-        if (priestRes.success && priestRes.data) {
-          setPriest(priestRes.data);
-          if (priestRes.data.services && priestRes.data.services.length > 0) {
-            setSelectedService(priestRes.data.services[0]);
+        const priestData = await priestApi.getPriestById(id);
+        if (priestData) {
+          setPriest(priestData);
+          if (priestData.services && priestData.services.length > 0) {
+            setSelectedService(priestData.services[0]);
           }
-        }
-        if (slotsRes.success) {
-          setSlots(slotsRes.data);
         }
 
         if (user) {
-          const addrRes = await mockGetAddresses(user.id);
-          if (addrRes.success) {
-            setUserAddresses(addrRes.data);
-            const defaultAddr = addrRes.data.find((a) => a.isDefault) || addrRes.data[0];
-            if (defaultAddr) setSelectedAddressId(defaultAddr.id);
-          }
+          const addrs = await addressApi.getAddresses(user.id);
+          setUserAddresses(addrs);
+          const defaultAddr = addrs.find((a) => a.isDefault) || addrs[0];
+          if (defaultAddr) setSelectedAddressId(defaultAddr.id);
         }
+      } catch {
+        toast.error('Failed to load priest profile.');
       } finally {
         setIsLoading(false);
       }
     }
-    loadData();
+    loadPriestAndAddresses();
   }, [id, user]);
+
+  // Load generated slots whenever selectedDate or priest changes
+  useEffect(() => {
+    async function loadSlots() {
+      if (!id) return;
+      setIsSlotsLoading(true);
+      try {
+        const slots = await priestApi.getAvailableSlotsForDate(id, selectedDate);
+        setAvailableSlots(slots);
+      } catch {
+        toast.error('Failed to load slots for this date.');
+      } finally {
+        setIsSlotsLoading(false);
+      }
+    }
+    loadSlots();
+  }, [id, selectedDate]);
 
   const handleStartBooking = (service?: PriestService, slot?: PriestSlot) => {
     if (!isAuthenticated) {
-      toast.info('Please sign in to schedule a puja appointment.');
+      toast.info('Please sign in to schedule an appointment with this Priest.');
       navigate('/user/login');
       return;
     }
@@ -101,29 +115,34 @@ export const PriestDetailsPage: React.FC = () => {
   };
 
   const handleSubmitBooking = async () => {
-    if (!user || !priest || !selectedSlot || !selectedAddressId) {
-      toast.error('Please select an address and available time slot.');
+    if (!user || !priest || !selectedSlot || !selectedAddressId || !selectedService) {
+      toast.error('Please select a service, address, and available time slot.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await mockCreateBooking(user.id, {
-        priestId: priest.id,
-        priestServiceId: selectedService?.id,
-        slotId: selectedSlot.id,
-        availabilitySlotId: selectedSlot.id,
-        addressId: selectedAddressId,
-        bookingDate: selectedSlot.date,
-        userNotes,
-      });
+      const res = await bookingApi.createBooking(
+        {
+          priestId: priest.id,
+          priestServiceId: selectedService.id,
+          slotId: selectedSlot.id,
+          availabilitySlotId: selectedSlot.id,
+          addressId: selectedAddressId,
+          bookingDate: selectedSlot.date,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
+          userNotes,
+        },
+        user.id
+      );
 
       if (res.success && res.data) {
         toast.success(res.message);
         setIsBookingOpen(false);
         navigate(`/user/bookings/${res.data.id}`);
       } else {
-        toast.error(res.message);
+        toast.error(res.message || 'Failed to submit booking request.');
       }
     } catch {
       toast.error('Failed to submit booking request.');
@@ -135,7 +154,7 @@ export const PriestDetailsPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="container py-12 text-center text-xs text-muted-foreground">
-        Loading Purohit profile...
+        Loading Priest profile and services...
       </div>
     );
   }
@@ -143,22 +162,27 @@ export const PriestDetailsPage: React.FC = () => {
   if (!priest) {
     return (
       <div className="container py-12 text-center space-y-4 max-w-md">
-        <h2 className="text-xl font-bold font-serif">Purohit Not Found</h2>
-        <p className="text-xs text-muted-foreground">The requested priest profile does not exist or has been deactivated.</p>
+        <h2 className="text-xl font-bold font-serif">Priest Profile Not Found</h2>
+        <p className="text-xs text-muted-foreground">
+          The requested priest profile does not exist or is currently pending approval.
+        </p>
         <Link to="/user/priests">
-          <Button size="sm" variant="outline">← Return to Directory</Button>
+          <Button size="sm" variant="outline">← Return to Priest Directory</Button>
         </Link>
       </div>
     );
   }
 
-  const availableSlots = slots.filter((s) => s.status === 'AVAILABLE');
+  const activeBookableSlots = availableSlots.filter((s) => s.status === 'AVAILABLE');
 
   return (
     <div className="container py-8 space-y-8 max-w-5xl">
-      {/* Back Button */}
-      <Link to="/user/priests" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Purohits Directory
+      {/* Back Link */}
+      <Link
+        to="/user/priests"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> Back to Priests Directory
       </Link>
 
       {/* Priest Header Profile Card */}
@@ -177,17 +201,20 @@ export const PriestDetailsPage: React.FC = () => {
                   <h1 className="text-2xl font-bold font-serif text-foreground">
                     {priest.displayName || priest.fullName}
                   </h1>
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1 text-[11px]">
-                    <CheckCircle2 className="h-3 w-3" /> Verified Vedic Scholar
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 gap-1 text-[11px]"
+                  >
+                    <CheckCircle2 className="h-3 w-3" /> Verified Purohit
                   </Badge>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
                   <span className="flex items-center gap-1 font-semibold text-amber-600">
                     <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                    {priest.rating ? priest.rating.toFixed(1) : '5.0'} ({priest.reviewCount || 10} Devotee Reviews)
+                    {priest.rating ? priest.rating.toFixed(1) : '5.0'} ({priest.reviewCount || 10} Reviews)
                   </span>
                   <span>•</span>
-                  <span>{priest.experienceYears} Years Vedic Experience</span>
+                  <span>{priest.experienceYears} Years Experience</span>
                   <span>•</span>
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3 w-3 text-primary" /> {priest.city}, {priest.state}
@@ -196,13 +223,11 @@ export const PriestDetailsPage: React.FC = () => {
               </div>
 
               <Button onClick={() => handleStartBooking()} className="gap-2 text-xs h-9">
-                <Calendar className="h-4 w-4" /> Request Puja Booking
+                <Calendar className="h-4 w-4" /> Request Booking
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {priest.bio}
-            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{priest.bio}</p>
 
             <div className="flex flex-wrap items-center gap-4 text-xs pt-1 border-t border-border/40">
               <div>
@@ -219,23 +244,27 @@ export const PriestDetailsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Services and Available Slots Layout */}
+      {/* Services and Dynamic Slot Picker Layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Column: Services & Prices */}
+        {/* Left Column: Offered Services & Rates */}
         <div className="md:col-span-7 space-y-4">
           <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" /> Offered Ceremonies & Custom Dakshina
+            <Sparkles className="h-4 w-4 text-primary" /> Offered Services & Price List
           </h2>
 
           <div className="space-y-3">
-            {(!priest.services || priest.services.length === 0) ? (
-              <p className="text-xs text-muted-foreground p-4 bg-muted/30 rounded-lg">No services listed yet.</p>
+            {!priest.services || priest.services.length === 0 ? (
+              <Card className="p-6 text-center text-xs text-muted-foreground border-dashed">
+                This priest has not published specific service rates yet.
+              </Card>
             ) : (
               priest.services.map((srv) => (
                 <Card
                   key={srv.id}
-                  className={`border-border/80 cursor-pointer transition-all shadow-xs ${
-                    selectedService?.id === srv.id ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/40'
+                  className={`border-border/80 cursor-pointer transition-all shadow-2xs ${
+                    selectedService?.id === srv.id
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
+                      : 'hover:border-primary/40'
                   }`}
                   onClick={() => setSelectedService(srv)}
                 >
@@ -247,18 +276,23 @@ export const PriestDetailsPage: React.FC = () => {
                           <span className="h-2 w-2 rounded-full bg-primary" />
                         )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">In-home sacred Vedic vidhi with samagri guidance</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        In-home ceremony with traditional vidhi and samagri guidance
+                      </p>
                     </div>
 
                     <div className="text-right shrink-0">
-                      <span className="text-sm font-bold font-mono text-foreground">₹{srv.price.toLocaleString('en-IN')}</span>
-                      <span className="text-[10px] text-muted-foreground block">(Offline Cash)</span>
+                      <span className="text-sm font-bold font-mono text-foreground">
+                        {formatCurrency(srv.price)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block">(Cash Payment)</span>
                       <Button
                         size="sm"
                         variant={selectedService?.id === srv.id ? 'default' : 'outline'}
                         className="mt-1 h-7 text-[11px] px-3"
                         onClick={(e) => {
                           e.stopPropagation();
+                          setSelectedService(srv);
                           handleStartBooking(srv);
                         }}
                       >
@@ -272,31 +306,53 @@ export const PriestDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Muhurat Availability Slots */}
+        {/* Right Column: Dynamic Availability Slots with Date Picker */}
         <div className="md:col-span-5 space-y-4">
           <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" /> Available Muhurat Slots
+            <Clock className="h-4 w-4 text-primary" /> Available Time Slots
           </h2>
 
           <Card className="border-border/80 shadow-xs">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-sm font-serif">Open Appointment Timings</CardTitle>
-              <CardDescription className="text-[11px]">
-                Click an open slot to schedule this Pandit Ji for your ceremony.
-              </CardDescription>
+            <CardHeader className="pb-3 border-b space-y-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-serif">Select Date</CardTitle>
+                <Badge variant="outline" className="text-[10px]">
+                  Recurring Schedule
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <Calendar className="h-4 w-4 text-primary shrink-0" />
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  min={todayStr}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="text-xs h-8 bg-card border-border"
+                />
+              </div>
             </CardHeader>
+
             <CardContent className="p-4 space-y-2.5">
-              {availableSlots.length === 0 ? (
+              <div className="text-[11px] font-semibold text-muted-foreground mb-2">
+                Slots for {formatFullDate(selectedDate)}:
+              </div>
+
+              {isSlotsLoading ? (
+                <div className="text-center py-6 text-xs text-muted-foreground">Calculating available slots...</div>
+              ) : activeBookableSlots.length === 0 ? (
                 <div className="text-center py-6 text-xs text-muted-foreground space-y-2">
                   <Clock className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                  <p>No available slots right now. Check back soon or request a custom timing.</p>
+                  <p>No open slots on this date. Please pick another date.</p>
                 </div>
               ) : (
-                availableSlots.map((slot) => (
+                activeBookableSlots.map((slot) => (
                   <div
                     key={slot.id}
-                    className={`p-3 rounded-lg border flex items-center justify-between cursor-pointer transition-colors ${
-                      selectedSlot?.id === slot.id ? 'border-primary bg-primary/10' : 'border-border/70 hover:bg-muted/40'
+                    className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      selectedSlot?.id === slot.id
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                        : 'border-border/70 hover:bg-muted/40'
                     }`}
                     onClick={() => {
                       setSelectedSlot(slot);
@@ -304,17 +360,22 @@ export const PriestDetailsPage: React.FC = () => {
                     }}
                   >
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
-                        <Calendar className="h-3.5 w-3.5 text-primary" />
-                        <span>{slot.date}</span>
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground font-mono">
+                        <Clock className="h-3.5 w-3.5 text-primary" />
+                        <span>
+                          {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        {slot.startTime} – {slot.endTime}
+                      <p className="text-[10px] text-muted-foreground">
+                        {slot.ruleId ? 'Standard Working Hours' : 'Special Muhurat Timing'}
                       </p>
                     </div>
 
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]">
-                      Available
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 text-[10px]"
+                    >
+                      Book Now
                     </Badge>
                   </div>
                 ))
@@ -324,37 +385,39 @@ export const PriestDetailsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Booking Initiation Modal */}
+      {/* Booking Review & Submission Modal */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl">Confirm Puja Booking Request</DialogTitle>
+            <DialogTitle className="font-serif text-xl">Review & Confirm Booking Request</DialogTitle>
             <DialogDescription className="text-xs">
-              Review ritual specifics, locked service Dakshina, and select your home address.
+              Price is authoritatively locked at request submission. Payment is direct in cash upon ceremony completion.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2 text-xs">
-            {/* Summary Box */}
+            {/* Price & Service Summary Box */}
             <div className="p-3.5 rounded-xl bg-muted/40 border space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Purohit:</span>
-                <strong className="text-foreground">{priest.displayName}</strong>
+                <strong className="text-foreground">{priest.displayName || priest.fullName}</strong>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ceremony:</span>
-                <strong className="text-foreground">{selectedService?.serviceName || 'Custom Puja'}</strong>
+                <span className="text-muted-foreground">Service / Puja:</span>
+                <strong className="text-foreground">{selectedService?.serviceName || 'Selected Ceremony'}</strong>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Locked Dakshina:</span>
-                <strong className="text-foreground font-mono text-sm">
-                  ₹{(selectedService?.price || 2100).toLocaleString('en-IN')} (Offline Cash)
+              <div className="flex items-center justify-between border-t border-border/40 pt-1.5">
+                <span className="text-muted-foreground">Service Price (Locked Snapshot):</span>
+                <strong className="font-mono text-sm font-bold text-primary">
+                  {formatCurrency(selectedService?.price || 2100)} (Direct Cash)
                 </strong>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Scheduled Timing:</span>
+                <span className="text-muted-foreground">Scheduled Date & Time:</span>
                 <span className="text-foreground font-medium">
-                  {selectedSlot ? `${selectedSlot.date} (${selectedSlot.startTime} - ${selectedSlot.endTime})` : 'Select a slot'}
+                  {selectedSlot
+                    ? `${formatFullDate(selectedSlot.date)} (${formatTime(selectedSlot.startTime)} – ${formatTime(selectedSlot.endTime)})`
+                    : `${formatFullDate(selectedDate)} (Please pick a slot)`}
                 </span>
               </div>
             </div>
@@ -362,17 +425,24 @@ export const PriestDetailsPage: React.FC = () => {
             {/* Address Selection */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Select Puja Address</Label>
-                <Link to="/user/addresses" className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1">
-                  <Plus className="h-3 w-3" /> Add New Address
+                <Label className="text-xs font-semibold">Puja Location (Saved Address)</Label>
+                <Link
+                  to="/user/addresses"
+                  className="text-[11px] text-primary hover:underline font-medium flex items-center gap-1"
+                >
+                  <Plus className="h-3 w-3" /> Add Address
                 </Link>
               </div>
 
               {userAddresses.length === 0 ? (
-                <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-700 space-y-2">
-                  <p className="text-[11px]">You have no saved addresses. An address with PIN code is required for the Purohit to arrive.</p>
+                <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-800 space-y-2">
+                  <p className="text-[11px]">
+                    You have no saved addresses. An address with PIN code is required for the priest to arrive.
+                  </p>
                   <Link to="/user/addresses">
-                    <Button size="sm" variant="outline" className="text-xs h-7">Add Address Now</Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7">
+                      Add Address Now
+                    </Button>
                   </Link>
                 </div>
               ) : (
@@ -382,7 +452,9 @@ export const PriestDetailsPage: React.FC = () => {
                       key={addr.id}
                       onClick={() => setSelectedAddressId(addr.id)}
                       className={`p-2.5 rounded-lg border cursor-pointer flex items-center justify-between ${
-                        selectedAddressId === addr.id ? 'border-primary bg-primary/10' : 'border-border hover:bg-muted/30'
+                        selectedAddressId === addr.id
+                          ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                          : 'border-border hover:bg-muted/30'
                       }`}
                     >
                       <div>
@@ -400,11 +472,11 @@ export const PriestDetailsPage: React.FC = () => {
               )}
             </div>
 
-            {/* Notes */}
+            {/* User Notes */}
             <div className="space-y-1">
-              <Label className="text-xs font-medium">Special Notes / Samagri Requirements (Optional)</Label>
+              <Label className="text-xs font-medium">Special Notes / Family Gotra (Optional)</Label>
               <Textarea
-                placeholder="e.g. Please bring list of fruits/flowers, or let us know if havan kund is required."
+                placeholder="e.g. Please let us know if havan kund is required, or specific samagri list items..."
                 rows={2}
                 value={userNotes}
                 onChange={(e) => setUserNotes(e.target.value)}
@@ -412,26 +484,33 @@ export const PriestDetailsPage: React.FC = () => {
               />
             </div>
 
-            {/* 5-Hour Expiry Notice */}
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground">
+            {/* 5-Hour Response SLA Notice */}
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground">
               <AlertCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <span>
-                <strong>Response Window:</strong> Pandit Ji will accept or decline within <strong>5 hours</strong>. Direct payment in offline cash happens upon ceremony completion.
+                <strong>5-Hour Response SLA:</strong> The priest will accept or decline your request within{' '}
+                <strong>5 hours</strong>. Payment is strictly in cash upon ceremony completion.
               </span>
             </div>
           </div>
 
           <DialogFooter className="pt-2 gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsBookingOpen(false)} className="text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsBookingOpen(false)}
+              className="text-xs"
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button
               size="sm"
-              disabled={isSubmitting || !selectedSlot || !selectedAddressId}
+              disabled={isSubmitting || !selectedSlot || !selectedAddressId || !selectedService}
               onClick={handleSubmitBooking}
               className="text-xs"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
+              {isSubmitting ? 'Submitting Request...' : 'Submit Booking Request'}
             </Button>
           </DialogFooter>
         </DialogContent>

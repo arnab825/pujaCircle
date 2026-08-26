@@ -4,12 +4,12 @@ import { Priest, Ritual, PriestSlot, PriestService } from './priest.types';
 export type BookingStatus =
   | 'PENDING'
   | 'CONFIRMED'
-  | 'COMPLETED'
-  | 'CANCELLED'
   | 'REJECTED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'COMPLETED';
 
-export type PaymentMethod = 'OFFLINE_CASH';
+export type PaymentMethod = 'OFFLINE_CASH' | 'CASH';
 export type PaymentStatus = 'PENDING' | 'PAID_OFFLINE';
 
 export interface Booking {
@@ -23,14 +23,14 @@ export interface Booking {
   slotId: string;
   availabilitySlotId?: string;
   serviceName: string;
-  servicePrice: number;
+  servicePrice: number; // Authoritative price snapshot locked at request submission
+  dakshinaAmount?: number; // Backwards-compatibility alias for servicePrice
   bookingDate: string; // YYYY-MM-DD
   startTime: string;
   endTime: string;
   status: BookingStatus;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
-  dakshinaAmount: number; // Snapshot of servicePrice
   specialInstructions?: string;
   userNotes?: string;
   responseDeadline?: string; // 5 hours after creation
@@ -64,9 +64,10 @@ export interface CreateBookingRequest {
   slotId: string;
   availabilitySlotId?: string;
   bookingDate: string;
+  startTime?: string;
+  endTime?: string;
   specialInstructions?: string;
   userNotes?: string;
-  dakshinaAmount?: number;
 }
 
 export interface CancelBookingRequest {

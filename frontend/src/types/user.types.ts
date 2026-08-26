@@ -1,6 +1,6 @@
-import { Role } from './auth.types';
+import { Role, AccountStatus } from './auth.types';
 
-export type UserStatus = 'ACTIVE' | 'SUSPENDED';
+export type UserStatus = AccountStatus; // Backward compatibility alias
 
 export interface UserProfile {
   id: string;
@@ -8,7 +8,9 @@ export interface UserProfile {
   phoneNumber: string;
   email?: string;
   role: Role;
-  status?: UserStatus;
+  status?: AccountStatus;
+  accountStatus?: AccountStatus;
+  banReason?: string;
   primaryCity?: string;
   addressSummary?: string;
   bookingCount?: number;
@@ -19,5 +21,7 @@ export interface UpdateUserProfileRequest {
   name?: string;
   email?: string;
   phoneNumber?: string;
-  status?: UserStatus;
+  accountStatus?: AccountStatus;
+  status?: AccountStatus;
+  banReason?: string;
 }

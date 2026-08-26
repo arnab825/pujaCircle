@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { logAppError } from '@/lib/errorHandler';
 
 interface Props {
   children: ReactNode;
@@ -20,8 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // In production, send to telemetry/monitoring service
-    console.error('Uncaught React Runtime Error:', error, errorInfo);
+    logAppError('ReactErrorBoundary', error, { componentStack: errorInfo.componentStack });
   }
 
   private handleReset = () => {

@@ -1,19 +1,30 @@
 /**
- * Environment Configuration Skeleton
- * Validates and exposes environment variables for the application.
+ * Backend Environment Configuration
+ * Validates environment variables using Zod schema to ensure no missing secrets.
  */
 import dotenv from 'dotenv';
+import { z } from 'zod';
+
 dotenv.config();
 
-export const env = {
-  PORT: process.env.PORT || 5000,
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  DATABASE_URL: process.env.DATABASE_URL || '',
-  JWT_SECRET: process.env.JWT_SECRET || 'default_secret',
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
-  COOKIE_SECRET: process.env.COOKIE_SECRET || '',
-  IMAGEKIT_PUBLIC_KEY: process.env.IMAGEKIT_PUBLIC_KEY || '',
-  IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY || '',
-  IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT || '',
-  OTP_PROVIDER_API_KEY: process.env.OTP_PROVIDER_API_KEY || '',
-};
+const envSchema = z.object({
+  PORT: z.coerce.number().default(5000),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  DATABASE_URL: z.string().optional().default(''),
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters in production').default('development_jwt_secret_key_minimum_16_chars'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
+  COOKIE_SECRET: z.string().optional().default(''),
+  IMAGEKIT_PUBLIC_KEY: z.string().optional().default(''),
+  IMAGEKIT_PRIVATE_KEY: z.string().optional().default(''),
+  IMAGEKIT_URL_ENDPOINT: z.string().optional().default(''),
+  OTP_PROVIDER_API_KEY: z.string().optional().default(''),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error('❌ FATAL: Invalid backend environment configuration:', parsed.error.format());
+  process.exit(1);
+}
+
+export const env = parsed.data;

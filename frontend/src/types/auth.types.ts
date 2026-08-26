@@ -1,4 +1,5 @@
 export type Role = 'USER' | 'PRIEST' | 'ADMIN';
+export type AccountStatus = 'ACTIVE' | 'BANNED';
 
 export interface AuthUser {
   id: string;
@@ -6,6 +7,8 @@ export interface AuthUser {
   phoneNumber: string;
   email?: string;
   role: Role;
+  accountStatus?: AccountStatus;
+  banReason?: string;
   hasAddress?: boolean;
   password?: string; // Mock only
 }

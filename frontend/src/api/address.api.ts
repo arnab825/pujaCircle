@@ -1,24 +1,54 @@
 import * as mockApi from '@/mocks/mock-api';
 import { Address, CreateAddressRequest, UpdateAddressRequest, PincodeLookupResponse, PincodeLocation } from '@/types/address.types';
+import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 export const addressApi = {
   getAddresses: async (userId: string = 'user-devotee-1'): Promise<Address[]> => {
-    const res = await mockApi.mockGetAddresses(userId);
-    return res.data || [];
+    try {
+      const res = await mockApi.mockGetAddresses(userId);
+      return res.data || [];
+    } catch (error) {
+      logAppError('addressApi.getAddresses', error, { userId });
+      return [];
+    }
   },
 
-  createAddress: async (data: CreateAddressRequest, userId: string = 'user-devotee-1'): Promise<Address | undefined> => {
-    const res = await mockApi.mockCreateAddress(userId, data);
-    return res.data;
+  createAddress: async (data: CreateAddressRequest, userId: string = 'user-devotee-1'): Promise<{ success: boolean; data?: Address; message: string }> => {
+    try {
+      const res = await mockApi.mockCreateAddress(userId, data);
+      return res;
+    } catch (error) {
+      logAppError('addressApi.createAddress', error, { userId, data });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to save address. Please verify the entered details.'),
+      };
+    }
   },
 
-  updateAddress: async (data: UpdateAddressRequest, userId: string = 'user-devotee-1'): Promise<Address | undefined> => {
-    const res = await mockApi.mockUpdateAddress(userId, data);
-    return res.data;
+  updateAddress: async (data: UpdateAddressRequest, userId: string = 'user-devotee-1'): Promise<{ success: boolean; data?: Address; message: string }> => {
+    try {
+      const res = await mockApi.mockUpdateAddress(userId, data);
+      return res;
+    } catch (error) {
+      logAppError('addressApi.updateAddress', error, { userId, data });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to update address.'),
+      };
+    }
   },
 
   deleteAddress: async (id: string, userId: string = 'user-devotee-1'): Promise<{ success: boolean; message: string }> => {
-    return mockApi.mockDeleteAddress(userId, id);
+    try {
+      return await mockApi.mockDeleteAddress(id, userId);
+    } catch (error) {
+      logAppError('addressApi.deleteAddress', error, { id, userId });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to delete address.'),
+      };
+    }
   },
 
   /**
@@ -53,11 +83,16 @@ export const addressApi = {
           }
         }
       } catch (error) {
-        console.warn('Real postal API unavailable, falling back to local dataset:', error);
+        logAppError('addressApi.lookupPincode.postalApiFallback', error, { cleanPin });
       }
     }
 
     // Fallback to internal dataset
-    return mockApi.mockLookupPincode(cleanPin);
+    try {
+      return await mockApi.mockLookupPincode(cleanPin);
+    } catch (error) {
+      logAppError('addressApi.lookupPincode.mockDbFallback', error, { cleanPin });
+      return { pincode: cleanPin, locations: [] };
+    }
   },
 };

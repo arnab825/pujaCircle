@@ -1,14 +1,4 @@
-import {
-  mockUsers,
-  mockPriests,
-  mockPriestServices,
-  mockRituals,
-  mockAddresses,
-  mockSlots,
-  mockBookings,
-  mockRatings,
-  mockPincodeDirectory,
-} from './db';
+import { mockDb } from './db';
 import { delay } from './delay';
 import {
   AuthUser,
@@ -25,6 +15,8 @@ import {
   PriestSlot,
   Ritual,
   PriestService,
+  WeeklyAvailabilityRule,
+  AvailabilityException,
 } from '@/types/priest.types';
 import {
   Address,
@@ -38,10 +30,37 @@ import {
   SubmitRatingRequest,
   Rating,
 } from '@/types/booking.types';
+import { slotsOverlap, calculateSlotDuration } from '@/lib/utils';
+import {
+  phoneLoginSchema,
+  adminLoginSchema,
+  sendPhoneOtpSchema,
+  sendEmailOtpSchema,
+  verifyPhoneOtpSchema,
+  verifyEmailOtpSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  registerUserPersonalSchema,
+  registerPriestPersonalSchema,
+} from '@/schemas/auth.schema';
+import { addressSchema, pincodeLookupSchema } from '@/schemas/address.schema';
+import {
+  createBookingSchema,
+  cancelBookingSchema,
+  rejectBookingSchema,
+  ratingSchema,
+} from '@/schemas/booking.schema';
+import {
+  priestServiceSchema,
+  baseWeeklyAvailabilityRuleSchema,
+  weeklyAvailabilityRuleSchema,
+  availabilityExceptionSchema,
+} from '@/schemas/priest.schema';
+import { updateUserProfileSchema } from '@/schemas/user.schema';
 
-// ==========================================
-// 1. AUTHENTICATION MOCK API
-// ==========================================
+function deepClone<T>(item: T): T {
+  return JSON.parse(JSON.stringify(item));
+}
 
 function normalizePhone(input: string): string {
   const digits = input.replace(/\D/g, '');
@@ -50,13 +69,38 @@ function normalizePhone(input: string): string {
   return input.trim();
 }
 
+// ============================================================================
+// 1. AUTHENTICATION & IDENTITY MOCK API
+// ============================================================================
+
 export async function mockLogin(credentials: LoginCredentials): Promise<AuthResponse> {
-  await delay(400);
+  await delay(350);
 
   const identifier = (credentials.identifier || credentials.phoneNumber || credentials.email || '').trim();
+  const password = (credentials.password || '').trim();
+
+  // Validate format
+  if (identifier.includes('@')) {
+    const parseResult = adminLoginSchema.safeParse({ email: identifier, password });
+    if (!parseResult.success) {
+      return {
+        success: false,
+        message: parseResult.error.errors[0]?.message || 'Invalid email address or password format.',
+      };
+    }
+  } else {
+    const parseResult = phoneLoginSchema.safeParse({ phoneNumber: identifier, password });
+    if (!parseResult.success) {
+      return {
+        success: false,
+        message: parseResult.error.errors[0]?.message || 'Invalid mobile number or password format.',
+      };
+    }
+  }
+
   const normalizedPhone = normalizePhone(identifier);
 
-  const matchedUser = mockUsers.find((u) => {
+  const matchedUser = mockDb.users.find((u) => {
     const phoneMatches = u.phoneNumber && normalizePhone(u.phoneNumber) === normalizedPhone;
     const emailMatches = u.email && u.email.toLowerCase() === identifier.toLowerCase();
     return (phoneMatches || emailMatches) && u.password === credentials.password;
@@ -65,11 +109,11 @@ export async function mockLogin(credentials: LoginCredentials): Promise<AuthResp
   if (!matchedUser) {
     return {
       success: false,
-      message: 'Invalid credentials. Please check your phone number/email and password or use the demo accounts.',
+      message: 'Invalid credentials. Please check your mobile number or password.',
     };
   }
 
-  // Check banned state
+  // Account status check
   if (matchedUser.accountStatus === 'BANNED' || matchedUser.status === 'BANNED') {
     return {
       success: false,
@@ -83,18 +127,19 @@ export async function mockLogin(credentials: LoginCredentials): Promise<AuthResp
     email: matchedUser.email,
     phoneNumber: matchedUser.phoneNumber,
     role: matchedUser.role,
+    accountStatus: matchedUser.accountStatus,
     hasAddress: matchedUser.hasAddress ?? true,
   };
 
   return {
     success: true,
     message: `Welcome back, ${user.name}!`,
-    data: { user },
+    data: { user: deepClone(user) },
   };
 }
 
 export async function mockLogout(): Promise<{ success: boolean; message: string }> {
-  await delay(200);
+  await delay(150);
   return {
     success: true,
     message: 'Logged out successfully.',
@@ -102,7 +147,20 @@ export async function mockLogout(): Promise<{ success: boolean; message: string 
 }
 
 export async function mockSendPhoneOtp(data: PhoneOtpRequest): Promise<{ success: boolean; message: string }> {
-  await delay(300);
+  await delay(250);
+  const parseResult = sendPhoneOtpSchema.safeParse(data);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Invalid mobile number.' };
+  }
+
+  const otp = '123456';
+  mockDb.otpRecords.push({
+    identifier: data.phoneNumber,
+    otp,
+    expiresAt: Date.now() + 10 * 60 * 1000,
+    attempts: 0,
+  });
+
   return {
     success: true,
     message: `One-time validation OTP sent to ${data.phoneNumber}. Use development OTP: 123456`,
@@ -110,15 +168,25 @@ export async function mockSendPhoneOtp(data: PhoneOtpRequest): Promise<{ success
 }
 
 export async function mockVerifyPhoneOtp(data: VerifyPhoneOtpRequest): Promise<{ success: boolean; message: string }> {
-  await delay(300);
+  await delay(250);
+  const parseResult = verifyPhoneOtpSchema.safeParse(data);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Invalid phone or OTP format.' };
+  }
+
   if (data.otp === '123456') {
-    return { success: true, message: 'Phone number validated successfully.' };
+    return { success: true, message: 'Mobile number verified successfully.' };
   }
   return { success: false, message: 'Invalid OTP. Please enter development mock OTP: 123456.' };
 }
 
 export async function mockSendEmailOtp(data: EmailOtpRequest): Promise<{ success: boolean; message: string }> {
-  await delay(300);
+  await delay(250);
+  const parseResult = sendEmailOtpSchema.safeParse(data);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Invalid email address.' };
+  }
+
   return {
     success: true,
     message: `Password reset OTP sent to ${data.email}. Use development OTP: 123456`,
@@ -126,56 +194,224 @@ export async function mockSendEmailOtp(data: EmailOtpRequest): Promise<{ success
 }
 
 export async function mockVerifyEmailOtp(data: VerifyEmailOtpRequest): Promise<{ success: boolean; message: string }> {
-  await delay(300);
+  await delay(250);
+  const parseResult = verifyEmailOtpSchema.safeParse(data);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Invalid email or OTP format.' };
+  }
+
   if (data.otp === '123456') {
     return { success: true, message: 'Email OTP verified successfully.' };
   }
   return { success: false, message: 'Invalid OTP. Please enter development mock OTP: 123456.' };
 }
 
-// ==========================================
-// 2. PIN CODE & ADDRESS MOCK API
-// ==========================================
-
-export async function mockLookupPincode(pincode: string): Promise<PincodeLookupResponse> {
+export async function mockForgotPassword(payload: { email: string }): Promise<{ success: boolean; message: string }> {
   await delay(250);
-  const cleanPin = pincode.trim();
+  const parseResult = forgotPasswordSchema.safeParse(payload);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Invalid email address.' };
+  }
+  return { success: true, message: `Password reset instructions sent to ${payload.email}.` };
+}
 
-  if (mockPincodeDirectory[cleanPin]) {
-    return {
-      pincode: cleanPin,
-      locations: mockPincodeDirectory[cleanPin],
-    };
+export async function mockResetPassword(payload: {
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ success: boolean; message: string }> {
+  await delay(300);
+  const parseResult = resetPasswordSchema.safeParse(payload);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Validation failed.' };
+  }
+  return { success: true, message: 'Password has been successfully updated.' };
+}
+
+export async function mockRegisterUser(payload: {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  password: string;
+}): Promise<{ success: boolean; message: string; data?: { user: AuthUser } }> {
+  await delay(350);
+  const parseResult = registerUserPersonalSchema.safeParse(payload);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Registration data is invalid.' };
   }
 
-  // Fallback generation for any valid 6-digit Indian PIN
+  const existing = mockDb.users.find(
+    (u) => normalizePhone(u.phoneNumber) === normalizePhone(payload.phoneNumber) || u.email === payload.email
+  );
+  if (existing) {
+    return { success: false, message: 'A user with this mobile number or email already exists.' };
+  }
+
+  const newUser: AuthUser = {
+    id: `user-devotee-${Date.now()}`,
+    name: payload.fullName.trim(),
+    phoneNumber: payload.phoneNumber.trim(),
+    email: payload.email.trim(),
+    role: 'USER',
+    accountStatus: 'ACTIVE',
+    hasAddress: false,
+  };
+
+  mockDb.users.push({
+    id: newUser.id,
+    name: newUser.name,
+    phoneNumber: newUser.phoneNumber,
+    email: newUser.email,
+    role: 'USER',
+    accountStatus: 'ACTIVE',
+    hasAddress: false,
+    password: payload.password,
+    createdAt: new Date().toISOString(),
+  });
+
   return {
-    pincode: cleanPin,
-    locations: [
-      {
-        postOffice: `Postal Area (${cleanPin})`,
-        locality: 'Central Locality',
-        villageTown: 'Central Locality',
-        city: 'Local City',
-        district: 'Main District',
-        state: 'Indian State',
-        country: 'India',
-      },
-    ],
+    success: true,
+    message: 'Devotee registration successful! Welcome to PujaCircle.',
+    data: { user: deepClone(newUser) },
   };
 }
 
-export async function mockGetAddresses(userId: string): Promise<{ success: boolean; data: Address[] }> {
-  await delay(300);
-  const userAddresses = mockAddresses.filter((a) => a.userId === userId);
-  return { success: true, data: userAddresses };
+export async function mockRegisterPriest(payload: {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+  password: string;
+}): Promise<{ success: boolean; message: string; data?: { user: AuthUser } }> {
+  await delay(350);
+  const parseResult = registerPriestPersonalSchema.safeParse(payload);
+  if (!parseResult.success) {
+    return { success: false, message: parseResult.error.errors[0]?.message || 'Registration data is invalid.' };
+  }
+
+  const existing = mockDb.users.find(
+    (u) => normalizePhone(u.phoneNumber) === normalizePhone(payload.phoneNumber) || u.email === payload.email
+  );
+  if (existing) {
+    return { success: false, message: 'A priest with this mobile number or email already exists.' };
+  }
+
+  const priestId = `priest-${Date.now()}`;
+  const newUser: AuthUser = {
+    id: `user-${priestId}`,
+    name: payload.fullName.trim(),
+    phoneNumber: payload.phoneNumber.trim(),
+    email: payload.email.trim(),
+    role: 'PRIEST',
+    accountStatus: 'ACTIVE',
+    hasAddress: false,
+  };
+
+  mockDb.users.push({
+    id: newUser.id,
+    name: newUser.name,
+    phoneNumber: newUser.phoneNumber,
+    email: newUser.email,
+    role: 'PRIEST',
+    accountStatus: 'ACTIVE',
+    hasAddress: false,
+    password: payload.password,
+    createdAt: new Date().toISOString(),
+  });
+
+  const newPriestRecord: Priest = {
+    id: priestId,
+    fullName: payload.fullName.trim(),
+    displayName: payload.fullName.trim(),
+    phoneNumber: payload.phoneNumber.trim(),
+    email: payload.email.trim(),
+    experienceYears: 5,
+    bio: 'Vedic priest specializing in traditional rituals and home ceremonies.',
+    languages: ['Hindi', 'Sanskrit'],
+    specializations: ['Satyanarayan Puja', 'Griha Pravesh'],
+    serviceAreas: ['Mumbai'],
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    approvalStatus: 'PENDING',
+    accountStatus: 'ACTIVE',
+    isPhoneVerified: true,
+    profileImageUrl: '',
+    createdAt: new Date().toISOString(),
+  };
+
+  mockDb.priests.push(newPriestRecord);
+
+  return {
+    success: true,
+    message: 'Priest application submitted! Awaiting administrator verification.',
+    data: { user: deepClone(newUser) },
+  };
 }
 
-export async function mockCreateAddress(userId: string, data: CreateAddressRequest): Promise<{ success: boolean; data: Address; message: string }> {
-  await delay(400);
+// ============================================================================
+// 2. PIN CODE & ADDRESS MOCK API
+// ============================================================================
 
-  if (data.isDefault) {
-    mockAddresses.forEach((a) => {
+export async function mockLookupPincode(pincode: string): Promise<PincodeLookupResponse> {
+  await delay(200);
+  const parseResult = pincodeLookupSchema.safeParse({ pincode });
+  if (!parseResult.success) {
+    return { pincode: pincode.trim(), locations: [] };
+  }
+
+  const cleanPin = pincode.trim();
+
+  if (mockDb.pincodeDirectory[cleanPin]) {
+    return {
+      pincode: cleanPin,
+      locations: deepClone(mockDb.pincodeDirectory[cleanPin]),
+    };
+  }
+
+  // Generic fallback for any valid 6-digit Indian PIN code
+  if (/^[1-9][0-9]{5}$/.test(cleanPin)) {
+    return {
+      pincode: cleanPin,
+      locations: [
+        {
+          postOffice: `${cleanPin} Main Post Office`,
+          locality: 'Urban Locality',
+          villageTown: 'Town Center',
+          city: 'Regional Center',
+          district: 'Central District',
+          state: 'State',
+          country: 'India',
+        },
+      ],
+    };
+  }
+
+  return { pincode: cleanPin, locations: [] };
+}
+
+export async function mockGetAddresses(userId: string): Promise<{ success: boolean; data: Address[] }> {
+  await delay(250);
+  const addresses = mockDb.addresses.filter((a) => a.userId === userId);
+  return { success: true, data: deepClone(addresses) };
+}
+
+export async function mockCreateAddress(
+  userId: string,
+  data: CreateAddressRequest
+): Promise<{ success: boolean; data?: Address; message: string }> {
+  await delay(300);
+
+  const parseResult = addressSchema.safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid address data.',
+    };
+  }
+
+  const validated = parseResult.data;
+
+  if (validated.isDefault) {
+    mockDb.addresses.forEach((a) => {
       if (a.userId === userId) a.isDefault = false;
     });
   }
@@ -183,124 +419,183 @@ export async function mockCreateAddress(userId: string, data: CreateAddressReque
   const newAddress: Address = {
     id: `address-${Date.now()}`,
     userId,
-    label: data.label || 'HOME',
-    recipientName: data.recipientName || 'Devotee',
-    phoneNumber: data.phoneNumber || '+919876543210',
-    houseNo: data.houseNo || data.houseBuilding || 'House 1',
-    houseBuilding: data.houseBuilding || data.houseNo || 'House 1',
-    street: data.street || '',
-    locality: data.locality || data.villageTown || '',
-    villageTown: data.villageTown || data.locality || '',
-    landmark: data.landmark || '',
-    pincode: data.pincode,
-    pinCode: data.pincode,
-    city: data.city,
-    district: data.district,
-    state: data.state,
-    country: data.country || 'India',
-    isDefault: data.isDefault ?? mockAddresses.filter((a) => a.userId === userId).length === 0,
+    label: validated.label || 'HOME',
+    recipientName: validated.recipientName || 'Devotee',
+    phoneNumber: validated.phoneNumber || '',
+    houseNo: validated.houseNo,
+    houseBuilding: validated.houseBuilding || validated.houseNo,
+    street: validated.street || '',
+    locality: validated.locality || validated.villageTown,
+    villageTown: validated.villageTown,
+    landmark: validated.landmark || '',
+    pincode: validated.pincode,
+    pinCode: validated.pincode,
+    city: validated.city,
+    district: validated.district,
+    state: validated.state,
+    country: validated.country || 'India',
+    isDefault: validated.isDefault ?? true,
     createdAt: new Date().toISOString(),
   };
 
-  mockAddresses.unshift(newAddress);
-  return { success: true, data: newAddress, message: 'Address saved successfully.' };
+  mockDb.addresses.unshift(newAddress);
+
+  const user = mockDb.users.find((u) => u.id === userId);
+  if (user) user.hasAddress = true;
+
+  return {
+    success: true,
+    data: deepClone(newAddress),
+    message: 'Address saved successfully!',
+  };
 }
 
-export async function mockUpdateAddress(userId: string, data: UpdateAddressRequest): Promise<{ success: boolean; data: Address; message: string }> {
+export async function mockUpdateAddress(
+  userId: string,
+  data: UpdateAddressRequest
+): Promise<{ success: boolean; data?: Address; message: string }> {
   await delay(300);
-  const idx = mockAddresses.findIndex((a) => a.id === data.id && a.userId === userId);
-  if (idx === -1) {
-    return { success: false, data: {} as Address, message: 'Address not found.' };
+  const addr = mockDb.addresses.find((a) => a.id === data.id);
+  if (!addr) return { success: false, message: 'Address not found.' };
+  if (addr.userId !== userId) return { success: false, message: 'Unauthorized.' };
+
+  const parseResult = addressSchema.partial().safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid address update payload.',
+    };
   }
 
-  if (data.isDefault) {
-    mockAddresses.forEach((a) => {
+  const validated = parseResult.data;
+
+  if (validated.isDefault) {
+    mockDb.addresses.forEach((a) => {
       if (a.userId === userId) a.isDefault = false;
     });
   }
 
-  mockAddresses[idx] = {
-    ...mockAddresses[idx],
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-
-  return { success: true, data: mockAddresses[idx], message: 'Address updated successfully.' };
-}
-
-export async function mockDeleteAddress(userId: string, addressId: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const idx = mockAddresses.findIndex((a) => a.id === addressId && a.userId === userId);
-  if (idx === -1) {
-    return { success: false, message: 'Address not found.' };
+  if (validated.label !== undefined) addr.label = validated.label;
+  if (validated.recipientName !== undefined) addr.recipientName = validated.recipientName;
+  if (validated.phoneNumber !== undefined) addr.phoneNumber = validated.phoneNumber;
+  if (validated.houseNo !== undefined) addr.houseNo = validated.houseNo;
+  if (validated.houseBuilding !== undefined) addr.houseBuilding = validated.houseBuilding;
+  if (validated.street !== undefined) addr.street = validated.street;
+  if (validated.locality !== undefined) addr.locality = validated.locality;
+  if (validated.villageTown !== undefined) addr.villageTown = validated.villageTown;
+  if (validated.landmark !== undefined) addr.landmark = validated.landmark;
+  if (validated.pincode !== undefined) {
+    addr.pincode = validated.pincode;
+    addr.pinCode = validated.pincode;
   }
-  mockAddresses.splice(idx, 1);
-  return { success: true, message: 'Address removed successfully.' };
+  if (validated.city !== undefined) addr.city = validated.city;
+  if (validated.district !== undefined) addr.district = validated.district;
+  if (validated.state !== undefined) addr.state = validated.state;
+  if (validated.isDefault !== undefined) addr.isDefault = validated.isDefault;
+  addr.updatedAt = new Date().toISOString();
+
+  return { success: true, data: deepClone(addr), message: 'Address updated successfully.' };
 }
 
-// ==========================================
-// 3. PRIEST SERVICES & DISCOVERY MOCK API
-// ==========================================
-
-export async function mockGetPriestServices(priestId: string): Promise<{ success: boolean; data: PriestService[] }> {
+export async function mockDeleteAddress(
+  addressId: string,
+  userId: string
+): Promise<{ success: boolean; message: string }> {
   await delay(250);
-  const services = mockPriestServices.filter((s) => s.priestId === priestId);
-  return { success: true, data: services };
+  const idx = mockDb.addresses.findIndex((a) => a.id === addressId && a.userId === userId);
+  if (idx === -1) return { success: false, message: 'Address not found or unauthorized.' };
+
+  mockDb.addresses.splice(idx, 1);
+  return { success: true, message: 'Address deleted successfully.' };
+}
+
+// ============================================================================
+// 3. PRIEST PROFILE & SERVICES CATALOG MOCK API
+// ============================================================================
+
+export async function mockGetPriestServices(
+  priestId: string
+): Promise<{ success: boolean; data: PriestService[] }> {
+  await delay(200);
+  const services = mockDb.priestServices.filter((s) => s.priestId === priestId);
+  return { success: true, data: deepClone(services) };
 }
 
 export async function mockCreatePriestService(
   priestId: string,
   data: { serviceName: string; price: number }
 ): Promise<{ success: boolean; data?: PriestService; message: string }> {
-  await delay(350);
+  await delay(300);
 
-  // Check duplicate service name for this priest
-  const existing = mockPriestServices.find(
-    (s) => s.priestId === priestId && s.serviceName.toLowerCase() === data.serviceName.trim().toLowerCase()
+  const parseResult = priestServiceSchema.safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid service details.',
+    };
+  }
+
+  const { serviceName, price } = parseResult.data;
+
+  // Duplicate name prevention for same priest
+  const exists = mockDb.priestServices.some(
+    (s) => s.priestId === priestId && s.serviceName.toLowerCase() === serviceName.toLowerCase()
   );
-  if (existing) {
-    return { success: false, message: `You already offer a service named "${data.serviceName.trim()}".` };
+  if (exists) {
+    return { success: false, message: `You already have a service named "${serviceName}".` };
   }
 
   const newService: PriestService = {
     id: `service-${Date.now()}`,
     priestId,
-    serviceName: data.serviceName.trim(),
-    price: Math.round(data.price),
+    serviceName,
+    price,
     isActive: true,
     createdAt: new Date().toISOString(),
   };
 
-  mockPriestServices.unshift(newService);
-
-  // Update priest object
-  const priest = mockPriests.find((p) => p.id === priestId);
-  if (priest) {
-    priest.services = mockPriestServices.filter((s) => s.priestId === priestId);
-  }
-
-  return { success: true, data: newService, message: 'Service added successfully!' };
+  mockDb.priestServices.push(newService);
+  return { success: true, data: deepClone(newService), message: 'Service created successfully!' };
 }
 
 export async function mockUpdatePriestService(
   serviceId: string,
   priestId: string,
-  data: { serviceName?: string; price?: number }
+  data: { serviceName?: string; price?: number; isActive?: boolean }
 ): Promise<{ success: boolean; data?: PriestService; message: string }> {
   await delay(300);
-  const service = mockPriestServices.find((s) => s.id === serviceId);
-  if (!service) {
-    return { success: false, message: 'Service not found.' };
-  }
-  if (service.priestId !== priestId) {
-    return { success: false, message: 'Unauthorized: You can only edit your own services.' };
+  const service = mockDb.priestServices.find((s) => s.id === serviceId);
+  if (!service) return { success: false, message: 'Service not found.' };
+  if (service.priestId !== priestId) return { success: false, message: 'Unauthorized: Not your service.' };
+
+  const parseResult = priestServiceSchema.partial().safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid service update payload.',
+    };
   }
 
-  if (data.serviceName) service.serviceName = data.serviceName.trim();
-  if (typeof data.price === 'number') service.price = Math.round(data.price);
+  const validated = parseResult.data;
+
+  if (validated.serviceName !== undefined) service.serviceName = validated.serviceName.trim();
+  if (validated.price !== undefined) service.price = validated.price;
+  if (validated.isActive !== undefined) service.isActive = validated.isActive;
   service.updatedAt = new Date().toISOString();
 
-  return { success: true, data: service, message: 'Service updated successfully.' };
+  return { success: true, data: deepClone(service), message: 'Service updated successfully.' };
+}
+
+export async function mockDeletePriestService(
+  serviceId: string,
+  priestId: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+  const idx = mockDb.priestServices.findIndex((s) => s.id === serviceId && s.priestId === priestId);
+  if (idx === -1) return { success: false, message: 'Service not found or unauthorized.' };
+
+  mockDb.priestServices.splice(idx, 1);
+  return { success: true, message: 'Service deleted successfully.' };
 }
 
 export async function mockTogglePriestService(
@@ -308,7 +603,7 @@ export async function mockTogglePriestService(
   priestId: string
 ): Promise<{ success: boolean; data?: PriestService; message: string }> {
   await delay(250);
-  const service = mockPriestServices.find((s) => s.id === serviceId);
+  const service = mockDb.priestServices.find((s) => s.id === serviceId);
   if (!service) return { success: false, message: 'Service not found.' };
   if (service.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
 
@@ -317,22 +612,22 @@ export async function mockTogglePriestService(
 
   return {
     success: true,
-    data: service,
-    message: `Service ${service.isActive ? 'activated' : 'deactivated'} successfully.`,
+    data: deepClone(service),
+    message: `Service ${service.isActive ? 'activated' : 'paused'} successfully.`,
   };
 }
 
 export async function mockGetPriests(params?: PriestFilterParams): Promise<{ success: boolean; data: Priest[] }> {
-  await delay(350);
+  await delay(300);
 
-  let list = mockPriests.map((p) => ({
+  let list = mockDb.priests.map((p) => ({
     ...p,
-    services: mockPriestServices.filter((s) => s.priestId === p.id && s.isActive),
+    services: mockDb.priestServices.filter((s) => s.priestId === p.id && s.isActive),
   }));
 
-  // Only approved priests appear in public discovery unless admin filter
+  // Public discovery rule: Only APPROVED and ACTIVE priests appear
   if (!params?.status || params.status !== 'ALL') {
-    list = list.filter((p) => p.approvalStatus === 'APPROVED');
+    list = list.filter((p) => p.approvalStatus === 'APPROVED' && p.accountStatus === 'ACTIVE');
   }
 
   if (params?.city) {
@@ -369,33 +664,33 @@ export async function mockGetPriests(params?: PriestFilterParams): Promise<{ suc
     list = list.filter((p) => p.experienceYears >= params.minExperience!);
   }
 
-  return { success: true, data: list };
+  return { success: true, data: deepClone(list) };
 }
 
-export async function mockGetPriestById(priestId: string): Promise<{ success: boolean; data?: Priest; message?: string }> {
-  await delay(300);
-  const priest = mockPriests.find((p) => p.id === priestId);
+export async function mockGetPriestById(
+  priestId: string
+): Promise<{ success: boolean; data?: Priest; message?: string }> {
+  await delay(250);
+  const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) {
     return { success: false, message: 'Priest not found.' };
   }
 
   const populatedPriest: Priest = {
     ...priest,
-    services: mockPriestServices.filter((s) => s.priestId === priest.id && s.isActive),
+    services: mockDb.priestServices.filter((s) => s.priestId === priest.id && s.isActive),
   };
 
-  return { success: true, data: populatedPriest };
+  return { success: true, data: deepClone(populatedPriest) };
 }
 
 export async function mockUpdatePriestProfile(
   priestId: string,
   updates: Partial<Priest>
 ): Promise<{ success: boolean; data?: Priest; message: string }> {
-  await delay(350);
-  const priest = mockPriests.find((p) => p.id === priestId);
-  if (!priest) {
-    return { success: false, message: 'Priest not found.' };
-  }
+  await delay(300);
+  const priest = mockDb.priests.find((p) => p.id === priestId);
+  if (!priest) return { success: false, message: 'Priest not found.' };
 
   if (updates.fullName !== undefined) priest.fullName = updates.fullName.trim();
   if (updates.displayName !== undefined) priest.displayName = updates.displayName.trim();
@@ -409,71 +704,359 @@ export async function mockUpdatePriestProfile(
   if (updates.profileImageUrl !== undefined) priest.profileImageUrl = updates.profileImageUrl.trim();
   priest.updatedAt = new Date().toISOString();
 
-  // Also sync with mockUsers if priest user matches
-  const priestUser = mockUsers.find(
-    (u) => u.id === 'user-priest-1' || u.phoneNumber === priest.phoneNumber || (priest.email && u.email === priest.email)
-  );
-  if (priestUser && updates.fullName) {
-    priestUser.name = updates.fullName;
-  }
-
   return {
     success: true,
     data: {
-      ...priest,
-      services: mockPriestServices.filter((s) => s.priestId === priest.id && s.isActive),
+      ...deepClone(priest),
+      services: deepClone(mockDb.priestServices.filter((s) => s.priestId === priest.id && s.isActive)),
     },
-    message: 'Vedic profile & credentials updated successfully!',
+    message: 'Profile & credentials updated successfully!',
   };
 }
 
 export async function mockGetRituals(): Promise<{ success: boolean; data: Ritual[] }> {
-  await delay(250);
-  return { success: true, data: mockRituals };
+  await delay(200);
+  return { success: true, data: deepClone(mockDb.rituals) };
 }
 
-// ==========================================
-// 4. SLOTS & AVAILABILITY MOCK API
-// ==========================================
+// ============================================================================
+// 4. RECURRING PRIEST AVAILABILITY & EXCEPTION ENGINE
+// ============================================================================
 
-export async function mockGetPriestSlots(priestId: string, date?: string): Promise<{ success: boolean; data: PriestSlot[] }> {
+export async function mockGetWeeklyAvailability(
+  priestId: string
+): Promise<{ success: boolean; data: WeeklyAvailabilityRule[] }> {
   await delay(250);
-  let slots = mockSlots.filter((s) => s.priestId === priestId);
-  if (date) {
-    slots = slots.filter((s) => s.date === date);
+  const rules = mockDb.weeklyAvailabilityRules.filter((r) => r.priestId === priestId);
+  return { success: true, data: deepClone(rules) };
+}
+
+export async function mockCreateWeeklyAvailabilityRule(
+  priestId: string,
+  payload: Omit<WeeklyAvailabilityRule, 'id' | 'priestId' | 'createdAt'>
+): Promise<{ success: boolean; data?: WeeklyAvailabilityRule; message: string }> {
+  await delay(300);
+
+  const parseResult = weeklyAvailabilityRuleSchema.safeParse(payload);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid weekly schedule rule format.',
+    };
   }
-  return { success: true, data: slots };
+
+  const validated = parseResult.data;
+
+  const priest = mockDb.priests.find((p) => p.id === priestId);
+  if (!priest) return { success: false, message: 'Priest not found.' };
+  if (priest.accountStatus === 'BANNED') {
+    return { success: false, message: 'Banned priest accounts cannot manage availability.' };
+  }
+
+  // Validate time range
+  const duration = calculateSlotDuration(validated.startTime, validated.endTime);
+  if (duration < validated.slotDurationMinutes) {
+    return {
+      success: false,
+      message: `Time range must fit at least one ${validated.slotDurationMinutes}-minute slot.`,
+    };
+  }
+
+  // Check for overlap with existing rules on the same weekday
+  const existingRules = mockDb.weeklyAvailabilityRules.filter(
+    (r) => r.priestId === priestId && r.dayOfWeek === validated.dayOfWeek && r.isActive
+  );
+
+  for (const existing of existingRules) {
+    if (slotsOverlap(existing, validated)) {
+      return {
+        success: false,
+        message: `This time range overlaps with an existing schedule on this day (${existing.startTime} - ${existing.endTime}).`,
+      };
+    }
+  }
+
+  const newRule: WeeklyAvailabilityRule = {
+    id: `rule-${Date.now()}`,
+    priestId,
+    dayOfWeek: validated.dayOfWeek,
+    startTime: validated.startTime,
+    endTime: validated.endTime,
+    slotDurationMinutes: validated.slotDurationMinutes || 60,
+    bufferMinutes: validated.bufferMinutes || 0,
+    isActive: validated.isActive ?? true,
+    createdAt: new Date().toISOString(),
+  };
+
+  mockDb.weeklyAvailabilityRules.push(newRule);
+  return { success: true, data: deepClone(newRule), message: 'Weekly schedule rule created!' };
+}
+
+export async function mockUpdateWeeklyAvailabilityRule(
+  ruleId: string,
+  priestId: string,
+  payload: Partial<WeeklyAvailabilityRule>
+): Promise<{ success: boolean; data?: WeeklyAvailabilityRule; message: string }> {
+  await delay(300);
+  const rule = mockDb.weeklyAvailabilityRules.find((r) => r.id === ruleId);
+  if (!rule) return { success: false, message: 'Schedule rule not found.' };
+  if (rule.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
+
+  const parseResult = baseWeeklyAvailabilityRuleSchema.partial().safeParse(payload);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid rule update format.',
+    };
+  }
+
+  const validated = parseResult.data;
+
+  const targetStart = validated.startTime || rule.startTime;
+  const targetEnd = validated.endTime || rule.endTime;
+  const targetDay = validated.dayOfWeek !== undefined ? validated.dayOfWeek : rule.dayOfWeek;
+  const targetDuration = validated.slotDurationMinutes || rule.slotDurationMinutes;
+
+  if (calculateSlotDuration(targetStart, targetEnd) < targetDuration) {
+    return { success: false, message: 'Time range must fit at least one slot duration.' };
+  }
+
+  // Check overlap with OTHER rules on the same day
+  const otherRules = mockDb.weeklyAvailabilityRules.filter(
+    (r) => r.id !== ruleId && r.priestId === priestId && r.dayOfWeek === targetDay && r.isActive
+  );
+
+  for (const other of otherRules) {
+    if (slotsOverlap(other, { startTime: targetStart, endTime: targetEnd })) {
+      return {
+        success: false,
+        message: `Updated time overlaps with another schedule on this day (${other.startTime} - ${other.endTime}).`,
+      };
+    }
+  }
+
+  if (validated.dayOfWeek !== undefined) rule.dayOfWeek = validated.dayOfWeek;
+  if (validated.startTime !== undefined) rule.startTime = validated.startTime;
+  if (validated.endTime !== undefined) rule.endTime = validated.endTime;
+  if (validated.slotDurationMinutes !== undefined) rule.slotDurationMinutes = validated.slotDurationMinutes;
+  if (validated.bufferMinutes !== undefined) rule.bufferMinutes = validated.bufferMinutes;
+  if (validated.isActive !== undefined) rule.isActive = validated.isActive;
+  rule.updatedAt = new Date().toISOString();
+
+  return { success: true, data: deepClone(rule), message: 'Schedule rule updated successfully.' };
+}
+
+export async function mockDeleteWeeklyAvailabilityRule(
+  ruleId: string,
+  priestId: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+  const idx = mockDb.weeklyAvailabilityRules.findIndex((r) => r.id === ruleId && r.priestId === priestId);
+  if (idx === -1) return { success: false, message: 'Schedule rule not found or unauthorized.' };
+
+  mockDb.weeklyAvailabilityRules.splice(idx, 1);
+  return { success: true, message: 'Schedule rule removed successfully.' };
+}
+
+export async function mockGetAvailabilityExceptions(
+  priestId: string
+): Promise<{ success: boolean; data: AvailabilityException[] }> {
+  await delay(200);
+  const exceptions = mockDb.availabilityExceptions.filter((e) => e.priestId === priestId);
+  return { success: true, data: deepClone(exceptions) };
+}
+
+export async function mockCreateAvailabilityException(
+  priestId: string,
+  payload: Omit<AvailabilityException, 'id' | 'priestId' | 'createdAt'>
+): Promise<{ success: boolean; data?: AvailabilityException; message: string }> {
+  await delay(300);
+
+  const parseResult = availabilityExceptionSchema.safeParse(payload);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid date exception format.',
+    };
+  }
+
+  const validated = parseResult.data;
+
+  // Replace any existing exception on that exact date
+  const existingIdx = mockDb.availabilityExceptions.findIndex(
+    (e) => e.priestId === priestId && e.date === validated.date
+  );
+
+  const newException: AvailabilityException = {
+    id: `exc-${Date.now()}`,
+    priestId,
+    date: validated.date,
+    type: validated.type,
+    reason: validated.reason,
+    customSlots: validated.customSlots,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (existingIdx !== -1) {
+    mockDb.availabilityExceptions[existingIdx] = newException;
+  } else {
+    mockDb.availabilityExceptions.push(newException);
+  }
+
+  return {
+    success: true,
+    data: deepClone(newException),
+    message: `Date exception saved for ${validated.date}.`,
+  };
+}
+
+export async function mockDeleteAvailabilityException(
+  exceptionId: string,
+  priestId: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+  const idx = mockDb.availabilityExceptions.findIndex((e) => e.id === exceptionId && e.priestId === priestId);
+  if (idx === -1) return { success: false, message: 'Date exception not found or unauthorized.' };
+
+  mockDb.availabilityExceptions.splice(idx, 1);
+  return { success: true, message: 'Date exception removed.' };
+}
+
+export async function mockGetAvailableSlotsForDate(
+  priestId: string,
+  dateString: string
+): Promise<{ success: boolean; data: PriestSlot[]; message?: string }> {
+  await delay(250);
+
+  const targetDate = new Date(dateString);
+  if (isNaN(targetDate.getTime())) {
+    return { success: false, data: [], message: 'Invalid calendar date.' };
+  }
+
+  const dayOfWeek = targetDate.getDay(); // 0 = Sun, 1 = Mon...
+
+  // Check for Date Exception
+  const exception = mockDb.availabilityExceptions.find(
+    (e) => e.priestId === priestId && e.date === dateString
+  );
+
+  if (exception && exception.type === 'BLOCKED') {
+    return {
+      success: true,
+      data: [
+        {
+          id: `slot-blocked-${dateString}`,
+          priestId,
+          date: dateString,
+          startTime: '00:00',
+          endTime: '23:59',
+          status: 'BLOCKED',
+          isException: true,
+        },
+      ],
+      message: exception.reason || 'Priest is unavailable on this date.',
+    };
+  }
+
+  const generatedSlots: PriestSlot[] = [];
+
+  if (exception && exception.type === 'CUSTOM' && exception.customSlots) {
+    // Generate from custom slots
+    exception.customSlots.forEach((cs, i) => {
+      generatedSlots.push({
+        id: `slot-custom-${dateString}-${i}`,
+        priestId,
+        date: dateString,
+        startTime: cs.startTime,
+        endTime: cs.endTime,
+        status: 'AVAILABLE',
+        isException: true,
+      });
+    });
+  } else {
+    // Generate from weekly rules
+    const rules = mockDb.weeklyAvailabilityRules.filter(
+      (r) => r.priestId === priestId && r.dayOfWeek === dayOfWeek && r.isActive
+    );
+
+    for (const rule of rules) {
+      const [startH, startM] = rule.startTime.split(':').map(Number);
+      const [endH, endM] = rule.endTime.split(':').map(Number);
+
+      const startTotal = startH * 60 + startM;
+      const endTotal = endH * 60 + endM;
+      const step = rule.slotDurationMinutes + rule.bufferMinutes;
+
+      let current = startTotal;
+      let slotIdx = 0;
+
+      while (current + rule.slotDurationMinutes <= endTotal) {
+        const slotStartH = Math.floor(current / 60);
+        const slotStartM = current % 60;
+        const slotEndMinutes = current + rule.slotDurationMinutes;
+        const slotEndH = Math.floor(slotEndMinutes / 60);
+        const slotEndM = slotEndMinutes % 60;
+
+        const startTime = `${String(slotStartH).padStart(2, '0')}:${String(slotStartM).padStart(2, '0')}`;
+        const endTime = `${String(slotEndH).padStart(2, '0')}:${String(slotEndM).padStart(2, '0')}`;
+
+        generatedSlots.push({
+          id: `slot-gen-${rule.id}-${dateString}-${slotIdx}`,
+          priestId,
+          date: dateString,
+          startTime,
+          endTime,
+          status: 'AVAILABLE',
+          ruleId: rule.id,
+        });
+
+        current += step;
+        slotIdx++;
+      }
+    }
+  }
+
+  // Check active bookings on that date (PENDING or CONFIRMED)
+  const activeBookings = mockDb.bookings.filter(
+    (b) => b.priestId === priestId && b.bookingDate === dateString && (b.status === 'PENDING' || b.status === 'CONFIRMED')
+  );
+
+  for (const slot of generatedSlots) {
+    const isBooked = activeBookings.some((b) => slotsOverlap(slot, b));
+    if (isBooked) {
+      slot.status = 'BOOKED';
+    }
+  }
+
+  // Also include any pre-seeded compatibility slots for that date
+  const staticSlots = mockDb.availabilitySlots.filter((s) => s.priestId === priestId && s.date === dateString);
+  for (const s of staticSlots) {
+    if (!generatedSlots.some((g) => g.startTime === s.startTime && g.endTime === s.endTime)) {
+      generatedSlots.push(deepClone(s));
+    }
+  }
+
+  // Sort chronologically
+  generatedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  return { success: true, data: generatedSlots };
+}
+
+// Backward compatibility slot methods for legacy callers
+export async function mockGetPriestSlots(priestId: string, date?: string): Promise<{ success: boolean; data: PriestSlot[] }> {
+  if (date) {
+    return mockGetAvailableSlotsForDate(priestId, date);
+  }
+  await delay(200);
+  const slots = mockDb.availabilitySlots.filter((s) => s.priestId === priestId);
+  return { success: true, data: deepClone(slots) };
 }
 
 export async function mockCreatePriestSlot(
   priestId: string,
   data: { date: string; startTime: string; endTime: string }
 ): Promise<{ success: boolean; data?: PriestSlot; message: string }> {
-  await delay(300);
-
-  // Check overlap with existing active slots for this priest on that date
-  const [newStartH, newStartM] = data.startTime.split(':').map(Number);
-  const [newEndH, newEndM] = data.endTime.split(':').map(Number);
-  const newStartMin = newStartH * 60 + newStartM;
-  const newEndMin = newEndH * 60 + newEndM;
-
-  const existingSlots = mockSlots.filter((s) => s.priestId === priestId && s.date === data.date && s.status !== 'BLOCKED');
-
-  for (const s of existingSlots) {
-    const [sH, sM] = s.startTime.split(':').map(Number);
-    const [eH, eM] = s.endTime.split(':').map(Number);
-    const sMin = sH * 60 + sM;
-    const eMin = eH * 60 + eM;
-
-    const hasOverlap = newStartMin < eMin && newEndMin > sMin;
-    if (hasOverlap) {
-      return {
-        success: false,
-        message: `Slot overlaps with existing slot (${s.startTime} - ${s.endTime}). Please choose another time.`,
-      };
-    }
-  }
-
+  await delay(250);
   const newSlot: PriestSlot = {
     id: `slot-${Date.now()}`,
     priestId,
@@ -482,22 +1065,15 @@ export async function mockCreatePriestSlot(
     endTime: data.endTime,
     status: 'AVAILABLE',
   };
-
-  mockSlots.unshift(newSlot);
-  return { success: true, data: newSlot, message: 'Time slot created successfully!' };
+  mockDb.availabilitySlots.unshift(newSlot);
+  return { success: true, data: newSlot, message: 'Slot created successfully.' };
 }
 
 export async function mockDeleteSlot(slotId: string, priestId: string): Promise<{ success: boolean; message: string }> {
-  await delay(250);
-  const idx = mockSlots.findIndex((s) => s.id === slotId && s.priestId === priestId);
-  if (idx === -1) return { success: false, message: 'Slot not found or unauthorized.' };
-
-  if (mockSlots[idx].status === 'BOOKED') {
-    return { success: false, message: 'Cannot delete a booked slot.' };
-  }
-
-  mockSlots.splice(idx, 1);
-  return { success: true, message: 'Slot deleted successfully.' };
+  await delay(200);
+  const idx = mockDb.availabilitySlots.findIndex((s) => s.id === slotId && s.priestId === priestId);
+  if (idx !== -1) mockDb.availabilitySlots.splice(idx, 1);
+  return { success: true, message: 'Slot removed.' };
 }
 
 export async function mockToggleSlotStatus(
@@ -505,76 +1081,81 @@ export async function mockToggleSlotStatus(
   priestId: string,
   newStatus: 'AVAILABLE' | 'BLOCKED'
 ): Promise<{ success: boolean; message: string }> {
-  await delay(250);
-  const slot = mockSlots.find((s) => s.id === slotId && s.priestId === priestId);
-  if (!slot) return { success: false, message: 'Slot not found or unauthorized.' };
-  if (slot.status === 'BOOKED') return { success: false, message: 'Cannot block a booked slot.' };
-
-  slot.status = newStatus;
-  return { success: true, message: `Slot marked as ${newStatus.toLowerCase()}.` };
+  await delay(200);
+  const slot = mockDb.availabilitySlots.find((s) => s.id === slotId && s.priestId === priestId);
+  if (slot) slot.status = newStatus;
+  return { success: true, message: `Slot status updated to ${newStatus}.` };
 }
 
-// ==========================================
+// ============================================================================
 // 5. BOOKINGS & RATINGS MOCK API
-// ==========================================
+// ============================================================================
 
-export async function mockGetBookings(userId?: string, priestId?: string): Promise<{ success: boolean; data: Booking[] }> {
-  await delay(350);
+export async function mockGetBookings(
+  userId?: string,
+  priestId?: string
+): Promise<{ success: boolean; data: Booking[] }> {
+  await delay(300);
 
-  let list = mockBookings;
+  let list = mockDb.bookings;
   if (userId) list = list.filter((b) => b.userId === userId);
   if (priestId) list = list.filter((b) => b.priestId === priestId);
 
-  // Auto-expire any pending request past 5 hours
+  // Auto-expire pending requests past 5 hours
   const now = Date.now();
   list.forEach((b) => {
     if (b.status === 'PENDING' && b.responseDeadline && new Date(b.responseDeadline).getTime() < now) {
       b.status = 'EXPIRED';
-      // Release slot if expired
-      const slot = mockSlots.find((s) => s.id === b.slotId);
+      const slot = mockDb.availabilitySlots.find((s) => s.id === b.slotId);
       if (slot && slot.status === 'BOOKED') slot.status = 'AVAILABLE';
     }
   });
 
-  // Populate references
+  // Populate joined relations
   const populated = list.map((b) => {
-    const devotee = mockUsers.find((u) => u.id === b.userId);
+    const devotee = mockDb.users.find((u) => u.id === b.userId);
     return {
       ...b,
-      user: devotee ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email } : undefined,
+      user: devotee
+        ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email }
+        : undefined,
       userName: devotee?.name,
       userPhone: devotee?.phoneNumber,
-      priest: mockPriests.find((p) => p.id === b.priestId),
-      priestService: mockPriestServices.find((s) => s.id === b.priestServiceId),
-      ritual: mockRituals.find((r) => r.id === b.ritualId),
-      address: mockAddresses.find((a) => a.id === b.addressId),
-      slot: mockSlots.find((s) => s.id === b.slotId),
+      priest: mockDb.priests.find((p) => p.id === b.priestId),
+      priestService: mockDb.priestServices.find((s) => s.id === b.priestServiceId),
+      ritual: mockDb.rituals.find((r) => r.id === b.ritualId),
+      address: mockDb.addresses.find((a) => a.id === b.addressId),
+      slot: mockDb.availabilitySlots.find((s) => s.id === b.slotId),
     };
   });
 
-  return { success: true, data: populated };
+  return { success: true, data: deepClone(populated) };
 }
 
-export async function mockGetBookingById(bookingId: string): Promise<{ success: boolean; data?: Booking; message?: string }> {
-  await delay(300);
-  const booking = mockBookings.find((b) => b.id === bookingId);
+export async function mockGetBookingById(
+  bookingId: string
+): Promise<{ success: boolean; data?: Booking; message?: string }> {
+  await delay(250);
+  const booking = mockDb.bookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
 
-  const devotee = mockUsers.find((u) => u.id === booking.userId);
+  const devotee = mockDb.users.find((u) => u.id === booking.userId);
 
   return {
     success: true,
-    data: {
+    data: deepClone({
       ...booking,
-      user: devotee ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email } : undefined,
+      user: devotee
+        ? { id: devotee.id, name: devotee.name, phoneNumber: devotee.phoneNumber, email: devotee.email }
+        : undefined,
       userName: devotee?.name,
       userPhone: devotee?.phoneNumber,
-      priest: mockPriests.find((p) => p.id === booking.priestId),
-      priestService: mockPriestServices.find((s) => s.id === booking.priestServiceId),
-      ritual: mockRituals.find((r) => r.id === booking.ritualId),
-      address: mockAddresses.find((a) => a.id === booking.addressId),
-      slot: mockSlots.find((s) => s.id === booking.slotId),
-    },
+      priest: mockDb.priests.find((p) => p.id === booking.priestId),
+      priestService: mockDb.priestServices.find((s) => s.id === booking.priestServiceId),
+      ritual: mockDb.rituals.find((r) => r.id === booking.ritualId),
+      address: mockDb.addresses.find((a) => a.id === booking.addressId),
+      slot: mockDb.availabilitySlots.find((s) => s.id === booking.slotId),
+    }),
   };
 }
 
@@ -582,49 +1163,89 @@ export async function mockCreateBooking(
   userId: string,
   request: CreateBookingRequest
 ): Promise<{ success: boolean; data?: Booking; message: string }> {
-  await delay(500);
+  await delay(450);
+
+  const parseResult = createBookingSchema.safeParse(request);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid booking request parameters.',
+    };
+  }
+
+  const validated = parseResult.data;
 
   // 1. Check user account status
-  const user = mockUsers.find((u) => u.id === userId);
+  const user = mockDb.users.find((u) => u.id === userId);
   if (user && (user.accountStatus === 'BANNED' || user.status === 'BANNED')) {
     return { success: false, message: 'Your account is banned. Booking actions are disabled.' };
   }
 
-  // 2. Check priest approval
-  const priest = mockPriests.find((p) => p.id === request.priestId);
+  // 2. Check priest approval and account status
+  const priest = mockDb.priests.find((p) => p.id === validated.priestId);
   if (!priest || priest.approvalStatus !== 'APPROVED') {
     return { success: false, message: 'Selected priest is not available or pending verification.' };
   }
-
-  // 3. Check slot availability & prevent double-booking
-  const targetSlotId = request.slotId || request.availabilitySlotId || '';
-  const slot = mockSlots.find((s) => s.id === targetSlotId);
-  if (!slot || slot.status !== 'AVAILABLE') {
-    return { success: false, message: 'The selected time slot is no longer available. Please choose another slot.' };
+  if (priest.accountStatus === 'BANNED') {
+    return { success: false, message: 'Selected priest account is currently suspended.' };
   }
 
-  // 4. Determine service and authoritative price snapshot from DB (prevent tampering)
+  // 3. Verify address ownership
+  const address = mockDb.addresses.find((a) => a.id === validated.addressId && a.userId === userId);
+  if (!address) {
+    return { success: false, message: 'Please select a valid saved address.' };
+  }
+
+  // 4. Retrieve authoritative price from PriestService snapshot
   let serviceName = 'Vedic Ceremony';
   let authoritativePrice = 2100;
 
-  if (request.priestServiceId) {
-    const srv = mockPriestServices.find((s) => s.id === request.priestServiceId && s.priestId === request.priestId);
-    if (srv) {
-      serviceName = srv.serviceName;
-      authoritativePrice = srv.price;
+  if (validated.priestServiceId) {
+    const srv = mockDb.priestServices.find(
+      (s) => s.id === validated.priestServiceId && s.priestId === validated.priestId
+    );
+    if (!srv) {
+      return { success: false, message: 'Selected service does not belong to this priest.' };
     }
-  } else if (request.ritualId) {
-    const rit = mockRituals.find((r) => r.id === request.ritualId);
+    serviceName = srv.serviceName;
+    authoritativePrice = srv.price;
+  } else if (validated.ritualId) {
+    const rit = mockDb.rituals.find((r) => r.id === validated.ritualId);
     if (rit) {
       serviceName = rit.name;
       authoritativePrice = rit.suggestedDakshina || 2500;
     }
   }
 
-  // 5. Lock the slot
-  slot.status = 'BOOKED';
+  // 5. Determine slot timing and check double booking
+  const targetSlotId = validated.slotId || validated.availabilitySlotId || `slot-${Date.now()}`;
+  let startTime = validated.startTime || '09:00';
+  let endTime = validated.endTime || '12:00';
 
-  // 6. 5-hour response deadline
+  const existingSlot = mockDb.availabilitySlots.find((s) => s.id === targetSlotId);
+  if (existingSlot) {
+    if (existingSlot.status !== 'AVAILABLE') {
+      return { success: false, message: 'The selected time slot is no longer available.' };
+    }
+    startTime = existingSlot.startTime;
+    endTime = existingSlot.endTime;
+    existingSlot.status = 'BOOKED';
+  }
+
+  // Check active booking conflicts on same priest, date, and overlapping time
+  const conflict = mockDb.bookings.some(
+    (b) =>
+      b.priestId === validated.priestId &&
+      b.bookingDate === validated.bookingDate &&
+      (b.status === 'PENDING' || b.status === 'CONFIRMED') &&
+      slotsOverlap({ startTime, endTime }, { startTime: b.startTime, endTime: b.endTime })
+  );
+
+  if (conflict) {
+    return { success: false, message: 'This priest already has a booking scheduled during this time.' };
+  }
+
+  // 6. Set 5-hour response deadline
   const now = new Date();
   const deadline = new Date(now.getTime() + 5 * 60 * 60 * 1000).toISOString();
 
@@ -632,33 +1253,33 @@ export async function mockCreateBooking(
     id: `booking-${Date.now()}`,
     bookingReference: `PC-${Math.floor(1000 + Math.random() * 9000)}`,
     userId,
-    priestId: request.priestId,
-    priestServiceId: request.priestServiceId,
-    ritualId: request.ritualId,
-    addressId: request.addressId,
+    priestId: validated.priestId,
+    priestServiceId: validated.priestServiceId,
+    ritualId: validated.ritualId,
+    addressId: validated.addressId,
     slotId: targetSlotId,
     availabilitySlotId: targetSlotId,
     serviceName,
     servicePrice: authoritativePrice,
-    bookingDate: request.bookingDate,
-    startTime: slot.startTime,
-    endTime: slot.endTime,
+    dakshinaAmount: authoritativePrice,
+    bookingDate: validated.bookingDate,
+    startTime,
+    endTime,
     status: 'PENDING',
     paymentMethod: 'OFFLINE_CASH',
     paymentStatus: 'PENDING',
-    dakshinaAmount: authoritativePrice,
-    specialInstructions: request.specialInstructions || request.userNotes || '',
-    userNotes: request.userNotes || request.specialInstructions || '',
+    specialInstructions: validated.specialInstructions || validated.userNotes || '',
+    userNotes: validated.userNotes || validated.specialInstructions || '',
     responseDeadline: deadline,
     createdAt: now.toISOString(),
   };
 
-  mockBookings.unshift(newBooking);
+  mockDb.bookings.unshift(newBooking);
 
   return {
     success: true,
-    data: newBooking,
-    message: 'Booking request submitted successfully! Pandit Ji has 5 hours to accept.',
+    data: deepClone(newBooking),
+    message: 'Booking request submitted! Priest has 5 hours to accept.',
   };
 }
 
@@ -666,38 +1287,46 @@ export async function mockAcceptBooking(
   bookingId: string,
   priestId: string
 ): Promise<{ success: boolean; data?: Booking; message: string }> {
-  await delay(350);
+  await delay(300);
 
-  const booking = mockBookings.find((b) => b.id === bookingId);
+  const booking = mockDb.bookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
   if (booking.priestId !== priestId) return { success: false, message: 'Unauthorized: Not your booking.' };
 
-  // Check 5-hour expiry
+  // Check 5-hour SLA
   if (booking.responseDeadline && new Date(booking.responseDeadline).getTime() < Date.now()) {
     booking.status = 'EXPIRED';
-    const slot = mockSlots.find((s) => s.id === booking.slotId);
+    const slot = mockDb.availabilitySlots.find((s) => s.id === booking.slotId);
     if (slot) slot.status = 'AVAILABLE';
     return { success: false, message: 'Booking request has expired (5-hour response window elapsed).' };
   }
 
   if (booking.status !== 'PENDING') {
-    return { success: false, message: `Cannot accept booking with current status "${booking.status}".` };
+    return { success: false, message: `Cannot accept booking in "${booking.status}" status.` };
   }
 
   booking.status = 'CONFIRMED';
   booking.updatedAt = new Date().toISOString();
 
-  return { success: true, data: booking, message: 'Booking confirmed! Devotee has been notified.' };
+  return { success: true, data: deepClone(booking), message: 'Booking confirmed!' };
 }
 
 export async function mockRejectBooking(
   bookingId: string,
   priestId: string,
-  reason: string
+  reason: string = 'Unavailable'
 ): Promise<{ success: boolean; data?: Booking; message: string }> {
-  await delay(350);
+  await delay(300);
 
-  const booking = mockBookings.find((b) => b.id === bookingId);
+  const parseResult = rejectBookingSchema.safeParse({ bookingId, reason });
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid rejection reason.',
+    };
+  }
+
+  const booking = mockDb.bookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
   if (booking.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
 
@@ -706,24 +1335,32 @@ export async function mockRejectBooking(
   }
 
   booking.status = 'REJECTED';
-  booking.rejectionReason = reason;
+  booking.rejectionReason = parseResult.data.reason;
   booking.updatedAt = new Date().toISOString();
 
   // Release slot
-  const slot = mockSlots.find((s) => s.id === booking.slotId);
+  const slot = mockDb.availabilitySlots.find((s) => s.id === booking.slotId);
   if (slot) slot.status = 'AVAILABLE';
 
-  return { success: true, data: booking, message: 'Booking request declined. Slot has been freed.' };
+  return { success: true, data: deepClone(booking), message: 'Booking request declined. Slot released.' };
 }
 
 export async function mockCancelBooking(
   bookingId: string,
   userId: string,
-  reason: string
+  reason: string = 'Plans changed'
 ): Promise<{ success: boolean; data?: Booking; message: string }> {
-  await delay(350);
+  await delay(300);
 
-  const booking = mockBookings.find((b) => b.id === bookingId);
+  const parseResult = cancelBookingSchema.safeParse({ bookingId, reason });
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid cancellation reason.',
+    };
+  }
+
+  const booking = mockDb.bookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
   if (booking.userId !== userId) return { success: false, message: 'Unauthorized.' };
 
@@ -732,24 +1369,24 @@ export async function mockCancelBooking(
   }
 
   booking.status = 'CANCELLED';
-  booking.cancellationReason = reason;
+  booking.cancellationReason = parseResult.data.reason;
   booking.cancelledBy = 'USER';
   booking.cancelledAt = new Date().toISOString();
 
   // Release slot
-  const slot = mockSlots.find((s) => s.id === booking.slotId);
+  const slot = mockDb.availabilitySlots.find((s) => s.id === booking.slotId);
   if (slot) slot.status = 'AVAILABLE';
 
-  return { success: true, data: booking, message: 'Booking cancelled successfully.' };
+  return { success: true, data: deepClone(booking), message: 'Booking cancelled successfully.' };
 }
 
 export async function mockCompleteBooking(
   bookingId: string,
   priestId: string
 ): Promise<{ success: boolean; data?: Booking; message: string }> {
-  await delay(350);
+  await delay(300);
 
-  const booking = mockBookings.find((b) => b.id === bookingId);
+  const booking = mockDb.bookings.find((b) => b.id === bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
   if (booking.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
 
@@ -761,71 +1398,118 @@ export async function mockCompleteBooking(
   booking.paymentStatus = 'PAID_OFFLINE';
   booking.completedAt = new Date().toISOString();
 
-  return { success: true, data: booking, message: 'Ceremony marked as completed! Cash dakshina recorded.' };
+  return {
+    success: true,
+    data: deepClone(booking),
+    message: 'Ceremony marked as completed! Cash payment recorded.',
+  };
 }
 
 export async function mockSubmitRating(
   userId: string,
   data: SubmitRatingRequest
 ): Promise<{ success: boolean; data?: Rating; message: string }> {
-  await delay(400);
+  await delay(350);
 
-  const booking = mockBookings.find((b) => b.id === data.bookingId);
+  const parseResult = ratingSchema.safeParse(data);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid rating or review format.',
+    };
+  }
+
+  const validated = parseResult.data;
+
+  const booking = mockDb.bookings.find((b) => b.id === validated.bookingId);
   if (!booking) return { success: false, message: 'Booking not found.' };
 
-  // Strict ownership & status check
   if (booking.userId !== userId) {
     return { success: false, message: 'Unauthorized: You can only rate your own completed bookings.' };
   }
   if (booking.status !== 'COMPLETED') {
-    return { success: false, message: 'Rating is only permitted after ceremony completion.' };
+    return { success: false, message: 'Rating is permitted only after ceremony completion.' };
   }
   if (booking.ratingSubmitted) {
-    return { success: false, message: 'Rating has already been submitted for this ceremony.' };
+    return { success: false, message: 'Rating has already been submitted for this booking.' };
   }
 
   const newRating: Rating = {
     id: `rating-${Date.now()}`,
-    bookingId: data.bookingId,
+    bookingId: validated.bookingId,
     userId,
     priestId: booking.priestId,
-    rating: data.rating,
-    review: data.review,
+    rating: validated.rating,
+    review: validated.review,
     createdAt: new Date().toISOString(),
   };
 
-  mockRatings.unshift(newRating);
+  mockDb.ratings.unshift(newRating);
   booking.ratingSubmitted = true;
 
   // Update priest rating average
-  const priest = mockPriests.find((p) => p.id === booking.priestId);
+  const priest = mockDb.priests.find((p) => p.id === booking.priestId);
   if (priest) {
-    const allPriestRatings = mockRatings.filter((r) => r.priestId === priest.id);
-    const sum = allPriestRatings.reduce((acc, r) => acc + r.rating, 0);
-    priest.rating = Number((sum / allPriestRatings.length).toFixed(2));
-    priest.reviewCount = allPriestRatings.length;
+    const allRatings = mockDb.ratings.filter((r) => r.priestId === priest.id);
+    const sum = allRatings.reduce((acc, r) => acc + r.rating, 0);
+    priest.rating = Number((sum / allRatings.length).toFixed(2));
+    priest.reviewCount = allRatings.length;
   }
 
-  return { success: true, data: newRating, message: 'Thank you! Your rating has been submitted.' };
+  return { success: true, data: deepClone(newRating), message: 'Thank you! Your rating has been recorded.' };
 }
 
 export async function mockGetPriestRatings(priestId: string): Promise<{ success: boolean; data: Rating[] }> {
-  await delay(250);
-  return { success: true, data: mockRatings.filter((r) => r.priestId === priestId) };
+  await delay(200);
+  const ratings = mockDb.ratings.filter((r) => r.priestId === priestId);
+  return { success: true, data: deepClone(ratings) };
 }
 
-// ==========================================
-// 6. ADMIN MOCK API
-// ==========================================
+export async function mockUpdateUserProfile(
+  userId: string,
+  updates: { fullName?: string; email?: string; preferredLanguage?: string }
+): Promise<{ success: boolean; data?: AuthUser; message: string }> {
+  await delay(300);
+  const user = mockDb.users.find((u) => u.id === userId);
+  if (!user) return { success: false, message: 'User not found.' };
+
+  const parseResult = updateUserProfileSchema.safeParse(updates);
+  if (!parseResult.success) {
+    return {
+      success: false,
+      message: parseResult.error.errors[0]?.message || 'Invalid user profile data.',
+    };
+  }
+
+  const validated = parseResult.data;
+  if (validated.fullName !== undefined) user.name = validated.fullName.trim();
+  if (validated.email !== undefined) user.email = validated.email.trim();
+
+  const authUser: AuthUser = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    role: user.role,
+    accountStatus: user.accountStatus,
+    hasAddress: user.hasAddress ?? true,
+  };
+
+  return { success: true, data: deepClone(authUser), message: 'Profile updated successfully.' };
+}
+
+// ============================================================================
+// 6. ADMINISTRATOR CONSOLE MOCK API
+// ============================================================================
 
 export async function mockAdminGetPriests(): Promise<{ success: boolean; data: Priest[] }> {
-  await delay(300);
-  return { success: true, data: mockPriests };
+  await delay(250);
+  return { success: true, data: deepClone(mockDb.priests) };
 }
 
 export async function mockAdminApprovePriest(priestId: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const priest = mockPriests.find((p) => p.id === priestId);
+  await delay(250);
+  const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
   priest.approvalStatus = 'APPROVED';
@@ -833,81 +1517,92 @@ export async function mockAdminApprovePriest(priestId: string): Promise<{ succes
   return { success: true, message: `Priest ${priest.fullName} has been approved.` };
 }
 
-export async function mockAdminRejectPriest(priestId: string, reason: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const priest = mockPriests.find((p) => p.id === priestId);
+export async function mockAdminRejectPriest(
+  priestId: string,
+  reason: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+  const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
   priest.approvalStatus = 'REJECTED';
   priest.rejectionReason = reason;
-  return { success: true, message: `Priest application rejected.` };
+  return { success: true, message: 'Priest application rejected.' };
 }
 
-export async function mockAdminBanPriest(priestId: string, reason: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const priest = mockPriests.find((p) => p.id === priestId);
+export async function mockAdminBanPriest(
+  priestId: string,
+  reason: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+  const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
-  priest.approvalStatus = 'BANNED';
+  priest.accountStatus = 'BANNED';
   priest.banReason = reason;
-  return { success: true, message: `Priest has been banned.` };
+  return { success: true, message: `Priest account has been banned.` };
 }
 
 export async function mockAdminUnbanPriest(priestId: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const priest = mockPriests.find((p) => p.id === priestId);
+  await delay(250);
+  const priest = mockDb.priests.find((p) => p.id === priestId);
   if (!priest) return { success: false, message: 'Priest not found.' };
 
-  priest.approvalStatus = 'APPROVED';
+  priest.accountStatus = 'ACTIVE';
   delete priest.banReason;
-  return { success: true, message: `Priest has been reinstated.` };
+  return { success: true, message: `Priest account has been reactivated.` };
 }
 
 export async function mockAdminGetUsers(): Promise<{ success: boolean; data: any[] }> {
-  await delay(300);
-  return { success: true, data: mockUsers.filter((u) => u.role === 'USER') };
+  await delay(250);
+  return { success: true, data: deepClone(mockDb.users.filter((u) => u.role === 'USER')) };
 }
 
-export async function mockAdminBanUser(userId: string, reason: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const user = mockUsers.find((u) => u.id === userId);
+export async function mockAdminBanUser(
+  userId: string,
+  reason: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+  const user = mockDb.users.find((u) => u.id === userId);
   if (!user) return { success: false, message: 'User not found.' };
 
   user.accountStatus = 'BANNED';
   user.status = 'BANNED';
   user.banReason = reason;
-  return { success: true, message: `User account suspended.` };
+  return { success: true, message: 'User account suspended.' };
 }
 
 export async function mockAdminUnbanUser(userId: string): Promise<{ success: boolean; message: string }> {
-  await delay(300);
-  const user = mockUsers.find((u) => u.id === userId);
+  await delay(250);
+  const user = mockDb.users.find((u) => u.id === userId);
   if (!user) return { success: false, message: 'User not found.' };
 
   user.accountStatus = 'ACTIVE';
   user.status = 'ACTIVE';
   delete user.banReason;
-  return { success: true, message: `User account reactivated.` };
+  return { success: true, message: 'User account reactivated.' };
 }
 
 export async function mockAdminGetDashboardStats() {
-  await delay(300);
+  await delay(250);
 
-  const totalUsers = mockUsers.filter((u) => u.role === 'USER').length;
-  const activeUsers = mockUsers.filter((u) => u.role === 'USER' && u.accountStatus !== 'BANNED').length;
-  const totalPriests = mockPriests.length;
-  const approvedPriests = mockPriests.filter((p) => p.approvalStatus === 'APPROVED').length;
-  const pendingPriests = mockPriests.filter((p) => p.approvalStatus === 'PENDING').length;
-  const totalBookings = mockBookings.length;
-  const confirmedBookings = mockBookings.filter((b) => b.status === 'CONFIRMED').length;
-  const completedBookings = mockBookings.filter((b) => b.status === 'COMPLETED').length;
-  const cancelledBookings = mockBookings.filter((b) => b.status === 'CANCELLED').length;
-  const rejectedBookings = mockBookings.filter((b) => b.status === 'REJECTED').length;
-  const expiredBookings = mockBookings.filter((b) => b.status === 'EXPIRED').length;
+  const totalUsers = mockDb.users.filter((u) => u.role === 'USER').length;
+  const activeUsers = mockDb.users.filter((u) => u.role === 'USER' && u.accountStatus === 'ACTIVE').length;
+  const totalPriests = mockDb.priests.length;
+  const approvedPriests = mockDb.priests.filter((p) => p.approvalStatus === 'APPROVED').length;
+  const pendingPriests = mockDb.priests.filter((p) => p.approvalStatus === 'PENDING').length;
+  const bannedPriests = mockDb.priests.filter((p) => p.accountStatus === 'BANNED').length;
 
-  const completedAmount = mockBookings
+  const totalBookings = mockDb.bookings.length;
+  const confirmedBookings = mockDb.bookings.filter((b) => b.status === 'CONFIRMED').length;
+  const completedBookings = mockDb.bookings.filter((b) => b.status === 'COMPLETED').length;
+  const cancelledBookings = mockDb.bookings.filter((b) => b.status === 'CANCELLED').length;
+  const rejectedBookings = mockDb.bookings.filter((b) => b.status === 'REJECTED').length;
+  const expiredBookings = mockDb.bookings.filter((b) => b.status === 'EXPIRED').length;
+
+  const completedAmount = mockDb.bookings
     .filter((b) => b.status === 'COMPLETED')
-    .reduce((acc, b) => acc + (b.dakshinaAmount || b.servicePrice || 0), 0);
+    .reduce((acc, b) => acc + (b.servicePrice || b.dakshinaAmount || 0), 0);
 
   return {
     totalUsers,
@@ -915,12 +1610,14 @@ export async function mockAdminGetDashboardStats() {
     totalPriests,
     approvedPriests,
     pendingPriests,
+    bannedPriests,
     totalBookings,
     confirmedBookings,
     completedBookings,
     cancelledBookings,
     rejectedBookings,
     expiredBookings,
+    completedCashAmountRecorded: completedAmount,
     completedDakshinaAmountRecorded: completedAmount,
   };
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -6,12 +6,8 @@ import {
   XCircle,
   Ban,
   ShieldCheck,
-  MapPin,
   Phone,
-  Mail,
   Award,
-  BookOpen,
-  Languages,
   Star,
   Trash2,
   AlertTriangle,
@@ -49,32 +45,48 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
-import { mockPriests } from '@/mocks/db';
+import { priestApi } from '@/api/priest.api';
+import { adminApi } from '@/api/admin.api';
 import { Priest, PriestApprovalStatus } from '@/types/priest.types';
 
-/*
-  PAGE: Priest Application & Profile Details (/admin/priests/:id)
-  
-  ACCESS:
-  - ADMIN role only
-  
-  PURPOSE:
-  - Complete administrative audit of a single Purohit's credentials, qualifications, and contact details.
-  - Approve, Reject, Ban, Lift Ban, or Delete Priest profile.
-*/
-const AdminPriestDetailsPage: React.FC = () => {
+export const AdminPriestDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Find initial priest record from centralized mock DB
-  const initialPriest = mockPriests.find((p) => p.id === id);
-  const [priest, setPriest] = useState<Priest | undefined>(initialPriest);
+  const [priest, setPriest] = useState<Priest | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal dialog states
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [isBanDialogOpen, setIsBanDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [reasonInput, setReasonInput] = useState('');
+
+  useEffect(() => {
+    async function loadPriest() {
+      if (!id) return;
+      setIsLoading(true);
+      try {
+        const data = await priestApi.getPriestById(id);
+        if (data) {
+          setPriest(data);
+        }
+      } catch {
+        toast.error('Failed to load priest profile.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadPriest();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-4xl py-12 text-center text-xs text-muted-foreground">
+        Loading Priest dossier...
+      </div>
+    );
+  }
 
   if (!priest) {
     return (
@@ -91,7 +103,7 @@ const AdminPriestDetailsPage: React.FC = () => {
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <CardTitle className="text-lg">Scholar Record Not Found</CardTitle>
+            <CardTitle className="text-lg">Priest Record Not Found</CardTitle>
             <CardDescription className="text-xs">
               No Vedic priest or applicant matches ID "{id}".
             </CardDescription>
@@ -107,84 +119,64 @@ const AdminPriestDetailsPage: React.FC = () => {
   }
 
   // Handle Approve Action
-  const handleApprove = () => {
-    setPriest((prev) =>
-      prev
-        ? {
-            ...prev,
-            approvalStatus: 'APPROVED',
-            statusReason: undefined,
-          }
-        : undefined
-    );
-    toast.success(`Application approved for ${priest.fullName}`);
+  const handleApprove = async () => {
+    const res = await adminApi.approvePriest(priest.id);
+    if (res.success) {
+      setPriest({ ...priest, approvalStatus: 'APPROVED', rejectionReason: undefined });
+      toast.success(res.message);
+    } else {
+      toast.error(res.message || 'Failed to approve application.');
+    }
   };
 
   // Handle Reject Action
-  const handleConfirmReject = () => {
+  const handleConfirmReject = async () => {
     if (!reasonInput.trim()) {
-      toast.error('Please enter a rejection reason for record keeping.');
+      toast.error('Please enter a rejection reason.');
       return;
     }
-    setPriest((prev) =>
-      prev
-        ? {
-            ...prev,
-            approvalStatus: 'REJECTED',
-            statusReason: reasonInput.trim(),
-          }
-        : undefined
-    );
-    setIsRejectDialogOpen(false);
-    setReasonInput('');
-    toast.error(`Application rejected for ${priest.fullName}`);
+    const res = await adminApi.rejectPriest(priest.id, reasonInput.trim());
+    if (res.success) {
+      setPriest({ ...priest, approvalStatus: 'REJECTED', rejectionReason: reasonInput.trim() });
+      setIsRejectDialogOpen(false);
+      setReasonInput('');
+      toast.success(res.message);
+    } else {
+      toast.error(res.message || 'Failed to reject.');
+    }
   };
 
   // Handle Ban Action
-  const handleConfirmBan = () => {
+  const handleConfirmBan = async () => {
     if (!reasonInput.trim()) {
       toast.error('Please enter an administrative reason for banning this account.');
       return;
     }
-    setPriest((prev) =>
-      prev
-        ? {
-            ...prev,
-            approvalStatus: 'BANNED',
-            statusReason: reasonInput.trim(),
-          }
-        : undefined
-    );
-    setIsBanDialogOpen(false);
-    setReasonInput('');
-    toast.error(`Account banned for ${priest.fullName}`);
+    const res = await adminApi.banPriest(priest.id, reasonInput.trim());
+    if (res.success) {
+      setPriest({ ...priest, accountStatus: 'BANNED', banReason: reasonInput.trim() });
+      setIsBanDialogOpen(false);
+      setReasonInput('');
+      toast.success(res.message);
+    } else {
+      toast.error(res.message || 'Failed to ban.');
+    }
   };
 
   // Handle Unban / Lift Ban Action
-  const handleLiftBan = () => {
-    setPriest((prev) =>
-      prev
-        ? {
-            ...prev,
-            approvalStatus: 'APPROVED',
-            statusReason: undefined,
-          }
-        : undefined
-    );
-    toast.success(`Ban lifted. ${priest.fullName} reactivated as Approved Priest.`);
+  const handleLiftBan = async () => {
+    const res = await adminApi.reactivatePriest(priest.id);
+    if (res.success) {
+      setPriest({ ...priest, accountStatus: 'ACTIVE', banReason: undefined });
+      toast.success(res.message);
+    } else {
+      toast.error(res.message || 'Failed to unban.');
+    }
   };
 
   // Handle Re-open Application Action
   const handleReopen = () => {
-    setPriest((prev) =>
-      prev
-        ? {
-            ...prev,
-            approvalStatus: 'PENDING',
-            statusReason: undefined,
-          }
-        : undefined
-    );
+    setPriest({ ...priest, approvalStatus: 'PENDING', rejectionReason: undefined });
     toast.info(`Application for ${priest.fullName} re-opened to Pending Review.`);
   };
 
@@ -195,39 +187,35 @@ const AdminPriestDetailsPage: React.FC = () => {
     navigate('/admin/priests');
   };
 
-  const getStatusBadge = (status: PriestApprovalStatus) => {
-    switch (status) {
-      case 'APPROVED':
-        return (
+  const getStatusBadge = (approvalStatus: PriestApprovalStatus, accountStatus: string = 'ACTIVE') => {
+    return (
+      <div className="flex items-center gap-1.5">
+        {approvalStatus === 'APPROVED' && (
           <Badge className="bg-emerald-600 text-white hover:bg-emerald-700 text-xs px-2.5 py-0.5 gap-1">
             <ShieldCheck className="w-3.5 h-3.5" />
             Approved
           </Badge>
-        );
-      case 'PENDING':
-        return (
+        )}
+        {approvalStatus === 'PENDING' && (
           <Badge variant="outline" className="border-amber-400 text-amber-800 bg-amber-50 text-xs px-2.5 py-0.5 gap-1">
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
             Pending Review
           </Badge>
-        );
-      case 'BANNED':
-        return (
+        )}
+        {approvalStatus === 'REJECTED' && (
           <Badge variant="destructive" className="text-xs px-2.5 py-0.5 gap-1">
+            <XCircle className="w-3.5 h-3.5" />
+            Rejected
+          </Badge>
+        )}
+        {accountStatus === 'BANNED' && (
+          <Badge variant="destructive" className="text-xs px-2.5 py-0.5 gap-1 font-bold">
             <Ban className="w-3.5 h-3.5" />
             Banned
           </Badge>
-        );
-      case 'REJECTED':
-        return (
-          <Badge variant="secondary" className="text-xs px-2.5 py-0.5 gap-1">
-            <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
-            Rejected
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+        )}
+      </div>
+    );
   };
 
   return (
@@ -262,7 +250,7 @@ const AdminPriestDetailsPage: React.FC = () => {
                   <h1 className="text-xl sm:text-2xl font-bold font-serif text-foreground">
                     {priest.fullName}
                   </h1>
-                  {getStatusBadge(priest.approvalStatus)}
+                  {getStatusBadge(priest.approvalStatus, priest.accountStatus)}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Display Name: <span className="font-medium text-foreground">{priest.displayName}</span>
@@ -276,148 +264,86 @@ const AdminPriestDetailsPage: React.FC = () => {
             {/* Quick Rating & Dakshina Summary */}
             <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-1 text-xs">
               {priest.rating && (
-                <div className="flex items-center gap-1 font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-200">
+                <div className="flex items-center gap-1 font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
                   <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                   {priest.rating} ({priest.reviewCount || 0} reviews)
                 </div>
               )}
-              {priest.dakshinaSuggested && (
-                <div className="text-muted-foreground text-[11px] mt-0.5">
-                  Suggested Dakshina: <span className="font-bold text-foreground">₹{priest.dakshinaSuggested.toLocaleString('en-IN')}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Contact Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-4 border-t text-xs">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Phone className="w-4 h-4 text-primary shrink-0" />
-              <span className="font-mono">{priest.phoneNumber}</span>
-              {priest.isPhoneVerified && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-300 text-emerald-700 bg-emerald-50">
-                  Verified
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Mail className="w-4 h-4 text-primary shrink-0" />
-              <span className="truncate">{priest.email || 'N/A'}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MapPin className="w-4 h-4 text-primary shrink-0" />
-              <span>{priest.city}, {priest.state}</span>
+              <span className="text-[11px] text-muted-foreground">
+                Experience: {priest.experienceYears} Years
+              </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Warning/Alert for Banned or Rejected Accounts */}
-      {priest.statusReason && (
-        <Card className={priest.approvalStatus === 'BANNED' ? 'border-destructive/50 bg-destructive/5' : 'border-amber-300 bg-amber-50/50'}>
-          <CardHeader className="py-3">
-            <CardTitle className="text-xs font-semibold flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-4 h-4" />
-              Administrative Status Reason ({priest.approvalStatus})
-            </CardTitle>
-            <CardDescription className="text-xs text-foreground font-medium mt-1">
-              "{priest.statusReason}"
-            </CardDescription>
-          </CardHeader>
+      {/* Administrative Status Banner */}
+      {(priest.accountStatus === 'BANNED' || priest.approvalStatus === 'REJECTED' || priest.approvalStatus === 'PENDING') && (
+        <Card className={priest.accountStatus === 'BANNED' ? 'border-destructive/50 bg-destructive/5' : 'border-amber-500/30 bg-amber-500/10'}>
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${priest.accountStatus === 'BANNED' ? 'text-destructive' : 'text-amber-600'}`} />
+            <div className="space-y-1 text-xs">
+              <p className="font-bold text-foreground">
+                Administrative Status ({priest.approvalStatus} / {priest.accountStatus})
+              </p>
+              <p className="text-muted-foreground">
+                {priest.banReason || priest.rejectionReason || (priest.approvalStatus === 'PENDING' ? 'Priest registration is currently awaiting verification.' : 'No notes recorded.')}
+              </p>
+            </div>
+          </CardContent>
         </Card>
       )}
 
-      {/* Qualifications & Profile Details */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left 2 columns: Bio, Languages, Specializations */}
-        <div className="md:col-span-2 space-y-6">
-          {/* Bio Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-primary" />
-                Vedic Scholar Lineage & Bio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-xs leading-relaxed text-muted-foreground">
-              {priest.bio || 'No bio submitted.'}
-            </CardContent>
-          </Card>
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Contact & Verification Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold flex items-center gap-1.5">
+              <Phone className="w-4 h-4 text-primary" />
+              Contact & Direct Verification
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs">
+            <div className="flex items-center justify-between border-b pb-2">
+              <span className="text-muted-foreground">Mobile Phone:</span>
+              <span className="font-mono font-bold text-foreground">{priest.phoneNumber}</span>
+            </div>
+            <div className="flex items-center justify-between border-b pb-2">
+              <span className="text-muted-foreground">Email Address:</span>
+              <span className="font-medium text-foreground">{priest.email || '—'}</span>
+            </div>
+            <div className="flex items-center justify-between border-b pb-2">
+              <span className="text-muted-foreground">City & State:</span>
+              <span className="font-medium text-foreground">{priest.city}, {priest.state}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Service Localities:</span>
+              <span className="font-medium text-foreground">{priest.serviceAreas?.join(', ') || priest.city}</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Ritual Specializations */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Award className="w-4 h-4 text-primary" />
-                Ritual Specializations & Expertise
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {priest.specializations.map((spec, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs py-1 px-2.5">
-                    {spec}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Service Localities */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-primary" />
-                Service Localities & Coverage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {priest.serviceAreas.map((area, i) => (
-                  <Badge key={i} variant="outline" className="text-xs py-1 px-2.5 bg-muted/40">
-                    {area}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right 1 column: Summary Stats */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Languages className="w-4 h-4 text-primary" />
-                Key Qualifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 text-xs">
-              <div>
-                <span className="text-muted-foreground block text-[11px]">Vedic Experience</span>
-                <span className="font-semibold text-foreground text-sm">{priest.experienceYears} Years</span>
-              </div>
-
-              <div>
-                <span className="text-muted-foreground block text-[11px] mb-1">Languages Spoken</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {priest.languages.map((lang, i) => (
-                    <Badge key={i} variant="outline" className="text-[11px]">
-                      {lang}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <span className="text-muted-foreground block text-[11px]">Base Location</span>
-                <span className="font-medium text-foreground">{priest.city}, {priest.state}</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Vedic Credentials */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold flex items-center gap-1.5">
+              <Award className="w-4 h-4 text-primary" />
+              Vedic Bio & Lineage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs">
+            <p className="text-muted-foreground leading-relaxed">{priest.bio}</p>
+            <div className="border-t pt-2 space-y-1">
+              <span className="text-muted-foreground font-semibold">Spoken Languages:</span>
+              <p className="font-medium text-foreground">{priest.languages?.join(', ')}</p>
+            </div>
+            <div className="border-t pt-2 space-y-1">
+              <span className="text-muted-foreground font-semibold">Specializations:</span>
+              <p className="font-medium text-foreground">{priest.specializations?.join(', ')}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Administrative Decision Action Bar */}
@@ -454,8 +380,8 @@ const AdminPriestDetailsPage: React.FC = () => {
               </>
             )}
 
-            {/* If APPROVED: Ban */}
-            {priest.approvalStatus === 'APPROVED' && (
+            {/* If ACTIVE: Ban Option */}
+            {priest.accountStatus === 'ACTIVE' && (
               <Button
                 size="sm"
                 variant="destructive"
@@ -463,12 +389,12 @@ const AdminPriestDetailsPage: React.FC = () => {
                 className="text-xs gap-1.5"
               >
                 <Ban className="w-4 h-4" />
-                Ban Scholar Account
+                Ban Priest Account
               </Button>
             )}
 
-            {/* If BANNED: Lift Ban */}
-            {priest.approvalStatus === 'BANNED' && (
+            {/* If BANNED: Lift Ban Option */}
+            {priest.accountStatus === 'BANNED' && (
               <Button
                 size="sm"
                 onClick={handleLiftBan}
@@ -501,7 +427,7 @@ const AdminPriestDetailsPage: React.FC = () => {
             className="text-xs text-destructive hover:bg-destructive/10 gap-1.5"
           >
             <Trash2 className="w-4 h-4" />
-            Delete Scholar Profile
+            Delete Priest Profile
           </Button>
         </CardContent>
       </Card>
@@ -519,13 +445,13 @@ const AdminPriestDetailsPage: React.FC = () => {
           </DialogHeader>
 
           <div className="space-y-2 py-2">
-            <Label htmlFor="reject-reason" className="text-xs">Rejection Reason</Label>
+            <Label htmlFor="reject-reason" className="text-xs">Rejection Justification</Label>
             <Textarea
               id="reject-reason"
-              placeholder="e.g. Insufficient credential documentation / Unverifiable Gurukul training..."
+              placeholder="e.g. Incomplete background certification / Inability to verify Vedic credentials..."
               value={reasonInput}
               onChange={(e) => setReasonInput(e.target.value)}
-              className="text-xs min-h-[90px]"
+              className="text-xs min-h-24"
             />
           </div>
 
@@ -569,7 +495,7 @@ const AdminPriestDetailsPage: React.FC = () => {
               placeholder="e.g. Multiple unannounced ritual cancellations / Infraction of platform conduct..."
               value={reasonInput}
               onChange={(e) => setReasonInput(e.target.value)}
-              className="text-xs min-h-[90px]"
+              className="text-xs min-h-24"
             />
           </div>
 
@@ -600,7 +526,7 @@ const AdminPriestDetailsPage: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base font-bold text-destructive flex items-center gap-2">
               <Trash2 className="w-4 h-4" />
-              Permanently Delete Scholar Profile?
+              Permanently Delete Priest Profile?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-xs text-muted-foreground">
               Are you sure you want to permanently remove <span className="font-semibold text-foreground">{priest.fullName}</span> from the platform roster? This action cannot be undone.
@@ -622,4 +548,3 @@ const AdminPriestDetailsPage: React.FC = () => {
 };
 
 export default AdminPriestDetailsPage;
-

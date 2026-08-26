@@ -139,6 +139,14 @@
   --destructive: 0 75% 52%;
   --destructive-foreground: 0 0% 100%;
 
+  /* Semantic Status Tokens */
+  --success: 142 70% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  --info: 217 91% 60%;
+  --info-foreground: 0 0% 100%;
+
   /* Subtle Crisp Borders, Form Inputs & Focus Rings */
   --border: 38 18% 89%;
   --input: 38 18% 89%;
@@ -174,6 +182,13 @@
 
   --destructive: 0 65% 52%;
   --destructive-foreground: 0 0% 100%;
+
+  --success: 142 60% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 85% 50%;
+  --warning-foreground: 0 0% 100%;
+  --info: 217 80% 60%;
+  --info-foreground: 0 0% 100%;
 
   --border: 225 18% 20%;
   --input: 225 18% 20%;

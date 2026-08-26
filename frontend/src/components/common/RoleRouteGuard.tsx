@@ -11,7 +11,7 @@ export const UserRouteGuard: React.FC<{ children: React.ReactNode }> = ({ childr
   const location = useLocation();
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/auth/user/login" state={{ from: location }} replace />;
+    return <Navigate to="/user/login" state={{ from: location }} replace />;
   }
 
   if (user.role === 'PRIEST') {
@@ -28,13 +28,14 @@ export const UserRouteGuard: React.FC<{ children: React.ReactNode }> = ({ childr
 /**
  * PriestRouteGuard
  * Protects Priest (/priest/*) workspace routes strictly for authenticated PRIEST role.
+ * Handles approval workflow redirection (/priest/pending-approval).
  */
 export const PriestRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuthStore();
   const location = useLocation();
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/auth/priest/login" state={{ from: location }} replace />;
+    return <Navigate to="/priest/login" state={{ from: location }} replace />;
   }
 
   if (user.role === 'USER') {
@@ -57,7 +58,7 @@ export const AdminRouteGuard: React.FC<{ children: React.ReactNode }> = ({ child
   const location = useLocation();
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/auth/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   if (user.role === 'USER') {
