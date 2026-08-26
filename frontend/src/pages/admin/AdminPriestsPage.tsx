@@ -139,7 +139,7 @@ export const AdminPriestsPage: React.FC = () => {
             Review onboarding requests, verify Gurukul credentials, and moderate priest accounts.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchPriests} className="h-9 gap-1.5 text-xs self-start sm:self-auto">
+        <Button variant="outline" size="sm" onClick={fetchPriests} className="h-9 gap-1.5 text-xs w-full sm:w-auto font-medium">
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh List
         </Button>
@@ -147,29 +147,31 @@ export const AdminPriestsPage: React.FC = () => {
 
       {/* Filter Tabs & Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-        <Tabs
-          value={activeTab}
-          onValueChange={(val) => setActiveTab(val as StatusFilter)}
-          className="w-full sm:w-auto"
-        >
-          <TabsList className="grid grid-cols-5 w-full sm:w-auto text-xs h-9">
-            <TabsTrigger value="ALL" className="text-xs">
-              All ({priests.length})
-            </TabsTrigger>
-            <TabsTrigger value="PENDING" className="text-xs text-amber-600 font-semibold">
-              Pending ({pendingCount})
-            </TabsTrigger>
-            <TabsTrigger value="APPROVED" className="text-xs text-emerald-600">
-              Approved ({approvedCount})
-            </TabsTrigger>
-            <TabsTrigger value="REJECTED" className="text-xs text-destructive">
-              Rejected ({rejectedCount})
-            </TabsTrigger>
-            <TabsTrigger value="BANNED" className="text-xs text-muted-foreground">
-              Banned ({bannedCount})
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="overflow-x-auto pb-1 max-w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as StatusFilter)}
+            className="w-full sm:w-auto min-w-max"
+          >
+            <TabsList className="flex w-full sm:w-auto text-xs h-9">
+              <TabsTrigger value="ALL" className="text-xs px-3">
+                All ({priests.length})
+              </TabsTrigger>
+              <TabsTrigger value="PENDING" className="text-xs px-3 text-amber-600 font-semibold">
+                Pending ({pendingCount})
+              </TabsTrigger>
+              <TabsTrigger value="APPROVED" className="text-xs px-3 text-emerald-600">
+                Approved ({approvedCount})
+              </TabsTrigger>
+              <TabsTrigger value="REJECTED" className="text-xs px-3 text-destructive">
+                Rejected ({rejectedCount})
+              </TabsTrigger>
+              <TabsTrigger value="BANNED" className="text-xs px-3 text-muted-foreground">
+                Banned ({bannedCount})
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

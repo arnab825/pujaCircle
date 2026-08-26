@@ -46,8 +46,8 @@ export const AdminDashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/admin/priests">
-          <Button size="sm" className="text-xs gap-1.5 shadow-sm">
+        <Link to="/admin/priests" className="w-full sm:w-auto">
+          <Button size="sm" className="text-xs gap-1.5 shadow-sm w-full sm:w-auto h-9 font-medium justify-center">
             <Clock className="w-3.5 h-3.5" />
             Manage Priests ({stats?.pendingPriests ?? 0} Pending)
           </Button>
@@ -129,14 +129,14 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* 2. Pending Priest Approval Queue (Most Important Admin Action) */}
       <Card className="border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="p-4 sm:p-5 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="space-y-1">
             <CardTitle className="text-base font-serif">Purohit Verification Queue</CardTitle>
             <CardDescription className="text-xs">
               Review and approve newly registered Vedic priests before they appear in public search.
             </CardDescription>
           </div>
-          <Link to="/admin/priests" className="text-xs text-primary hover:underline font-medium">
+          <Link to="/admin/priests" className="text-xs text-primary hover:underline font-medium shrink-0">
             View All Purohits →
           </Link>
         </CardHeader>
@@ -158,8 +158,8 @@ export const AdminDashboardPage: React.FC = () => {
                       alt={p.fullName}
                       className="h-12 w-12 rounded-xl object-cover border shrink-0 bg-muted"
                     />
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h2 className="font-bold text-sm text-foreground">{p.fullName}</h2>
                         <Badge variant="outline" className="text-[10px] text-amber-600 bg-amber-500/10 border-amber-500/30">
                           PENDING
@@ -172,8 +172,8 @@ export const AdminDashboardPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <Link to={`/admin/priests/${p.id}`}>
-                    <Button size="sm" className="text-xs gap-1.5 h-8">
+                  <Link to={`/admin/priests/${p.id}`} className="w-full sm:w-auto">
+                    <Button size="sm" className="text-xs gap-1.5 h-9 w-full sm:w-auto justify-center font-medium">
                       <span>Review Credentials</span>
                       <ArrowRight className="h-3.5 w-3.5" />
                     </Button>

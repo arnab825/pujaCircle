@@ -121,19 +121,19 @@ const AdminProfilePage: React.FC = () => {
       {/* Admin Profile Overview Card */}
       <Card className="shadow-sm border overflow-hidden">
         <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center font-bold text-xl border border-destructive/20 shadow-sm shrink-0">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4">
+            <div className="w-20 h-20 sm:w-16 sm:h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center font-bold text-2xl sm:text-xl border border-destructive/20 shadow-sm shrink-0">
               {fullName.charAt(0).toUpperCase()}
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
+            <div className="space-y-1 flex-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
                 <Badge variant="destructive" className="text-[10px] uppercase font-bold tracking-wide">
                   ADMIN
                 </Badge>
               </div>
               <p className="text-xs text-muted-foreground">{adminEmail}</p>
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground pt-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-muted-foreground pt-1">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>Account Created: {joinedDate}</span>
               </div>
@@ -177,7 +177,7 @@ const AdminProfilePage: React.FC = () => {
 
               {/* Email Address (Read-only / Disabled) */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5">
                   <Label htmlFor="admin-email" className="text-xs font-semibold">
                     Email Address
                   </Label>
@@ -200,7 +200,7 @@ const AdminProfilePage: React.FC = () => {
 
               {/* Phone Number (Read-only / Disabled) */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-0.5">
                   <Label htmlFor="admin-phone" className="text-xs font-semibold">
                     Phone Number
                   </Label>
@@ -226,7 +226,7 @@ const AdminProfilePage: React.FC = () => {
                   type="submit"
                   size="sm"
                   disabled={isSavingName}
-                  className="text-xs gap-1.5 bg-primary text-primary-foreground"
+                  className="text-xs gap-1.5 bg-primary text-primary-foreground w-full sm:w-auto h-9 font-medium justify-center"
                 >
                   <Save className="w-3.5 h-3.5" />
                   {isSavingName ? 'Saving...' : 'Save Name Changes'}
@@ -323,7 +323,7 @@ const AdminProfilePage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   disabled={isUpdatingPassword}
-                  className="text-xs gap-1.5 shadow-sm"
+                  className="text-xs gap-1.5 shadow-sm w-full sm:w-auto h-9 font-medium justify-center"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   {isUpdatingPassword ? 'Updating...' : 'Update Password'}
