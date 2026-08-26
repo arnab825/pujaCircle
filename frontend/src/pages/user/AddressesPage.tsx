@@ -335,27 +335,27 @@ export const AddressesPage: React.FC = () => {
 
       {/* Add / Edit Address Modal with PIN Auto-Lookup */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-lg">
+        <DialogContent className="sm:max-w-md p-5 sm:p-6 rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="space-y-1 pb-1">
+            <DialogTitle className="font-serif text-lg font-bold text-foreground">
               {editingAddress ? 'Edit Address' : 'Add New Address'}
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              Enter your 6-digit Indian PIN code to automatically resolve your village/town, district, and state.
+            <DialogDescription className="text-xs text-muted-foreground">
+              Enter your 6-digit Indian PIN code to automatically resolve location details.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveAddress} className="space-y-4 pt-2 text-xs">
+          <form onSubmit={handleSaveAddress} className="space-y-3.5 pt-1 text-xs">
             {/* PIN Code */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">6-Digit PIN Code</Label>
+            <div>
+              <Label className="text-xs font-semibold text-foreground mb-1 block">6-Digit PIN Code</Label>
               <div className="relative">
                 <Input
                   placeholder="e.g. 400050"
                   maxLength={6}
                   value={pinCode}
                   onChange={(e) => setPinCode(e.target.value.replace(/\D/g, ''))}
-                  className="font-mono text-xs pr-9 h-9"
+                  className="font-mono text-xs pr-9 h-9 rounded-lg"
                 />
                 {isLookingUpPin && (
                   <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-primary" />
@@ -365,12 +365,12 @@ export const AddressesPage: React.FC = () => {
 
             {/* Village / Town Dropdown if multiple or resolved */}
             {pinLocations.length > 0 ? (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Village / Town / Locality</Label>
+              <div>
+                <Label className="text-xs font-semibold text-foreground mb-1 block">Village / Town / Locality</Label>
                 <select
                   value={selectedVillageTown}
                   onChange={(e) => setSelectedVillageTown(e.target.value)}
-                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
+                  className="w-full h-9 rounded-lg border border-input bg-background px-3 py-1.5 text-xs shadow-xs focus:outline-hidden focus:ring-1 focus:ring-primary/30"
                 >
                   {pinLocations.map((loc, idx) => {
                     const val = loc.villageTown || loc.locality || loc.postOffice;
@@ -383,60 +383,64 @@ export const AddressesPage: React.FC = () => {
                 </select>
               </div>
             ) : selectedVillageTown ? (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Village / Town / Locality</Label>
+              <div>
+                <Label className="text-xs font-semibold text-foreground mb-1 block">Village / Town / Locality</Label>
                 <Input
                   value={selectedVillageTown}
                   onChange={(e) => setSelectedVillageTown(e.target.value)}
-                  className="text-xs h-9"
+                  className="text-xs h-9 rounded-lg"
                 />
               </div>
             ) : null}
 
             {/* Auto-filled District & State */}
             {district && (
-              <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted/40 border">
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">District:</span>
+              <div className="grid grid-cols-2 gap-2.5 p-2.5 rounded-lg bg-muted/40 border border-border/70">
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
+                    District
+                  </span>
                   <strong className="text-foreground text-xs">{district}</strong>
                 </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">State:</span>
+                <div className="space-y-0.5">
+                  <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
+                    State
+                  </span>
                   <strong className="text-foreground text-xs">{state}</strong>
                 </div>
               </div>
             )}
 
             {/* House / Flat Number */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">House / Flat / Building No.</Label>
+            <div>
+              <Label className="text-xs font-semibold text-foreground mb-1 block">House / Flat / Building No.</Label>
               <Input
                 placeholder="e.g. Flat 402, Ganga Heights"
                 value={houseNo}
                 onChange={(e) => setHouseNo(e.target.value)}
-                className="text-xs h-9"
+                className="text-xs h-9 rounded-lg"
               />
             </div>
 
             {/* Default Address Radio Option */}
             <div
               onClick={() => setIsDefault(!isDefault)}
-              className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                isDefault ? 'border-primary/50 bg-primary/5' : 'border-border/70 hover:bg-muted/40'
+              className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all cursor-pointer select-none ${
+                isDefault ? 'border-primary/60 bg-primary/5 ring-1 ring-primary/20' : 'border-border/80 hover:bg-muted/40'
               }`}
             >
               <div
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
+                className={`w-4.5 h-4.5 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
                   isDefault ? 'border-primary bg-primary/10' : 'border-muted-foreground/40 bg-card'
                 }`}
               >
-                {isDefault && <div className="w-2.5 h-2.5 rounded-full bg-primary animate-in zoom-in-75 duration-200" />}
+                {isDefault && <div className="w-2 h-2 rounded-full bg-primary animate-in zoom-in-75 duration-200" />}
               </div>
-              <div>
+              <div className="space-y-0.5">
                 <span className="text-xs font-semibold text-foreground block">
                   Set as Primary Default Address
                 </span>
-                <span className="text-[11px] text-muted-foreground block">
+                <span className="text-[10px] text-muted-foreground block leading-tight">
                   Purohits will use this address by default when you book rituals.
                 </span>
               </div>
@@ -448,7 +452,7 @@ export const AddressesPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsModalOpen(false)}
-                className="text-xs w-full sm:w-auto h-9"
+                className="text-xs w-full sm:w-auto h-9 px-4 rounded-lg"
               >
                 Cancel
               </Button>
@@ -456,7 +460,7 @@ export const AddressesPage: React.FC = () => {
                 type="submit"
                 size="sm"
                 disabled={isSaving || !pinCode || !houseNo}
-                className="text-xs w-full sm:w-auto h-9"
+                className="text-xs w-full sm:w-auto h-9 px-5 rounded-lg font-semibold shadow-xs"
               >
                 {isSaving ? 'Saving...' : editingAddress ? 'Update Address' : 'Save Address'}
               </Button>
