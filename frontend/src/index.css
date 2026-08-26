@@ -257,6 +257,21 @@
   select:disabled {
     cursor: not-allowed;
   }
+
+  /* Browser Date/Time Picker Indicator Polish */
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    color: transparent;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+  }
 }
 
 @utility bg-grid {
