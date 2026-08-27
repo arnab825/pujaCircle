@@ -18,9 +18,7 @@ import {
   Calendar as CalendarIcon,
   CheckCircle2,
   ExternalLink,
-  ChevronDown,
-  ChevronUp,
-  History,
+
   CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,8 +39,7 @@ export const PriestAvailabilityPage: React.FC = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
-  // Past slots section collapse toggle
-  const [showPastSlots, setShowPastSlots] = useState(false);
+
 
   const fetchSlotsAndBookings = async () => {
     try {
@@ -168,7 +165,7 @@ export const PriestAvailabilityPage: React.FC = () => {
   });
 
   const upcomingDates = Object.keys(groupedUpcoming).sort();
-  const pastDates = Object.keys(groupedPast).sort().reverse();
+
 
   // Metrics
   const totalUpcomingCount = upcomingSlots.length;
@@ -312,8 +309,8 @@ export const PriestAvailabilityPage: React.FC = () => {
                         <Card
                           key={slot.id}
                           className={`border transition-all shadow-2xs ${isAvailable
-                              ? 'bg-card border-border hover:border-emerald-500/40'
-                              : 'bg-primary/5 border-primary/30'
+                            ? 'bg-card border-border hover:border-emerald-500/40'
+                            : 'bg-primary/5 border-primary/30'
                             }`}
                         >
                           <CardContent className="p-4 space-y-3">
@@ -331,8 +328,8 @@ export const PriestAvailabilityPage: React.FC = () => {
                               <Badge
                                 variant="outline"
                                 className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 ${isAvailable
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                    : 'bg-primary/15 text-primary border-primary/40'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : 'bg-primary/15 text-primary border-primary/40'
                                   }`}
                               >
                                 {isAvailable ? (
@@ -395,70 +392,6 @@ export const PriestAvailabilityPage: React.FC = () => {
           </div>
         )}
       </div>
-
-      {/* SECTION 2: PAST AVAILABILITY */}
-      {pastSlots.length > 0 && (
-        <div className="space-y-4 pt-4 border-t border-border/60">
-          <button
-            type="button"
-            onClick={() => setShowPastSlots(!showPastSlots)}
-            className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border transition-colors text-left"
-          >
-            <div className="flex items-center gap-2">
-              <History className="h-4 w-4 text-muted-foreground" />
-              <span className="font-serif font-semibold text-sm text-foreground">
-                Past Availability History
-              </span>
-              <Badge variant="outline" className="text-[10px]">
-                {pastSlots.length} {pastSlots.length === 1 ? 'record' : 'records'}
-              </Badge>
-            </div>
-            {showPastSlots ? (
-              <ChevronUp className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            )}
-          </button>
-
-          {showPastSlots && (
-            <div className="space-y-5 animate-in fade-in pt-2">
-              {pastDates.map((dateStr) => {
-                const daySlots = groupedPast[dateStr];
-
-                return (
-                  <div key={dateStr} className="space-y-2">
-                    <h4 className="text-xs font-semibold font-serif text-muted-foreground">
-                      {formatFullDate(dateStr)}
-                    </h4>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                      {daySlots.map((slot) => (
-                        <div
-                          key={slot.id}
-                          className="p-3 rounded-lg border border-border/60 bg-muted/20 flex items-center justify-between gap-2"
-                        >
-                          <div className="font-mono text-xs text-foreground">
-                            {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
-                          </div>
-                          <Badge
-                            variant="outline"
-                            className={`text-[9px] ${slot.status === 'BOOKED'
-                                ? 'bg-primary/10 text-primary border-primary/20'
-                                : 'bg-muted text-muted-foreground border-border'
-                              }`}
-                          >
-                            {slot.status}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Add / Edit Slot Modal */}
       <AddSlotModal
