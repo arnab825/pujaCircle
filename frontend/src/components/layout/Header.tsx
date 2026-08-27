@@ -10,7 +10,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
-  Sparkles,
   Calendar,
   MapPin,
   User,
@@ -22,6 +21,7 @@ import {
   Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 
 /**
  * Public Website Header (Used in PublicLayout)
@@ -63,11 +63,9 @@ export const Header: React.FC = () => {
         {/* Brand Logo */}
         <Link
           to={isAuthenticated && user?.role === 'USER' ? '/user/home' : '/'}
-          className="flex items-center gap-2 font-bold text-xl text-foreground tracking-tight"
+          className="flex items-center gap-2.5 font-bold text-xl text-foreground tracking-tight group"
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <PujaCircleLogo size={36} className="shadow-xs transition-transform group-hover:scale-105" />
           <span className="font-serif">
             Puja<span className="text-primary font-sans font-bold">Circle</span>
           </span>
@@ -158,9 +156,7 @@ export const Header: React.FC = () => {
               <div className="space-y-6">
                 <SheetHeader className="text-left border-b pb-4">
                   <SheetTitle className="flex items-center gap-2 font-serif text-lg">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
+                    <PujaCircleLogo size={28} className="shadow-xs" />
                     <span>Puja<span className="text-primary font-sans font-bold">Circle</span></span>
                   </SheetTitle>
                 </SheetHeader>

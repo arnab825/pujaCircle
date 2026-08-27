@@ -1,6 +1,6 @@
 import React from 'react';
 import { AuthLoginForm } from '@/components/auth/AuthLoginForm';
-import { Sparkles } from 'lucide-react';
+import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 
 const UserLoginPage: React.FC = () => {
   return (
@@ -8,7 +8,7 @@ const UserLoginPage: React.FC = () => {
       role="USER"
       title="Devotee Sign In"
       subtitle="Enter your mobile number and password to access your puja bookings."
-      icon={<Sparkles className="h-6 w-6" />}
+      icon={<PujaCircleLogo size={44} className="shadow-xs" />}
       demoCredentials={{
         phone: '+919876543210',
         pass: 'User@123',

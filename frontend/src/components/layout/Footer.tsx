@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
-import { Sparkles } from "lucide-react";
+import { PujaCircleLogo } from "@/components/common/PujaCircleLogo";
 import { APP_CONFIG } from "@/lib/constants";
 
 /**
@@ -17,9 +17,7 @@ export const Footer: React.FC = () => {
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
         {/* Brand & Tagline */}
         <div className="flex items-center gap-2">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Sparkles className="h-3.5 w-3.5" />
-          </div>
+          <PujaCircleLogo size={24} className="shadow-xs" />
           <span className="font-semibold text-foreground">
             Puja<span className="text-primary">Circle</span>
           </span>

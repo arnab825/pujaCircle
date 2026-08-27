@@ -81,7 +81,7 @@ export const AuthLoginForm: React.FC<AuthLoginFormProps> = ({
     <div className="container max-w-md py-12 px-4">
       <Card className="shadow-md border-border/80">
         <CardHeader className="text-center space-y-2 pb-4">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-1">
+          <div className="mx-auto flex items-center justify-center mb-1">
             {icon}
           </div>
           <CardTitle className="text-2xl font-bold font-serif text-foreground">

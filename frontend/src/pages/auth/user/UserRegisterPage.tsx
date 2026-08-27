@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Sparkles, Phone, Mail, Lock, User, MapPin, CheckCircle2, ArrowRight, ArrowLeft, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Phone, Mail, Lock, User, MapPin, CheckCircle2, ArrowRight, ArrowLeft, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 import { toast } from 'sonner';
 
 /**
@@ -146,9 +147,7 @@ const UserRegisterPage: React.FC = () => {
     <div className="container max-w-lg py-10 px-4">
       <Card className="shadow-md border-border/80">
         <CardHeader className="text-center space-y-1 pb-4">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary mb-1">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <PujaCircleLogo size={44} className="mx-auto shadow-sm mb-2" />
           <CardTitle className="text-2xl font-bold font-serif text-foreground">
             Create Devotee Account
           </CardTitle>
@@ -477,7 +476,7 @@ const UserRegisterPage: React.FC = () => {
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Creating Account...' : 'Complete & Sign In'}
-                <Sparkles className="h-3.5 w-3.5" />
+                <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </CardFooter>
           </form>

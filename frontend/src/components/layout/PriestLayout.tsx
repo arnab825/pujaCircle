@@ -4,13 +4,8 @@ import { useAuthStore } from "@/store/auth.store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Sparkles,
   LayoutDashboard,
   Calendar,
   Clock,
@@ -19,6 +14,7 @@ import {
   IndianRupee,
   Menu,
 } from "lucide-react";
+import { PujaCircleLogo } from "@/components/common/PujaCircleLogo";
 
 /**
  * PriestLayout
@@ -47,13 +43,11 @@ export const PriestLayout: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-muted/20">
       {/* Priest Sidebar - Fixed / Non-scrollable with page */}
-      <aside className="fixed inset-y-0 left-0 z-30 w-64 border-r bg-card flex flex-col justify-between hidden md:flex h-screen">
+      <aside className="fixed inset-y-0 left-0 z-30 w-64 border-r bg-card flex flex-col justify-between md:flex h-screen">
         <div className="flex-1 overflow-y-auto">
           {/* Workspace Branding */}
-          <div className="h-16 border-b flex items-center gap-2 px-6 shrink-0 bg-card">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-              <Sparkles className="h-4 w-4" />
-            </div>
+          <div className="h-16 border-b flex items-center gap-2.5 px-6 shrink-0 bg-card">
+            <PujaCircleLogo size={32} className="shadow-xs" />
             <div>
               <span className="font-bold text-sm text-foreground font-serif">
                 PujaCircle
@@ -95,7 +89,9 @@ export const PriestLayout: React.FC = () => {
               <p className="text-xs font-semibold text-foreground truncate max-w-32.5">
                 {user?.name}
               </p>
-              <p className="text-[11px] text-muted-foreground">{user?.email || user?.phoneNumber}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {user?.email || user?.phoneNumber}
+              </p>
             </div>
             <Badge variant="secondary" className="text-[10px] uppercase">
               PRIEST
@@ -129,13 +125,14 @@ export const PriestLayout: React.FC = () => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 bg-card border-r flex flex-col justify-between">
+              <SheetContent
+                side="left"
+                className="p-0 w-72 bg-card border-r flex flex-col justify-between"
+              >
                 <div>
                   {/* Workspace Branding */}
-                  <div className="h-16 border-b flex items-center gap-2 px-6 shrink-0 bg-card">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-                      <Sparkles className="h-4 w-4" />
-                    </div>
+                  <div className="h-16 border-b flex items-center gap-2.5 px-6 shrink-0 bg-card">
+                    <PujaCircleLogo size={32} className="shadow-xs" />
                     <div>
                       <span className="font-bold text-sm text-foreground font-serif">
                         PujaCircle
@@ -181,9 +178,14 @@ export const PriestLayout: React.FC = () => {
                       <p className="text-xs font-semibold text-foreground truncate max-w-36">
                         {user?.name}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">{user?.email || user?.phoneNumber}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {user?.email || user?.phoneNumber}
+                      </p>
                     </div>
-                    <Badge variant="secondary" className="text-[10px] uppercase">
+                    <Badge
+                      variant="secondary"
+                      className="text-[10px] uppercase"
+                    >
                       PRIEST
                     </Badge>
                   </div>

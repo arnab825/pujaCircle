@@ -1,6 +1,6 @@
 import React from 'react';
 import { AuthLoginForm } from '@/components/auth/AuthLoginForm';
-import { Flame } from 'lucide-react';
+import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 
 const PriestLoginPage: React.FC = () => {
   return (
@@ -8,7 +8,7 @@ const PriestLoginPage: React.FC = () => {
       role="PRIEST"
       title="PujaCircle for Priests"
       subtitle="Welcome, Pandit Ji. Manage your ritual schedules and ceremony appointments."
-      icon={<Flame className="h-6 w-6" />}
+      icon={<PujaCircleLogo size={44} className="shadow-xs" />}
       demoCredentials={{
         phone: '+919876543211',
         pass: 'Priest@123',
