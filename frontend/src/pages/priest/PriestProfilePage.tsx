@@ -355,7 +355,7 @@ export const PriestProfilePage: React.FC = () => {
               Profile Picture
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Upload a clear photo for your Purohit profile or reset to default
+              Upload a clear photo for your Priest profile or reset to default
               initials.
             </DialogDescription>
           </DialogHeader>
@@ -425,12 +425,12 @@ export const PriestProfilePage: React.FC = () => {
               variant="outline"
               className="text-primary border-primary/30 text-[11px]"
             >
-              <Sparkles className="h-3 w-3 mr-1 text-primary" /> Purohit
+              <Sparkles className="h-3 w-3 mr-1 text-primary" /> Priest
               Credentials
             </Badge>
             {priest?.approvalStatus === "APPROVED" ? (
               <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] gap-1">
-                <ShieldCheck className="h-3 w-3" /> Verified Purohit
+                <ShieldCheck className="h-3 w-3" /> Verified Priest
               </Badge>
             ) : (
               <Badge variant="secondary" className="text-[11px]">

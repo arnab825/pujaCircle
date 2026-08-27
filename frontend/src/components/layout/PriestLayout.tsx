@@ -9,17 +9,18 @@ import {
   LayoutDashboard,
   Calendar,
   Clock,
-  UserCheck,
   LogOut,
   IndianRupee,
   Menu,
+  User,
 } from "lucide-react";
 import { PujaCircleLogo } from "@/components/common/PujaCircleLogo";
 
 /**
  * PriestLayout
- * Dedicated workspace layout for Purohits (PRIEST role).
+ * Dedicated workspace layout for Priests (PRIEST role).
  * Features a fixed desktop sidebar, mobile toggle drawer, top bar, and responsive main workspace.
+ * Clicking the profile in the sidebar navigates to the Priest Profile page.
  */
 export const PriestLayout: React.FC = () => {
   const location = useLocation();
@@ -37,8 +38,9 @@ export const PriestLayout: React.FC = () => {
     { label: "Services & Prices", path: "/priest/services", icon: IndianRupee },
     { label: "Availability Slots", path: "/priest/availability", icon: Clock },
     { label: "Appointments Log", path: "/priest/bookings", icon: Calendar },
-    { label: "Purohit Profile", path: "/priest/profile", icon: UserCheck },
   ];
+
+  const isProfileActive = location.pathname.startsWith("/priest/profile");
 
   return (
     <div className="flex min-h-screen bg-muted/20">
@@ -53,7 +55,7 @@ export const PriestLayout: React.FC = () => {
                 PujaCircle
               </span>
               <p className="text-[10px] uppercase font-semibold text-primary font-sans">
-                Purohit Workspace
+                Priest Workspace
               </p>
             </div>
           </div>
@@ -82,25 +84,42 @@ export const PriestLayout: React.FC = () => {
           </nav>
         </div>
 
-        {/* Sidebar Footer User Info & Logout */}
-        <div className="p-4 border-t space-y-3 shrink-0 bg-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-foreground truncate max-w-32.5">
-                {user?.name}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                {user?.email || user?.phoneNumber}
-              </p>
+        {/* Sidebar Footer User Profile Link & Logout */}
+        <div className="p-4 border-t flex flex-col gap-2.5 shrink-0 bg-card">
+          <Link to="/priest/profile" className="block">
+            <div
+              className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
+                isProfileActive
+                  ? "bg-primary/10 text-primary"
+                  : "hover:bg-muted/50 cursor-pointer"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <User className="h-3.5 w-3.5" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-foreground truncate max-w-28">
+                    {user?.name || "Priest"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate max-w-28">
+                    {user?.phoneNumber || user?.email || "Priest Profile"}
+                  </p>
+                </div>
+              </div>
+              <Badge
+                variant="secondary"
+                className="text-[9px] uppercase px-1.5 py-0"
+              >
+                PRIEST
+              </Badge>
             </div>
-            <Badge variant="secondary" className="text-[10px] uppercase">
-              PRIEST
-            </Badge>
-          </div>
+          </Link>
+
           <Button
             variant="outline"
             size="sm"
-            className="w-full text-xs text-muted-foreground hover:text-destructive gap-2"
+            className="w-full text-xs text-muted-foreground hover:text-destructive gap-2 h-9 font-medium"
             onClick={handleLogout}
           >
             <LogOut className="h-3.5 w-3.5" /> Logout
@@ -138,7 +157,7 @@ export const PriestLayout: React.FC = () => {
                         PujaCircle
                       </span>
                       <p className="text-[10px] uppercase font-semibold text-primary font-sans">
-                        Purohit Workspace
+                        Priest Workspace
                       </p>
                     </div>
                   </div>
@@ -171,28 +190,48 @@ export const PriestLayout: React.FC = () => {
                   </nav>
                 </div>
 
-                {/* Mobile Sidebar Footer */}
-                <div className="p-4 border-t space-y-3 shrink-0 bg-card">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold text-foreground truncate max-w-36">
-                        {user?.name}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {user?.email || user?.phoneNumber}
-                      </p>
-                    </div>
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] uppercase"
+                {/* Mobile Sidebar Footer User Profile Link & Logout */}
+                <div className="p-4 border-t flex flex-col gap-2.5 shrink-0 bg-card">
+                  <Link
+                    to="/priest/profile"
+                    className="block"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <div
+                      className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
+                        isProfileActive
+                          ? "bg-primary/10 text-primary"
+                          : "hover:bg-muted/50 cursor-pointer"
+                      }`}
                     >
-                      PRIEST
-                    </Badge>
-                  </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <User className="h-3.5 w-3.5" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-foreground truncate max-w-28">
+                            {user?.name || "Priest"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground truncate max-w-28">
+                            {user?.phoneNumber ||
+                              user?.email ||
+                              "Priest Profile"}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="text-[9px] uppercase px-1.5 py-0"
+                      >
+                        PRIEST
+                      </Badge>
+                    </div>
+                  </Link>
+
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs text-muted-foreground hover:text-destructive gap-2"
+                    className="w-full text-xs text-muted-foreground hover:text-destructive gap-2 h-9 font-medium"
                     onClick={() => {
                       setMobileOpen(false);
                       handleLogout();
@@ -206,13 +245,13 @@ export const PriestLayout: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-foreground">
-                Purohit Portal
+                Priest Portal
               </span>
               <Badge
                 variant="outline"
                 className="text-[10px] text-primary border-primary/40 hidden xs:inline-flex"
               >
-                Verified Scholar
+                Verified Priest
               </Badge>
             </div>
           </div>
