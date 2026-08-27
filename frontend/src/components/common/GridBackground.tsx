@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface GridBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -7,19 +6,20 @@ export interface GridBackgroundProps extends React.HTMLAttributes<HTMLDivElement
   className?: string;
   /** Optional container to wrap inner content */
   container?: boolean;
-  /** Enable dynamic shimmering wave effect */
-  shimmer?: boolean;
+  /** Optional ambient sacred glow */
+  ambientGlow?: boolean;
 }
 
 /**
  * GridBackground
- * Refined 40px Vedic grid background with an elegant, soft left-to-right glowing shimmer beam.
+ * Minimalist sacred Vedic background with a soft, serene morning dawn ambient aura
+ * and an ultra-clean feathered structural grid.
  */
 export const GridBackground: React.FC<GridBackgroundProps> = ({
   children,
   className,
   container = false,
-  shimmer = true,
+  ambientGlow = true,
   ...props
 }) => {
   return (
@@ -30,48 +30,25 @@ export const GridBackground: React.FC<GridBackgroundProps> = ({
       )}
       {...props}
     >
-      {/* 1. Base Static Grid Layer */}
-      <div className="absolute inset-0 bg-grid pointer-events-none opacity-60" />
+      {/* 1. Subtle Structural Grid with Feathered Edge Mask */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-grid opacity-75 mask-[radial-gradient(ellipse_80%_80%_at_50%_35%,black_40%,transparent_100%)]"
+      />
 
-      {/* 2. Left-to-Right Glowing Shimmer Beam */}
-      {shimmer && (
+      {/* 2. Sacred Dawn Ambient Lighting */}
+      {ambientGlow && (
         <>
-          {/* Luminous Glowing Grid Beam moving Left to Right */}
-          <motion.div
+          {/* Top-center soft auspicious dawn glow */}
+          <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 w-[40%] bg-grid z-0"
-            style={{
-              filter:
-                "drop-shadow(0 0 8px hsl(var(--primary) / 0.5)) drop-shadow(0 0 16px hsl(var(--primary) / 0.25))",
-              maskImage:
-                "linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)",
-              WebkitMaskImage:
-                "linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)",
-            }}
-            animate={{
-              left: ["-45%", "110%"],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-              repeatDelay: 1,
-            }}
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,hsl(var(--primary)/0.06),transparent_70%)]"
           />
 
-          {/* Soft ambient radiance moving alongside the grid shimmer */}
-          <motion.div
+          {/* Gentle secondary gold ambient warmth */}
+          <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-y-0 w-[35%] bg-linear-to-r from-transparent via-primary/6 to-transparent blur-2xl z-0"
-            animate={{
-              left: ["-45%", "110%"],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-              repeatDelay: 1,
-            }}
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_400px_at_85%_15%,hsl(var(--brand-gold)/0.04),transparent)]"
           />
         </>
       )}
