@@ -4,6 +4,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Toaster } from "@/components/ui/sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   LayoutDashboard,
@@ -95,9 +96,14 @@ export const PriestLayout: React.FC = () => {
               }`}
             >
               <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <User className="h-3.5 w-3.5" />
-                </div>
+                <Avatar className="h-7 w-7 border border-primary/20">
+                  {user?.avatarUrl ? (
+                    <AvatarImage src={user.avatarUrl} alt={user.name} className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="bg-primary/10 text-primary text-[11px] font-bold">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-3.5 w-3.5" />}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <p className="text-xs font-semibold text-foreground truncate max-w-28">
                     {user?.name || "Priest"}
@@ -205,9 +211,14 @@ export const PriestLayout: React.FC = () => {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          <User className="h-3.5 w-3.5" />
-                        </div>
+                        <Avatar className="h-7 w-7 border border-primary/20">
+                          {user?.avatarUrl ? (
+                            <AvatarImage src={user.avatarUrl} alt={user.name} className="object-cover" />
+                          ) : null}
+                          <AvatarFallback className="bg-primary/10 text-primary text-[11px] font-bold">
+                            {user?.name ? user.name.charAt(0).toUpperCase() : <User className="h-3.5 w-3.5" />}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <p className="text-xs font-semibold text-foreground truncate max-w-28">
                             {user?.name || "Priest"}

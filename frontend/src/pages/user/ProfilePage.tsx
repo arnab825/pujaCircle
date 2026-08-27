@@ -246,18 +246,18 @@ export const ProfilePage: React.FC = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">Profile Picture</DialogTitle>
-            <DialogDescription>
-              Upload a clear photo for your devotee profile or reset to default initials.
+            <DialogDescription className="text-xs">
+              Upload a clear photo for your profile or reset to default initials.
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <div className="p-1 rounded-full bg-linear-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md">
+            <div className="p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md">
               <Avatar className="w-28 h-28 border-2 border-background">
                 {avatarUrl ? (
                   <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
                 ) : null}
-                <AvatarFallback className="bg-brand-ivory text-brand-maroon font-serif text-3xl font-bold">
+                <AvatarFallback className="bg-primary/10 text-primary font-serif text-3xl font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -271,7 +271,7 @@ export const ProfilePage: React.FC = () => {
                 type="button"
                 variant="destructive"
                 onClick={handleRemoveAvatar}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto text-xs"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Remove Photo
@@ -283,14 +283,14 @@ export const ProfilePage: React.FC = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setIsAvatarModalOpen(false)}
-                className="flex-1 sm:flex-none"
+                className="flex-1 sm:flex-none text-xs"
               >
                 Cancel
               </Button>
               <Button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-brand-saffron hover:bg-brand-saffron-dark text-white flex-1 sm:flex-none"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 sm:flex-none text-xs gap-1.5 cursor-pointer"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload New Photo
@@ -302,29 +302,29 @@ export const ProfilePage: React.FC = () => {
 
       {/* Top Header & Quick Links */}
       <PageHeader
-        title="Devotee Profile"
+        title="User Profile"
         description="Manage your personal details, verified contacts, and security settings."
-        badgeText="Vedic Heritage"
+        badgeText="Verified Account"
       >
-        <Link to="/addresses" className="w-full sm:w-auto">
-          <Button variant="outline" className="border-border hover:border-brand-saffron hover:bg-brand-saffron/5 w-full sm:w-auto h-9 text-xs">
-            <MapPin className="w-4 h-4 mr-2 text-brand-saffron" />
+        <Link to="/user/addresses" className="w-full sm:w-auto">
+          <Button variant="outline" className="border-border hover:border-primary/40 hover:bg-primary/5 w-full sm:w-auto h-9 text-xs">
+            <MapPin className="w-4 h-4 mr-2 text-primary" />
             Manage Addresses
           </Button>
         </Link>
-        <Link to="/bookings" className="w-full sm:w-auto">
-          <Button className="bg-brand-saffron hover:bg-brand-saffron-dark text-white shadow-sm w-full sm:w-auto h-9 text-xs">
+        <Link to="/user/bookings" className="w-full sm:w-auto">
+          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs w-full sm:w-auto h-9 text-xs">
             <BookOpen className="w-4 h-4 mr-2" />
-            Ceremony Bookings
+            Puja Bookings
           </Button>
         </Link>
       </PageHeader>
 
-      {/* Hero Devotee Card */}
+      {/* Hero User Card */}
       <div className="relative overflow-hidden rounded-lg border bg-card p-5 sm:p-6 md:p-8 shadow-xs">
         {/* Subtle background decoration */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-brand-saffron/5 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 -mb-16 w-48 h-48 rounded-full bg-brand-gold/10 blur-2xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-1/4 -mb-16 w-48 h-48 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
 
         <div className="relative flex flex-col md:flex-row items-center md:items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 w-full sm:w-auto text-center sm:text-left">
@@ -333,26 +333,26 @@ export const ProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAvatarModalOpen(true)}
-                className="relative block p-1 rounded-full bg-linear-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md focus:outline-none focus:ring-2 focus:ring-brand-saffron focus:ring-offset-2 transition-transform hover:scale-105"
+                className="relative block p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-transform hover:scale-105 cursor-pointer"
                 title="Click to change profile picture"
               >
                 <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-background">
                   {avatarUrl ? (
                     <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
                   ) : null}
-                  <AvatarFallback className="bg-brand-ivory text-brand-maroon font-serif text-2xl font-bold">
+                  <AvatarFallback className="bg-primary/10 text-primary font-serif text-2xl font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
 
                 {/* Camera Overlay on Hover */}
-                <div className="absolute inset-1 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                <div className="absolute inset-1 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-xs">
                   <Camera className="w-5 h-5 mb-0.5" />
                   <span className="text-[9px] font-medium tracking-wide uppercase">Edit</span>
                 </div>
               </button>
 
-              <div className="absolute bottom-0 right-0 bg-emerald-500 text-white rounded-full p-1 border-2 border-background shadow-xs pointer-events-none" title="Active Devotee">
+              <div className="absolute bottom-0 right-0 bg-emerald-500 text-white rounded-full p-1 border-2 border-background shadow-xs pointer-events-none" title="Active User">
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
             </div>

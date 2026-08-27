@@ -361,20 +361,18 @@ export const PriestProfilePage: React.FC = () => {
           </DialogHeader>
 
           <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <div className="p-1 rounded-full bg-linear-to-tr from-primary via-brand-saffron to-amber-500 shadow-md">
-              <Avatar className="w-28 h-28 border-2 border-background">
-                {profileImageUrl ? (
-                  <AvatarImage
-                    src={profileImageUrl}
-                    alt={fullName}
-                    className="object-cover"
-                  />
-                ) : null}
-                <AvatarFallback className="bg-primary/10 text-primary font-serif text-3xl font-bold">
-                  {getInitials(fullName)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
+            <Avatar className="w-28 h-28 border-2 border-border shadow-sm ring-4 ring-muted">
+              {profileImageUrl ? (
+                <AvatarImage
+                  src={profileImageUrl}
+                  alt={fullName}
+                  className="object-cover"
+                />
+              ) : null}
+              <AvatarFallback className="bg-amber-100 text-amber-900 font-serif text-3xl font-bold">
+                {getInitials(fullName)}
+              </AvatarFallback>
+            </Avatar>
             <p className="text-xs text-muted-foreground">
               Supported formats: JPG, PNG, WEBP (Max 5MB)
             </p>
