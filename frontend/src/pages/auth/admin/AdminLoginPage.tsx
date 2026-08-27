@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { adminLoginSchema, AdminLoginInput } from '@/schemas/auth.schema';
@@ -147,6 +147,11 @@ const AdminLoginPage: React.FC = () => {
               {isLoading ? 'Authenticating...' : 'Access Administration Console'}
               <ArrowRight className="h-3.5 w-3.5" />
             </Button>
+            <div className="text-center text-xs text-muted-foreground pt-1">
+              <Link to="/user/login" className="text-muted-foreground hover:text-foreground transition-colors">
+                ← Return to Devotee / Purohit Sign In
+              </Link>
+            </div>
           </CardFooter>
         </form>
       </Card>

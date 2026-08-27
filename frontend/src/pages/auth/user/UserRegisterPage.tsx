@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { AuthRoleTabs } from '@/components/auth/AuthRoleTabs';
 import { Phone, Mail, Lock, User, MapPin, CheckCircle2, ArrowRight, ArrowLeft, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 import { toast } from 'sonner';
@@ -144,7 +145,15 @@ const UserRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="container max-w-lg py-10 px-4">
+    <div className="container max-w-lg py-8 sm:py-10 px-4">
+      {/* Role Switcher Tabs */}
+      <AuthRoleTabs
+        activeRole="USER"
+        onChange={(role) => {
+          if (role === 'PRIEST') navigate('/priest/register');
+        }}
+      />
+
       <Card className="shadow-md border-border/80">
         <CardHeader className="text-center space-y-1 pb-4">
           <PujaCircleLogo size={44} className="mx-auto shadow-sm mb-2" />

@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerPriestPersonalSchema, RegisterPriestPersonalInput } from "@/schemas/auth.schema";
+import {
+  registerPriestPersonalSchema,
+  RegisterPriestPersonalInput,
+} from "@/schemas/auth.schema";
 import { addressApi } from "@/api/address.api";
 import { PincodeLocation } from "@/types/address.types";
 import { Button } from "@/components/ui/button";
@@ -17,6 +20,7 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { AuthRoleTabs } from "@/components/auth/AuthRoleTabs";
 import {
   Flame,
   Phone,
@@ -40,6 +44,7 @@ import { toast } from "sonner";
  * Built with React Hook Form, Zod validation, and automated PIN-code city extraction.
  */
 const PriestRegisterPage: React.FC = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -147,7 +152,9 @@ const PriestRegisterPage: React.FC = () => {
   };
 
   const handleFillDemo = () => {
-    setValue("fullName", "Pandit Giridhar Bhattacharya", { shouldValidate: true });
+    setValue("fullName", "Pandit Giridhar Bhattacharya", {
+      shouldValidate: true,
+    });
     setValue("phoneNumber", "+919876543288", { shouldValidate: true });
     setValue("email", "giridhar.b@example.demo", { shouldValidate: true });
     setValue("password", "Priest@123", { shouldValidate: true });
@@ -155,7 +162,15 @@ const PriestRegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="container max-w-lg py-10 px-4">
+    <div className="container max-w-lg py-8 sm:py-10 px-4">
+      {/* Role Switcher Tabs */}
+      <AuthRoleTabs
+        activeRole="PRIEST"
+        onChange={(role) => {
+          if (role === 'USER') navigate('/user/register');
+        }}
+      />
+
       <Card className="shadow-md border-primary/20">
         <CardHeader className="text-center space-y-1 pb-4">
           <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground mb-1 shadow-sm">
@@ -213,7 +228,9 @@ const PriestRegisterPage: React.FC = () => {
                   />
                 </div>
                 {errors.fullName && (
-                  <p className="text-[11px] text-destructive">{errors.fullName.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.fullName.message}
+                  </p>
                 )}
               </div>
 
@@ -229,7 +246,9 @@ const PriestRegisterPage: React.FC = () => {
                   />
                 </div>
                 {errors.phoneNumber && (
-                  <p className="text-[11px] text-destructive">{errors.phoneNumber.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.phoneNumber.message}
+                  </p>
                 )}
               </div>
 
@@ -245,7 +264,9 @@ const PriestRegisterPage: React.FC = () => {
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-[11px] text-destructive">{errors.email.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -263,13 +284,21 @@ const PriestRegisterPage: React.FC = () => {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-2.5 text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-[11px] text-destructive">{errors.password.message}</p>
+                  <p className="text-[11px] text-destructive">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -581,12 +610,13 @@ const PriestRegisterPage: React.FC = () => {
                   Application Submitted
                 </h3>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                  Thank you, Pandit {getValues("fullName")}. Your Vedic credentials in{" "}
+                  Thank you, Pandit {getValues("fullName")}. Your Vedic
+                  credentials in{" "}
                   <strong className="text-foreground">
                     {city}, {state}
                   </strong>{" "}
                   have been received with status{" "}
-                  <strong className="text-amber-700 dark:text-amber-300 font-semibold">
+                  <strong className="dark:text-amber-300 font-semibold">
                     PENDING ADMIN APPROVAL
                   </strong>
                   . Once verified by the platform team, your Purohit Workspace
