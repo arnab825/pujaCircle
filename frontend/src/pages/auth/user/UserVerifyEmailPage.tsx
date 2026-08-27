@@ -9,7 +9,7 @@ const UserVerifyEmailPage: React.FC = () => {
       title="Verify Email Address"
       subtitle="Enter the 6-digit confirmation code sent to your email inbox."
       icon={<Mail className="h-5 w-5" />}
-      loginPath="/auth/user/login"
+      loginPath="/user/login"
       onVerify={(otp) => authApi.verifyEmailOtp({ email: 'user@example.demo', otp })}
       successMessage="Email verified successfully!"
     />

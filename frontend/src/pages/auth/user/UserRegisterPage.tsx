@@ -131,7 +131,7 @@ const UserRegisterPage: React.FC = () => {
       setUser(newUser);
       setIsSubmitting(false);
       toast.success('Registration successful! Welcome to PujaCircle.');
-      navigate('/rituals');
+      navigate('/user/home');
     }, 400);
   };
 
@@ -262,7 +262,7 @@ const UserRegisterPage: React.FC = () => {
               </Button>
               <div className="text-center text-xs text-muted-foreground">
                 Already have an account?{' '}
-                <Link to="/auth/user/login" className="text-primary font-medium hover:underline">
+                <Link to="/user/login" className="text-primary font-medium hover:underline">
                   Sign In
                 </Link>
               </div>

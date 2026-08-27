@@ -106,17 +106,6 @@ export const appRouter = createBrowserRouter([
 
       { path: 'admin/login', element: <GuestOnlyRoute>{LazyPage(AdminLoginPage)}</GuestOnlyRoute> },
 
-      // Legacy /auth/* aliases
-      { path: 'auth/user/login', element: <Navigate to="/user/login" replace /> },
-      { path: 'auth/user/register', element: <Navigate to="/user/register" replace /> },
-      { path: 'auth/user/forgot-password', element: <Navigate to="/user/forgot-password" replace /> },
-      { path: 'auth/user/reset-password', element: <Navigate to="/user/reset-password" replace /> },
-      { path: 'auth/priest/login', element: <Navigate to="/priest/login" replace /> },
-      { path: 'auth/priest/register', element: <Navigate to="/priest/register" replace /> },
-      { path: 'auth/admin/login', element: <Navigate to="/admin/login" replace /> },
-      { path: 'login', element: <Navigate to="/user/login" replace /> },
-      { path: 'register', element: <Navigate to="/user/register" replace /> },
-
       // Canonical Devotee Features (USER Role Only)
       { path: 'user/home', element: <UserRouteGuard>{LazyPage(UserHomePage)}</UserRouteGuard> },
       { path: 'user/priests', element: <UserRouteGuard>{LazyPage(PriestListingPage)}</UserRouteGuard> },
@@ -125,14 +114,6 @@ export const appRouter = createBrowserRouter([
       { path: 'user/bookings/:id', element: <UserRouteGuard>{LazyPage(BookingDetailsPage)}</UserRouteGuard> },
       { path: 'user/addresses', element: <UserRouteGuard>{LazyPage(AddressesPage)}</UserRouteGuard> },
       { path: 'user/profile', element: <UserRouteGuard>{LazyPage(ProfilePage)}</UserRouteGuard> },
-
-      // Backward-Compatible Redirects
-      { path: 'rituals', element: <Navigate to="/user/priests" replace /> },
-      { path: 'priests', element: <Navigate to="/user/priests" replace /> },
-      { path: 'priests/:id', element: <UserRouteGuard>{LazyPage(PriestDetailsPage)}</UserRouteGuard> },
-      { path: 'bookings', element: <Navigate to="/user/bookings" replace /> },
-      { path: 'addresses', element: <Navigate to="/user/addresses" replace /> },
-      { path: 'profile', element: <Navigate to="/user/profile" replace /> },
     ],
   },
 
@@ -153,9 +134,6 @@ export const appRouter = createBrowserRouter([
       { path: 'availability', element: LazyPage(PriestAvailabilityPage) },
       { path: 'bookings', element: LazyPage(PriestBookingsPage) },
       { path: 'bookings/:id', element: LazyPage(PriestBookingsPage) },
-      { path: 'upcoming', element: <Navigate to="/priest/bookings" replace /> },
-      { path: 'completed', element: <Navigate to="/priest/bookings" replace /> },
-      { path: 'rejected', element: <Navigate to="/priest/bookings" replace /> },
       { path: 'profile', element: LazyPage(PriestProfilePage) },
       { path: 'pending-approval', element: LazyPage(PriestPendingApprovalPage) },
     ],
@@ -175,10 +153,8 @@ export const appRouter = createBrowserRouter([
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
       { path: 'dashboard', element: LazyPage(AdminDashboardPage) },
       { path: 'priests', element: LazyPage(AdminPriestsPage) },
-      { path: 'priests/pending', element: LazyPage(AdminPriestsPage) },
       { path: 'priests/:id', element: LazyPage(AdminPriestDetailsPage) },
       { path: 'users', element: LazyPage(AdminUsersPage) },
-      { path: 'bookings', element: LazyPage(AdminDashboardPage) },
       { path: 'profile', element: LazyPage(AdminProfilePage) },
     ],
   },

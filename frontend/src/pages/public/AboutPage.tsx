@@ -71,12 +71,12 @@ export const AboutPage: React.FC = () => {
             Create an account to browse available ceremonies and match with Purohits in your locality.
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-1 w-full max-w-xs sm:max-w-none mx-auto">
-            <Link to="/auth/user/register" className="w-full sm:w-auto">
+            <Link to="/user/register" className="w-full sm:w-auto">
               <Button size="sm" className="w-full sm:w-auto text-xs gap-1.5">
                 Create Devotee Account <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </Link>
-            <Link to="/auth/user/login" className="w-full sm:w-auto">
+            <Link to="/user/login" className="w-full sm:w-auto">
               <Button size="sm" variant="outline" className="w-full sm:w-auto text-xs">
                 Sign In
               </Button>

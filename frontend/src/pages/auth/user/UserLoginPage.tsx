@@ -13,10 +13,10 @@ const UserLoginPage: React.FC = () => {
         phone: '+919876543210',
         pass: 'User@123',
       }}
-      redirectPath="/rituals"
+      redirectPath="/user/home"
       successMessage="Welcome back to PujaCircle!"
-      forgotPasswordPath="/auth/user/forgot-password"
-      registerPath="/auth/user/register"
+      forgotPasswordPath="/user/forgot-password"
+      registerPath="/user/register"
       registerPromptText="Don't have a devotee account?"
     />
   );

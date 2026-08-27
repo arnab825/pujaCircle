@@ -289,7 +289,7 @@ const PriestRegisterPage: React.FC = () => {
               <div className="text-center text-xs text-muted-foreground">
                 Already registered?{" "}
                 <Link
-                  to="/auth/priest/login"
+                  to="/priest/login"
                   className="text-primary font-medium hover:underline"
                 >
                   Sign In

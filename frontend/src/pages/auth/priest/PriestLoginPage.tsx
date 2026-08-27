@@ -15,8 +15,8 @@ const PriestLoginPage: React.FC = () => {
       }}
       redirectPath="/priest/dashboard"
       successMessage="Welcome to your Purohit Workspace!"
-      forgotPasswordPath="/auth/priest/forgot-password"
-      registerPath="/auth/priest/register"
+      forgotPasswordPath="/priest/forgot-password"
+      registerPath="/priest/register"
       registerPromptText="Are you a Purohit wanting to join?"
     />
   );

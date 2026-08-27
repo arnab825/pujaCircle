@@ -5,8 +5,8 @@ const UserForgotPasswordPage: React.FC = () => {
   return (
     <ForgotPasswordCard
       role="USER"
-      loginPath="/auth/user/login"
-      resetPath="/auth/user/reset-password"
+      loginPath="/user/login"
+      resetPath="/user/reset-password"
       demoEmail="user@example.demo"
     />
   );

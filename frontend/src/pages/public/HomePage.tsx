@@ -230,12 +230,12 @@ export const HomePage: React.FC = () => {
             Create a devotee account in under 2 minutes to select ritual dates, discover Purohits near you, and manage sacred appointments.
           </p>
           <div className="flex flex-wrap justify-center items-center gap-3 pt-2">
-            <Link to="/auth/user/register">
+            <Link to="/user/register">
               <Button size="sm" className="text-xs gap-1.5">
                 Register as Devotee <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </Link>
-            <Link to="/auth/priest/register">
+            <Link to="/priest/register">
               <Button size="sm" variant="outline" className="text-xs">
                 Apply as a Purohit
               </Button>
