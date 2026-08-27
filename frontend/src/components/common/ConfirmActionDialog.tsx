@@ -21,9 +21,7 @@ interface ConfirmActionDialogProps {
   onConfirm: () => void;
 }
 
-/**
- * Standard confirmation dialog for deletion, cancellation, and sensitive state changes
- */
+// Reusable confirmation dialog for deletions, cancellations, and status changes
 export const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
   isOpen,
   onOpenChange,
@@ -39,25 +37,28 @@ export const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-serif text-xl">{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle className="font-serif text-lg">{title}</DialogTitle>
+          <DialogDescription className="text-xs">{description}</DialogDescription>
         </DialogHeader>
 
         <DialogFooter className="flex gap-2 justify-end pt-4">
           <Button
             type="button"
             variant="outline"
+            size="sm"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
+            className="text-xs"
           >
             {cancelLabel}
           </Button>
           <Button
             type="button"
             variant={isDestructive ? 'destructive' : 'default'}
+            size="sm"
             onClick={onConfirm}
             disabled={isLoading}
-            className={!isDestructive ? 'bg-brand-saffron hover:bg-brand-saffron-dark text-white' : undefined}
+            className={`text-xs ${!isDestructive ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
           >
             {isLoading ? 'Processing...' : confirmLabel}
           </Button>

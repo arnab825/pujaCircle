@@ -10,6 +10,7 @@ interface BookingTimelineCardProps {
   completedAt?: string;
 }
 
+// Timeline progress visualization for a booking status
 export const BookingTimelineCard: React.FC<BookingTimelineCardProps> = ({
   status,
 }) => {
@@ -20,13 +21,13 @@ export const BookingTimelineCard: React.FC<BookingTimelineCardProps> = ({
   const steps = [
     {
       label: 'Requested',
-      desc: 'Devotee submitted appointment',
+      desc: 'User submitted request',
       isCompleted: true,
       icon: Check,
     },
     {
       label: 'Confirmation',
-      desc: isRejected ? 'Declined by Purohit' : isExpired ? 'Request Expired' : 'Purohit confirmation',
+      desc: isRejected ? 'Declined by Priest' : isExpired ? 'Request Expired' : 'Priest confirmation',
       isCompleted: status === 'CONFIRMED' || status === 'COMPLETED',
       isCurrent: status === 'PENDING',
       isFailed: isRejected || isExpired,
@@ -34,7 +35,7 @@ export const BookingTimelineCard: React.FC<BookingTimelineCardProps> = ({
     },
     {
       label: 'Puja',
-      desc: isCancelled ? 'Appointment Cancelled' : 'Puja & Cash Payment',
+      desc: isCancelled ? 'Appointment Cancelled' : 'Puja & cash on completion',
       isCompleted: status === 'COMPLETED',
       isCurrent: status === 'CONFIRMED',
       isFailed: isCancelled,

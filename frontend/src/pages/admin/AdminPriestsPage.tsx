@@ -1,31 +1,31 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   mockGetPriests,
   mockAdminApprovePriest,
   mockAdminRejectPriest,
   mockAdminBanPriest,
   mockAdminUnbanPriest,
-} from '@/mocks/mock-api';
-import { Priest, PriestApprovalStatus } from '@/types/priest.types';
-import { PriestApprovalTable } from '@/components/admin/PriestApprovalTable';
+} from "@/mocks/mock-api";
+import { Priest, PriestApprovalStatus } from "@/types/priest.types";
+import { PriestApprovalTable } from "@/components/admin/PriestApprovalTable";
 import {
   RejectPriestDialog,
   BanPriestDialog,
   DeleteConfirmDialog,
-} from '@/components/admin/PriestActionDialogs';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { EmptyState } from '@/components/common/EmptyState';
-import { Button } from '@/components/ui/button';
-import { Search, UserCheck, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+} from "@/components/admin/PriestActionDialogs";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EmptyState } from "@/components/common/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Search, UserCheck, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
-type StatusFilter = 'ALL' | PriestApprovalStatus | 'BANNED';
+type StatusFilter = "ALL" | PriestApprovalStatus | "BANNED";
 
 export const AdminPriestsPage: React.FC = () => {
   const [priests, setPriests] = useState<Priest[]>([]);
-  const [activeTab, setActiveTab] = useState<StatusFilter>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<StatusFilter>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Dialog targets
@@ -35,12 +35,12 @@ export const AdminPriestsPage: React.FC = () => {
 
   const fetchPriests = async () => {
     try {
-      const res = await mockGetPriests({ status: 'ALL' });
+      const res = await mockGetPriests({ status: "ALL" });
       if (res.success) {
         setPriests(res.data);
       }
     } catch {
-      toast.error('Failed to load priest roster.');
+      toast.error("Failed to load priest roster.");
     }
   };
 
@@ -56,7 +56,7 @@ export const AdminPriestsPage: React.FC = () => {
         toast.success(res.message);
         fetchPriests();
       } else {
-        toast.error(res.message || 'Failed to approve priest.');
+        toast.error(res.message || "Failed to approve priest.");
       }
     } finally {
       setIsProcessing(false);
@@ -70,7 +70,7 @@ export const AdminPriestsPage: React.FC = () => {
       toast.success(res.message);
       fetchPriests();
     } else {
-      toast.error(res.message || 'Failed to reject application.');
+      toast.error(res.message || "Failed to reject application.");
     }
   };
 
@@ -81,7 +81,7 @@ export const AdminPriestsPage: React.FC = () => {
       toast.success(res.message);
       fetchPriests();
     } else {
-      toast.error(res.message || 'Failed to ban priest.');
+      toast.error(res.message || "Failed to ban priest.");
     }
   };
 
@@ -91,7 +91,7 @@ export const AdminPriestsPage: React.FC = () => {
       toast.success(res.message);
       fetchPriests();
     } else {
-      toast.error(res.message || 'Failed to reactivate priest.');
+      toast.error(res.message || "Failed to reactivate priest.");
     }
   };
 
@@ -102,30 +102,37 @@ export const AdminPriestsPage: React.FC = () => {
     setDeleteTarget(null);
   };
 
-  // Filtered Priests Calculation
-  const filteredPriests = useMemo(() => {
-    return priests.filter((p) => {
-      if (activeTab === 'BANNED') {
-        if (p.accountStatus !== 'BANNED') return false;
-      } else if (activeTab !== 'ALL') {
-        if (p.approvalStatus !== activeTab) return false;
-      }
+  // Filter priests by tab status and search text
+  const filteredPriests = priests.filter((p) => {
+    if (activeTab === "BANNED") {
+      if (p.accountStatus !== "BANNED") return false;
+    } else if (activeTab !== "ALL") {
+      if (p.approvalStatus !== activeTab) return false;
+    }
 
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchesName = (p.fullName || '').toLowerCase().includes(q);
-        const matchesPhone = (p.phoneNumber || '').includes(q);
-        const matchesCity = (p.city || '').toLowerCase().includes(q);
-        return matchesName || matchesPhone || matchesCity;
-      }
-      return true;
-    });
-  }, [priests, activeTab, searchQuery]);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchesName = (p.fullName || "").toLowerCase().includes(q);
+      const matchesPhone = (p.phoneNumber || "").includes(q);
+      const matchesCity = (p.city || "").toLowerCase().includes(q);
+      return matchesName || matchesPhone || matchesCity;
+    }
+    return true;
+  });
 
-  const pendingCount = priests.filter((p) => p.approvalStatus === 'PENDING').length;
-  const approvedCount = priests.filter((p) => p.approvalStatus === 'APPROVED').length;
-  const rejectedCount = priests.filter((p) => p.approvalStatus === 'REJECTED').length;
-  const bannedCount = priests.filter((p) => p.accountStatus === 'BANNED').length;
+  // Calculate status counts for tab badges
+  const pendingCount = priests.filter(
+    (p) => p.approvalStatus === "PENDING",
+  ).length;
+  const approvedCount = priests.filter(
+    (p) => p.approvalStatus === "APPROVED",
+  ).length;
+  const rejectedCount = priests.filter(
+    (p) => p.approvalStatus === "REJECTED",
+  ).length;
+  const bannedCount = priests.filter(
+    (p) => p.accountStatus === "BANNED",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -136,10 +143,16 @@ export const AdminPriestsPage: React.FC = () => {
             Priest Applications & Directory
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Review onboarding requests, verify Gurukul credentials, and moderate priest accounts.
+            Review onboarding requests, verify Gurukul credentials, and moderate
+            priest accounts.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchPriests} className="h-9 gap-1.5 text-xs w-full sm:w-auto font-medium">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchPriests}
+          className="h-9 gap-1.5 text-xs w-full sm:w-auto font-medium"
+        >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh List
         </Button>
@@ -157,16 +170,28 @@ export const AdminPriestsPage: React.FC = () => {
               <TabsTrigger value="ALL" className="text-xs px-3">
                 All ({priests.length})
               </TabsTrigger>
-              <TabsTrigger value="PENDING" className="text-xs px-3 text-amber-600 font-semibold">
+              <TabsTrigger
+                value="PENDING"
+                className="text-xs px-3 text-amber-600 font-semibold"
+              >
                 Pending ({pendingCount})
               </TabsTrigger>
-              <TabsTrigger value="APPROVED" className="text-xs px-3 text-emerald-600">
+              <TabsTrigger
+                value="APPROVED"
+                className="text-xs px-3 text-emerald-600"
+              >
                 Approved ({approvedCount})
               </TabsTrigger>
-              <TabsTrigger value="REJECTED" className="text-xs px-3 text-destructive">
+              <TabsTrigger
+                value="REJECTED"
+                className="text-xs px-3 text-destructive"
+              >
                 Rejected ({rejectedCount})
               </TabsTrigger>
-              <TabsTrigger value="BANNED" className="text-xs px-3 text-muted-foreground">
+              <TabsTrigger
+                value="BANNED"
+                className="text-xs px-3 text-muted-foreground"
+              >
                 Banned ({bannedCount})
               </TabsTrigger>
             </TabsList>
@@ -189,9 +214,9 @@ export const AdminPriestsPage: React.FC = () => {
         <EmptyState
           icon={UserCheck}
           title={
-            activeTab === 'PENDING'
-              ? 'No pending applications'
-              : 'No priests match the selected filter'
+            activeTab === "PENDING"
+              ? "No pending applications"
+              : "No priests match the selected filter"
           }
           description="Try adjusting your search criteria or switching status tabs."
         />

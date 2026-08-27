@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import { mockGetBookings, mockCancelBooking, mockSubmitRating } from '@/mocks/mock-api';
@@ -77,7 +77,7 @@ export const BookingsPage: React.FC = () => {
     if (!user || !bookingToRate) return;
     const res = await mockSubmitRating(user.id, data);
     if (res.success) {
-      toast.success('Thank you for rating your Purohit!');
+      toast.success('Thank you for rating your Priest!');
       setRatingModalOpen(false);
       loadBookings();
     } else {
@@ -85,36 +85,31 @@ export const BookingsPage: React.FC = () => {
     }
   };
 
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      // Tab filter
-      if (activeTab === 'PENDING' && b.status !== 'PENDING') return false;
-      if (activeTab === 'CONFIRMED' && b.status !== 'CONFIRMED') return false;
-      if (activeTab === 'COMPLETED' && b.status !== 'COMPLETED') return false;
-      if (activeTab === 'CANCELLED' && !['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)) return false;
+  // Filter bookings based on active status tab and search query
+  const filteredBookings = bookings.filter((b) => {
+    if (activeTab === 'PENDING' && b.status !== 'PENDING') return false;
+    if (activeTab === 'CONFIRMED' && b.status !== 'CONFIRMED') return false;
+    if (activeTab === 'COMPLETED' && b.status !== 'COMPLETED') return false;
+    if (activeTab === 'CANCELLED' && !['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)) return false;
 
-      // Search query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const refMatch = (b.bookingReference || b.id).toLowerCase().includes(query);
-        const ritualMatch = (b.serviceName || '').toLowerCase().includes(query);
-        const priestMatch = (b.priest?.displayName || b.priest?.fullName || '').toLowerCase().includes(query);
-        return refMatch || ritualMatch || priestMatch;
-      }
-      return true;
-    });
-  }, [bookings, activeTab, searchQuery]);
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const refMatch = (b.bookingReference || b.id).toLowerCase().includes(query);
+      const ritualMatch = (b.serviceName || '').toLowerCase().includes(query);
+      const priestMatch = (b.priest?.displayName || b.priest?.fullName || '').toLowerCase().includes(query);
+      return refMatch || ritualMatch || priestMatch;
+    }
+    return true;
+  });
 
-  // Tab Counts
-  const counts = useMemo(() => {
-    return {
-      all: bookings.length,
-      pending: bookings.filter((b) => b.status === 'PENDING').length,
-      confirmed: bookings.filter((b) => b.status === 'CONFIRMED').length,
-      completed: bookings.filter((b) => b.status === 'COMPLETED').length,
-      cancelled: bookings.filter((b) => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)).length,
-    };
-  }, [bookings]);
+  // Calculate counts for tab badges
+  const counts = {
+    all: bookings.length,
+    pending: bookings.filter((b) => b.status === 'PENDING').length,
+    confirmed: bookings.filter((b) => b.status === 'CONFIRMED').length,
+    completed: bookings.filter((b) => b.status === 'COMPLETED').length,
+    cancelled: bookings.filter((b) => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)).length,
+  };
 
   return (
     <div className="container py-6 sm:py-8 space-y-6 max-w-5xl">
@@ -123,12 +118,12 @@ export const BookingsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">My Puja Bookings</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Track upcoming sacred appointments, view Purohit details, and manage completed rituals.
+            Track upcoming puja appointments, view Priest details, and manage completed bookings.
           </p>
         </div>
         <Link to="/user/priests" className="w-full sm:w-auto">
           <Button size="sm" className="gap-1.5 text-xs w-full sm:w-auto h-9">
-            Book New Ceremony
+            Book New Puja
           </Button>
         </Link>
       </div>

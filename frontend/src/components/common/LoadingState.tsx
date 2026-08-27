@@ -6,17 +6,15 @@ interface LoadingStateProps {
   className?: string;
 }
 
-/**
- * Standard loading spinner card for tables, cards, and page sections
- */
+// Simple loading indicator for sections and cards
 export const LoadingState: React.FC<LoadingStateProps> = ({
-  message = 'Loading sacred details...',
+  message = 'Loading...',
   className = 'py-16',
 }) => {
   return (
     <div className={`flex flex-col items-center justify-center text-center ${className}`}>
-      <Loader2 className="w-8 h-8 animate-spin text-brand-saffron mb-3" />
-      <p className="text-sm text-muted-foreground font-medium">{message}</p>
+      <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+      <p className="text-xs text-muted-foreground font-medium">{message}</p>
     </div>
   );
 };

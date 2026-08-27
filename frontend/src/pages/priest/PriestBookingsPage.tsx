@@ -1,39 +1,41 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAuthStore } from '@/store/auth.store';
+import React, { useState, useEffect } from "react";
+import { useAuthStore } from "@/store/auth.store";
 import {
   mockGetBookings,
   mockAcceptBooking,
   mockRejectBooking,
   mockCompleteBooking,
-} from '@/mocks/mock-api';
-import { Booking } from '@/types/booking.types';
-import { PriestBookingRow } from '@/components/priest/PriestBookingRow';
-import { PriestBookingDetailsDialog } from '@/components/priest/PriestBookingDetailsDialog';
-import { CancelBookingDialog } from '@/components/booking/CancelBookingDialog';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BOOKING_STATUS_CONFIG } from '@/lib/constants';
-import { EmptyState } from '@/components/common/EmptyState';
-import { Search, Calendar, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+} from "@/mocks/mock-api";
+import { Booking } from "@/types/booking.types";
+import { PriestBookingRow } from "@/components/priest/PriestBookingRow";
+import { PriestBookingDetailsDialog } from "@/components/priest/PriestBookingDetailsDialog";
+import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BOOKING_STATUS_CONFIG } from "@/lib/constants";
+import { EmptyState } from "@/components/common/EmptyState";
+import { Search, Calendar, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-type TabFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'HISTORY';
+type TabFilter = "ALL" | "PENDING" | "CONFIRMED" | "COMPLETED" | "HISTORY";
 
 export const PriestBookingsPage: React.FC = () => {
   const { user } = useAuthStore();
-  const priestId = user?.id === 'user-priest-1' ? 'priest-1' : user?.id || 'priest-1';
+  const priestId =
+    user?.id === "user-priest-1" ? "priest-1" : user?.id || "priest-1";
 
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<TabFilter>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<TabFilter>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Dialog states
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [rejectBookingTarget, setRejectBookingTarget] = useState<Booking | null>(null);
+  const [rejectBookingTarget, setRejectBookingTarget] =
+    useState<Booking | null>(null);
 
   const fetchBookings = async () => {
     try {
@@ -42,7 +44,7 @@ export const PriestBookingsPage: React.FC = () => {
         setBookings(res.data);
       }
     } catch {
-      toast.error('Failed to load appointments.');
+      toast.error("Failed to load appointments.");
     }
   };
 
@@ -56,10 +58,10 @@ export const PriestBookingsPage: React.FC = () => {
     try {
       const res = await mockAcceptBooking(bookingId, priestId);
       if (res.success) {
-        toast.success('Puja request accepted and confirmed!');
+        toast.success("Puja request accepted and confirmed!");
         fetchBookings();
       } else {
-        toast.error(res.message || 'Failed to accept booking.');
+        toast.error(res.message || "Failed to accept booking.");
       }
     } finally {
       setIsProcessing(false);
@@ -68,12 +70,16 @@ export const PriestBookingsPage: React.FC = () => {
 
   const handleDeclineConfirm = async (reason: string) => {
     if (!rejectBookingTarget) return;
-    const res = await mockRejectBooking(rejectBookingTarget.id, priestId, reason);
+    const res = await mockRejectBooking(
+      rejectBookingTarget.id,
+      priestId,
+      reason,
+    );
     if (res.success) {
-      toast.success('Request declined.');
+      toast.success("Request declined.");
       fetchBookings();
     } else {
-      toast.error(res.message || 'Failed to decline booking.');
+      toast.error(res.message || "Failed to decline booking.");
     }
   };
 
@@ -82,59 +88,68 @@ export const PriestBookingsPage: React.FC = () => {
     try {
       const res = await mockCompleteBooking(bookingId, priestId);
       if (res.success) {
-        toast.success('Ceremony marked as COMPLETED! Offline Dakshina recorded.');
+        toast.success("Puja marked as COMPLETED! Cash payment recorded.");
         fetchBookings();
       } else {
-        toast.error(res.message || 'Failed to mark completion.');
+        toast.error(res.message || "Failed to mark completion.");
       }
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Filtered List
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((b) => {
-      // Tab filter
-      if (activeTab === 'PENDING' && b.status !== 'PENDING') return false;
-      if (activeTab === 'CONFIRMED' && b.status !== 'CONFIRMED') return false;
-      if (activeTab === 'COMPLETED' && b.status !== 'COMPLETED') return false;
-      if (activeTab === 'HISTORY' && !['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)) return false;
+  // Filter bookings by active status tab and search query
+  const filteredBookings = bookings.filter((b) => {
+    if (activeTab === "PENDING" && b.status !== "PENDING") return false;
+    if (activeTab === "CONFIRMED" && b.status !== "CONFIRMED") return false;
+    if (activeTab === "COMPLETED" && b.status !== "COMPLETED") return false;
+    if (
+      activeTab === "HISTORY" &&
+      !["CANCELLED", "REJECTED", "EXPIRED"].includes(b.status)
+    )
+      return false;
 
-      // Search filter
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const refMatch = (b.bookingReference || b.id).toLowerCase().includes(query);
-        const nameMatch = (b.serviceName || '').toLowerCase().includes(query);
-        const devoteeMatch = (b.user?.name || '').toLowerCase().includes(query);
-        return refMatch || nameMatch || devoteeMatch;
-      }
-      return true;
-    });
-  }, [bookings, activeTab, searchQuery]);
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const refMatch = (b.bookingReference || b.id)
+        .toLowerCase()
+        .includes(query);
+      const nameMatch = (b.serviceName || "").toLowerCase().includes(query);
+      const userMatch = (b.user?.name || "").toLowerCase().includes(query);
+      return refMatch || nameMatch || userMatch;
+    }
+    return true;
+  });
 
-  // Tab Counts
-  const counts = useMemo(() => {
-    return {
-      all: bookings.length,
-      pending: bookings.filter((b) => b.status === 'PENDING').length,
-      confirmed: bookings.filter((b) => b.status === 'CONFIRMED').length,
-      completed: bookings.filter((b) => b.status === 'COMPLETED').length,
-      history: bookings.filter((b) => ['CANCELLED', 'REJECTED', 'EXPIRED'].includes(b.status)).length,
-    };
-  }, [bookings]);
+  // Calculate status counts for tab badges
+  const counts = {
+    all: bookings.length,
+    pending: bookings.filter((b) => b.status === "PENDING").length,
+    confirmed: bookings.filter((b) => b.status === "CONFIRMED").length,
+    completed: bookings.filter((b) => b.status === "COMPLETED").length,
+    history: bookings.filter((b) =>
+      ["CANCELLED", "REJECTED", "EXPIRED"].includes(b.status),
+    ).length,
+  };
 
   return (
     <div className="space-y-6 pb-12 max-w-5xl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">Puja Appointments</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">
+            Puja Appointments
+          </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Manage incoming requests, schedules, and ritual completions.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchBookings} className="gap-1.5 text-xs w-fit">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchBookings}
+          className="gap-1.5 text-xs w-fit"
+        >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh
         </Button>
@@ -143,7 +158,10 @@ export const PriestBookingsPage: React.FC = () => {
       {/* Filter Tabs & Search Bar */}
       <div className="space-y-4">
         <div className="overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
-          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TabFilter)}>
+          <Tabs
+            value={activeTab}
+            onValueChange={(val) => setActiveTab(val as TabFilter)}
+          >
             <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 min-w-max gap-1">
               <TabsTrigger
                 value="ALL"
@@ -155,56 +173,76 @@ export const PriestBookingsPage: React.FC = () => {
                 </span>
               </TabsTrigger>
 
-            <TabsTrigger
-              value="PENDING"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Pending</span>
-              {counts.pending > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.PENDING.pillClass)}>
-                  {counts.pending}
-                </span>
-              ) : null}
-            </TabsTrigger>
+              <TabsTrigger
+                value="PENDING"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Pending</span>
+                {counts.pending > 0 ? (
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                      BOOKING_STATUS_CONFIG.PENDING.pillClass,
+                    )}
+                  >
+                    {counts.pending}
+                  </span>
+                ) : null}
+              </TabsTrigger>
 
-            <TabsTrigger
-              value="CONFIRMED"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Confirmed</span>
-              {counts.confirmed > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CONFIRMED.pillClass)}>
-                  {counts.confirmed}
-                </span>
-              ) : null}
-            </TabsTrigger>
+              <TabsTrigger
+                value="CONFIRMED"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Confirmed</span>
+                {counts.confirmed > 0 ? (
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                      BOOKING_STATUS_CONFIG.CONFIRMED.pillClass,
+                    )}
+                  >
+                    {counts.confirmed}
+                  </span>
+                ) : null}
+              </TabsTrigger>
 
-            <TabsTrigger
-              value="COMPLETED"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Completed</span>
-              {counts.completed > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.COMPLETED.pillClass)}>
-                  {counts.completed}
-                </span>
-              ) : null}
-            </TabsTrigger>
+              <TabsTrigger
+                value="COMPLETED"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Completed</span>
+                {counts.completed > 0 ? (
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                      BOOKING_STATUS_CONFIG.COMPLETED.pillClass,
+                    )}
+                  >
+                    {counts.completed}
+                  </span>
+                ) : null}
+              </TabsTrigger>
 
-            <TabsTrigger
-              value="HISTORY"
-              className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-            >
-              <span>Cancelled</span>
-              {counts.history > 0 ? (
-                <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-semibold", BOOKING_STATUS_CONFIG.CANCELLED.pillClass)}>
-                  {counts.history}
-                </span>
-              ) : null}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+              <TabsTrigger
+                value="HISTORY"
+                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
+              >
+                <span>Cancelled</span>
+                {counts.history > 0 ? (
+                  <span
+                    className={cn(
+                      "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                      BOOKING_STATUS_CONFIG.CANCELLED.pillClass,
+                    )}
+                  >
+                    {counts.history}
+                  </span>
+                ) : null}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -240,7 +278,9 @@ export const PriestBookingsPage: React.FC = () => {
           icon={Calendar}
           title="No appointments found"
           description={
-            searchQuery ? 'No appointments match your search criteria.' : 'No appointments in this category.'
+            searchQuery
+              ? "No appointments match your search criteria."
+              : "No appointments in this category."
           }
         />
       )}
@@ -256,7 +296,9 @@ export const PriestBookingsPage: React.FC = () => {
         isOpen={!!rejectBookingTarget}
         onClose={() => setRejectBookingTarget(null)}
         onConfirm={handleDeclineConfirm}
-        bookingReference={rejectBookingTarget?.bookingReference || rejectBookingTarget?.id}
+        bookingReference={
+          rejectBookingTarget?.bookingReference || rejectBookingTarget?.id
+        }
         isPriest={true}
       />
     </div>
