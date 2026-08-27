@@ -53,32 +53,43 @@ export interface Ritual {
 }
 
 /**
- * Weekly Recurring Availability Rule (Doctor/Priest schedule template)
- * Day 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+ * Direct Date-Based Priest Availability Slot
  */
-export interface WeeklyAvailabilityRule {
+export interface PriestSlot {
   id: string;
   priestId: string;
-  dayOfWeek: number; // 0 Sunday through 6 Saturday
+  slotDate: string; // YYYY-MM-DD
+  date?: string; // Backward compatibility alias (same as slotDate)
   startTime: string; // HH:mm (24-hour)
   endTime: string; // HH:mm (24-hour)
-  slotDurationMinutes: number; // e.g. 30, 60, 90, 120
-  bufferMinutes: number; // e.g. 0, 15, 30
-  isActive: boolean;
-  effectiveFrom?: string; // YYYY-MM-DD
-  effectiveUntil?: string; // YYYY-MM-DD
-  createdAt: string;
+  status: SlotStatus;
+  bookingId?: string;
+  ruleId?: string;
+  isException?: boolean;
+  createdAt?: string;
   updatedAt?: string;
 }
 
 /**
- * Date-Specific Availability Exception
- * Used for blocking full/partial days (e.g. holidays, travel) or custom muhurat hours.
+ * Legacy interfaces kept for backward-compatibility
  */
+export interface WeeklyAvailabilityRule {
+  id: string;
+  priestId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
+  bufferMinutes: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface AvailabilityException {
   id: string;
   priestId: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   type: 'BLOCKED' | 'CUSTOM';
   reason?: string;
   customSlots?: Array<{
@@ -86,20 +97,6 @@ export interface AvailabilityException {
     endTime: string;
   }>;
   createdAt: string;
-}
-
-/**
- * Calculated/Derived or Stored Available Slot
- */
-export interface PriestSlot {
-  id: string;
-  priestId: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
-  status: SlotStatus;
-  ruleId?: string;
-  isException?: boolean;
 }
 
 export interface PriestRegistrationRequest {

@@ -28,6 +28,10 @@ export const bookingApi = {
     }
   },
 
+  getPriestBookings: async (priestId: string): Promise<Booking[]> => {
+    return bookingApi.getBookings(undefined, priestId);
+  },
+
   getBookingById: async (id: string): Promise<Booking | null> => {
     try {
       const res = await mockApi.mockGetBookingById(id);

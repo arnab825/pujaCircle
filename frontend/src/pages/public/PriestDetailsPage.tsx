@@ -129,7 +129,7 @@ export const PriestDetailsPage: React.FC = () => {
           slotId: selectedSlot.id,
           availabilitySlotId: selectedSlot.id,
           addressId: selectedAddressId,
-          bookingDate: selectedSlot.date,
+          bookingDate: selectedSlot.slotDate || selectedSlot.date || selectedDate,
           startTime: selectedSlot.startTime,
           endTime: selectedSlot.endTime,
           userNotes,
@@ -316,8 +316,8 @@ export const PriestDetailsPage: React.FC = () => {
             <CardHeader className="pb-3 border-b space-y-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-serif">Select Date</CardTitle>
-                <Badge variant="outline" className="text-[10px]">
-                  Recurring Schedule
+                <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">
+                  Verified Calendar
                 </Badge>
               </div>
 
