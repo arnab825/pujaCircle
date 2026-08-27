@@ -166,12 +166,12 @@
   --info: 217 85% 55%;
   --info-foreground: 0 0% 100%;
 
-  /* Crisp Minimalist Borders */
+  /* Crisp Minimalist Borders & Radii */
   --border: 38 14% 89%;
   --input: 38 14% 89%;
   --ring: 20 88% 48%;
 
-  --radius: 0.625rem;
+  --radius: 0.375rem;
 
   /* Grid & Shimmer Aesthetics - Minimalist */
   --grid-color: hsl(222 47% 11% / 0.035);

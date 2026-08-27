@@ -50,7 +50,7 @@ export const UserHomePage: React.FC = () => {
   return (
     <div className="container py-8 space-y-8 max-w-5xl">
       {/* 1. Welcome Header Banner */}
-      <div className="rounded-2xl bg-card p-6 sm:p-8 border border-border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="rounded-lg bg-card p-6 sm:p-8 border border-border shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2 max-w-xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
             <Sparkles className="h-3.5 w-3.5" />
@@ -66,7 +66,7 @@ export const UserHomePage: React.FC = () => {
 
         <div className="flex flex-wrap gap-3 shrink-0">
           <Link to="/user/priests">
-            <Button className="gap-2 text-sm shadow-sm h-11 px-5">
+            <Button className="gap-2 text-sm shadow-xs h-11 px-5">
               <Search className="h-4 w-4" />
               <span>Find Priests</span>
             </Button>
@@ -101,7 +101,7 @@ export const UserHomePage: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-700 text-xs">
                 <span>Please save your home PIN code & address to enable location-based priest discovery.</span>
                 <Link to="/user/addresses">
                   <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-amber-500/30">
@@ -116,7 +116,7 @@ export const UserHomePage: React.FC = () => {
         {/* Verification Guarantee */}
         <Card className="border-border/80 shadow-xs flex flex-col justify-center p-5 bg-card">
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 shrink-0">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div className="space-y-1">

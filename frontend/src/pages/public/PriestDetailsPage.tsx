@@ -191,7 +191,7 @@ export const PriestDetailsPage: React.FC = () => {
           <img
             src={priest.profileImageUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'}
             alt={priest.fullName}
-            className="h-28 w-28 sm:h-32 sm:w-32 rounded-2xl object-cover border border-border shrink-0 bg-muted"
+            className="h-28 w-28 sm:h-32 sm:w-32 rounded-md object-cover border border-border shrink-0 bg-muted"
           />
 
           <div className="space-y-3 flex-1 min-w-0">

@@ -240,7 +240,7 @@ export const AddressesPage: React.FC = () => {
       ) : addresses.length === 0 ? (
         <Card className="border bg-card text-center py-12 px-4 shadow-xs">
           <div className="max-w-md mx-auto space-y-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <MapPin className="h-6 w-6" />
             </div>
             <h2 className="text-base font-bold font-serif text-foreground">No Saved Addresses</h2>

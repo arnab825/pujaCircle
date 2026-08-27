@@ -435,7 +435,7 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 2. Top Summary Card with Interactive Avatar Trigger */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+      <div className="p-5 sm:p-6 rounded-lg bg-linear-to-r from-amber-500/10 via-brand-saffron/10 to-primary/5 border border-primary/20 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 w-full sm:w-auto text-center sm:text-left">
           {/* Clickable Avatar on Top for Mobile */}
           <div className="relative group shrink-0">

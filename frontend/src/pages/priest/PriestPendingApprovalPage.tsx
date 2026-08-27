@@ -18,7 +18,7 @@ export const PriestPendingApprovalPage: React.FC = () => {
     <div className="min-h-[80vh] flex items-center justify-center container max-w-lg px-4 py-12">
       <Card className="border-border/80 shadow-md text-center">
         <CardHeader className="space-y-3 pb-4">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-amber-500/10 text-amber-600">
             <Clock className="h-7 w-7" />
           </div>
           <CardTitle className="text-2xl font-bold font-serif text-foreground">
@@ -30,7 +30,7 @@ export const PriestPendingApprovalPage: React.FC = () => {
         </CardHeader>
 
         <CardContent className="space-y-4 text-xs text-left pt-2">
-          <div className="p-4 rounded-xl bg-muted/40 border space-y-2">
+          <div className="p-4 rounded-md bg-muted/40 border space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Registered Name:</span>
               <strong className="text-foreground">{user?.name || 'Purohit'}</strong>

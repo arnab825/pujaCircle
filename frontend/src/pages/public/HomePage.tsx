@@ -57,8 +57,8 @@ export const HomePage: React.FC = () => {
       {/* Trust & Proof Badges Strip */}
       <section className="container max-w-5xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border border-border bg-card shadow-xs">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-lg border border-border bg-card shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
               <ShieldCheck className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -67,8 +67,8 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border border-border bg-card shadow-xs">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shrink-0">
+          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-lg border border-border bg-card shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-500/10 text-amber-600 shrink-0">
               <Award className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -77,8 +77,8 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border border-border bg-card shadow-xs">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary/10 text-secondary shrink-0">
+          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-lg border border-border bg-card shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-secondary/10 text-secondary shrink-0">
               <ScrollText className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -87,8 +87,8 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-xl border border-border bg-card shadow-xs">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+          <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-lg border border-border bg-card shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
               <Flame className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
@@ -114,7 +114,7 @@ export const HomePage: React.FC = () => {
           {/* Step 1 */}
           <Card className="border-border bg-card shadow-xs">
             <CardContent className="p-6 space-y-3.5">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-base">
+              <div className="h-9 w-9 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                 1
               </div>
               <h3 className="font-semibold text-base text-foreground">Select Sacred Ritual</h3>
@@ -127,7 +127,7 @@ export const HomePage: React.FC = () => {
           {/* Step 2 */}
           <Card className="border-border bg-card shadow-xs">
             <CardContent className="p-6 space-y-3.5">
-              <div className="h-10 w-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center font-bold text-base">
+              <div className="h-9 w-9 rounded-md bg-secondary/10 text-secondary flex items-center justify-center font-bold text-sm">
                 2
               </div>
               <h3 className="font-semibold text-base text-foreground">Local Vedic Match</h3>
@@ -140,7 +140,7 @@ export const HomePage: React.FC = () => {
           {/* Step 3 */}
           <Card className="border-border bg-card shadow-xs">
             <CardContent className="p-6 space-y-3.5">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-base">
+              <div className="h-9 w-9 rounded-md bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-sm">
                 3
               </div>
               <h3 className="font-semibold text-base text-foreground">Ceremony & Direct Dakshina</h3>
@@ -164,7 +164,7 @@ export const HomePage: React.FC = () => {
         </div>
 
         <Accordion type="single" collapsible className="w-full space-y-3">
-          <AccordionItem value="item-1" className="border border-border rounded-xl px-5 bg-card shadow-xs">
+          <AccordionItem value="item-1" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
               How are Purohits verified on PujaCircle?
             </AccordionTrigger>
@@ -173,7 +173,7 @@ export const HomePage: React.FC = () => {
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="item-2" className="border border-border rounded-xl px-5 bg-card shadow-xs">
+          <AccordionItem value="item-2" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
               How does the Dakshina (payment) process work?
             </AccordionTrigger>
@@ -182,7 +182,7 @@ export const HomePage: React.FC = () => {
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="item-3" className="border border-border rounded-xl px-5 bg-card shadow-xs">
+          <AccordionItem value="item-3" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
               Will the Purohit provide the Samagri list?
             </AccordionTrigger>
@@ -191,7 +191,7 @@ export const HomePage: React.FC = () => {
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="item-4" className="border border-border rounded-xl px-5 bg-card shadow-xs">
+          <AccordionItem value="item-4" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
               How early should I book a Purohit for auspicious dates/muhurats?
             </AccordionTrigger>
@@ -200,7 +200,7 @@ export const HomePage: React.FC = () => {
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="item-5" className="border border-border rounded-xl px-5 bg-card shadow-xs">
+          <AccordionItem value="item-5" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
               Can I choose an auspicious Muhurat with the Purohit?
             </AccordionTrigger>
@@ -209,7 +209,7 @@ export const HomePage: React.FC = () => {
             </AccordionContent>
           </AccordionItem>
 
-          <AccordionItem value="item-6" className="border border-border rounded-xl px-5 bg-card shadow-xs">
+          <AccordionItem value="item-6" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
               What if I need to reschedule or cancel a booking?
             </AccordionTrigger>
@@ -222,7 +222,7 @@ export const HomePage: React.FC = () => {
 
       {/* 4. Ready to Schedule Banner */}
       <section className="container max-w-4xl">
-        <div className="rounded-2xl bg-card border border-border p-8 sm:p-10 text-center space-y-4 shadow-xs">
+        <div className="rounded-lg bg-card border border-border p-8 sm:p-10 text-center space-y-4 shadow-xs">
           <h3 className="text-xl sm:text-2xl font-bold font-serif text-foreground">
             Ready to Schedule Your Puja?
           </h3>

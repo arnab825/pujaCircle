@@ -23,7 +23,7 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
         <img
           src={priest.profileImageUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200'}
           alt={priest.fullName}
-          className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover border border-border/80 shrink-0 bg-muted"
+          className="h-20 w-20 sm:h-24 sm:w-24 rounded-md object-cover border border-border/80 shrink-0 bg-muted"
         />
 
         {/* Main Info */}

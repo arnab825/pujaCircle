@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +35,6 @@ import {
   Calendar,
   Lock,
   KeyRound,
-  Sparkles,
   Edit3,
   Save,
   X,
@@ -323,7 +321,7 @@ export const ProfilePage: React.FC = () => {
       </PageHeader>
 
       {/* Hero Devotee Card */}
-      <div className="relative overflow-hidden rounded-2xl border bg-card p-5 sm:p-6 md:p-8 shadow-sm">
+      <div className="relative overflow-hidden rounded-lg border bg-card p-5 sm:p-6 md:p-8 shadow-xs">
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-brand-saffron/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-1/4 -mb-16 w-48 h-48 rounded-full bg-brand-gold/10 blur-2xl pointer-events-none" />
@@ -354,7 +352,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
               </button>
 
-              <div className="absolute bottom-0 right-0 bg-emerald-500 text-white rounded-full p-1 border-2 border-background shadow-sm pointer-events-none" title="Active Devotee">
+              <div className="absolute bottom-0 right-0 bg-emerald-500 text-white rounded-full p-1 border-2 border-background shadow-xs pointer-events-none" title="Active Devotee">
                 <CheckCircle2 className="w-3.5 h-3.5" />
               </div>
             </div>
@@ -399,42 +397,43 @@ export const ProfilePage: React.FC = () => {
           <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
             {!isEditing ? (
               <Button
-                variant="outline"
-                size="sm"
+                type="button"
                 onClick={() => setIsEditing(true)}
-                className="border-border hover:border-brand-saffron hover:bg-brand-saffron/5 w-full sm:w-auto h-9 text-xs"
+                className="bg-brand-saffron hover:bg-brand-saffron-dark text-white shadow-xs w-full sm:w-auto text-xs h-9"
               >
-                <Edit3 className="w-4 h-4 mr-1.5 text-brand-saffron" />
+                <Edit3 className="w-3.5 h-3.5 mr-1.5" />
                 Edit Profile
               </Button>
             ) : (
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelEdit}
-                className="text-muted-foreground hover:text-foreground w-full sm:w-auto h-9 text-xs"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setFullName(user?.name || '');
+                  setIsEditing(false);
+                }}
+                className="w-full sm:w-auto text-xs h-9"
               >
-                <X className="w-4 h-4 mr-1.5" />
-                Cancel
+                <X className="w-3.5 h-3.5 mr-1.5" />
+                Cancel Editing
               </Button>
             )}
           </div>
         </div>
 
         {/* Devotee Quick Stats Row */}
-        <Separator className="my-5" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex flex-col justify-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-6 mt-6 border-t border-border/60">
+          <div className="p-3.5 rounded-md bg-muted/40 border border-border/60 flex flex-col justify-center">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-brand-gold" />
+              <Calendar className="w-3.5 h-3.5 text-brand-saffron" />
               Ceremonies Booked
             </span>
-            <span className="text-2xl font-bold font-serif text-brand-saffron mt-0.5">
+            <span className="text-2xl font-bold font-serif text-foreground mt-0.5">
               {bookingCount}
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex flex-col justify-center">
+          <div className="p-3.5 rounded-md bg-muted/40 border border-border/60 flex flex-col justify-center">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-brand-saffron" />
               Saved Addresses
@@ -444,7 +443,7 @@ export const ProfilePage: React.FC = () => {
             </span>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 flex flex-col justify-center">
+          <div className="p-3.5 rounded-md bg-muted/40 border border-border/60 flex flex-col justify-center">
             <span className="text-xs text-muted-foreground flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               Account Status

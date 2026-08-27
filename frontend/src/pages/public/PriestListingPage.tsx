@@ -159,7 +159,7 @@ export const PriestListingPage: React.FC = () => {
       ) : priests.length === 0 ? (
         <Card className="border-border/80 text-center py-12 px-4 shadow-xs">
           <div className="max-w-md mx-auto space-y-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <Search className="h-6 w-6" />
             </div>
             <h2 className="text-base font-bold font-serif text-foreground">No Priests Found</h2>
