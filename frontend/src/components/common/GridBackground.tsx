@@ -1,6 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 export interface GridBackgroundProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
@@ -25,8 +25,8 @@ export const GridBackground: React.FC<GridBackgroundProps> = ({
   return (
     <div
       className={cn(
-        'relative min-h-[calc(100vh-4rem)] w-full bg-background overflow-hidden',
-        className
+        "relative min-h-[calc(100vh-4rem)] w-full bg-background overflow-hidden",
+        className,
       )}
       {...props}
     >
@@ -41,18 +41,21 @@ export const GridBackground: React.FC<GridBackgroundProps> = ({
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 w-[40%] bg-grid z-0"
             style={{
-              filter: 'drop-shadow(0 0 8px hsl(var(--primary) / 0.5)) drop-shadow(0 0 16px hsl(var(--primary) / 0.25))',
-              maskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)',
+              filter:
+                "drop-shadow(0 0 8px hsl(var(--primary) / 0.5)) drop-shadow(0 0 16px hsl(var(--primary) / 0.25))",
+              maskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)",
+              WebkitMaskImage:
+                "linear-gradient(to right, transparent 0%, rgba(0,0,0,1) 50%, transparent 100%)",
             }}
             animate={{
-              left: ['-45%', '110%'],
+              left: ["-45%", "110%"],
             }}
             transition={{
-              duration: 7,
+              duration: 4,
               repeat: Infinity,
-              ease: 'easeInOut',
-              repeatDelay: 1.5,
+              ease: "easeInOut",
+              repeatDelay: 1,
             }}
           />
 
@@ -61,13 +64,13 @@ export const GridBackground: React.FC<GridBackgroundProps> = ({
             aria-hidden="true"
             className="pointer-events-none absolute inset-y-0 w-[35%] bg-linear-to-r from-transparent via-primary/6 to-transparent blur-2xl z-0"
             animate={{
-              left: ['-45%', '110%'],
+              left: ["-45%", "110%"],
             }}
             transition={{
-              duration: 7,
+              duration: 4,
               repeat: Infinity,
-              ease: 'easeInOut',
-              repeatDelay: 1.5,
+              ease: "easeInOut",
+              repeatDelay: 1,
             }}
           />
         </>

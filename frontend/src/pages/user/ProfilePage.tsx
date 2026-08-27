@@ -254,7 +254,7 @@ export const ProfilePage: React.FC = () => {
           </DialogHeader>
 
           <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <div className="p-1 rounded-full bg-gradient-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md">
+            <div className="p-1 rounded-full bg-linear-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md">
               <Avatar className="w-28 h-28 border-2 border-background">
                 {avatarUrl ? (
                   <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
@@ -335,7 +335,7 @@ export const ProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAvatarModalOpen(true)}
-                className="relative block p-1 rounded-full bg-gradient-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md focus:outline-none focus:ring-2 focus:ring-brand-saffron focus:ring-offset-2 transition-transform hover:scale-105"
+                className="relative block p-1 rounded-full bg-linear-to-tr from-brand-maroon via-brand-saffron to-brand-gold shadow-md focus:outline-none focus:ring-2 focus:ring-brand-saffron focus:ring-offset-2 transition-transform hover:scale-105"
                 title="Click to change profile picture"
               >
                 <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-background">
@@ -366,7 +366,7 @@ export const ProfilePage: React.FC = () => {
                 <Badge className="bg-brand-maroon text-white hover:bg-brand-maroon/90 text-xs">
                   Devotee
                 </Badge>
-                <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 text-xs">
+                <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-xs">
                   Active
                 </Badge>
               </div>
@@ -376,13 +376,13 @@ export const ProfilePage: React.FC = () => {
                 <div className="flex items-center gap-1.5 bg-muted/60 px-2.5 py-1 rounded-md" title="Verified Mobile">
                   <Phone className="w-3.5 h-3.5 text-brand-saffron" />
                   <span className="font-mono font-medium text-foreground">{phoneNumber}</span>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ml-0.5" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 ml-0.5" />
                 </div>
 
                 <div className="flex items-center gap-1.5 bg-muted/60 px-2.5 py-1 rounded-md" title="Verified Email">
                   <Mail className="w-3.5 h-3.5 text-brand-saffron" />
                   <span className="text-foreground">{email}</span>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ml-0.5" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 ml-0.5" />
                 </div>
               </div>
 
@@ -449,7 +449,7 @@ export const ProfilePage: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
               Account Status
             </span>
-            <span className="text-base font-semibold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+            <span className="text-base font-semibold text-emerald-600 mt-1 flex items-center gap-1">
               Active & Verified
             </span>
           </div>
@@ -524,7 +524,7 @@ export const ProfilePage: React.FC = () => {
                       <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Email Address
                       </Label>
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
+                      <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5">
                         <ShieldCheck className="w-3 h-3" /> Verified
                       </span>
                     </div>
@@ -545,7 +545,7 @@ export const ProfilePage: React.FC = () => {
                       <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                         Mobile Number
                       </Label>
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
+                      <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5">
                         <ShieldCheck className="w-3 h-3" /> Primary OTP Verified
                       </span>
                     </div>

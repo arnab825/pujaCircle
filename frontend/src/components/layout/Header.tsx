@@ -154,7 +154,7 @@ export const Header: React.FC = () => {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col justify-between p-6">
+            <SheetContent side="right" className="w-70 sm:w-80 flex flex-col justify-between p-6">
               <div className="space-y-6">
                 <SheetHeader className="text-left border-b pb-4">
                   <SheetTitle className="flex items-center gap-2 font-serif text-lg">
