@@ -185,17 +185,17 @@ export const BookingDetailsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Purohit & Dakshina */}
+            {/* Priest & Payment */}
             <div className="space-y-4">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Purohit & Dakshina
+                Priest & Payment
               </h3>
               <div className="space-y-3 p-4 rounded-xl bg-muted/40 border text-xs">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-primary" />
                     <span className="font-bold text-foreground">
-                      {booking.priest?.displayName || booking.priest?.fullName || 'Assigned Purohit'}
+                      {booking.priest?.displayName || booking.priest?.fullName || 'Assigned Priest'}
                     </span>
                   </div>
                   {booking.status === 'CONFIRMED' && booking.priest?.phoneNumber && (
@@ -209,7 +209,7 @@ export const BookingDetailsPage: React.FC = () => {
                 <div className="p-3 rounded-lg bg-background border flex items-center justify-between">
                   <div>
                     <span className="text-[10px] uppercase font-semibold text-muted-foreground block">
-                      Offline Cash Dakshina
+                      Cash Payment
                     </span>
                     <span className="text-[11px] text-muted-foreground">Pay direct on completion</span>
                   </div>
@@ -225,7 +225,7 @@ export const BookingDetailsPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Check className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Hand over Dakshina to Purohit upon completion.</span>
+                    <span>Pay in cash directly to the priest after puja completion.</span>
                   </div>
                 </div>
               </div>

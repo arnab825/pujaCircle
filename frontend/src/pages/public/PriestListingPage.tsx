@@ -100,13 +100,13 @@ export const PriestListingPage: React.FC = () => {
       <div className="space-y-1.5">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>Verified Vedic Scholars</span>
+          <span>Verified Priests</span>
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">
-          Find a Purohit for Your Ceremony
+          Find a Priest for Your Puja
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground max-w-2xl">
-          Browse verified Vedic priests serving your city, view transparent ritual Dakshina, and schedule in-home ceremonies with direct offline honorarium.
+          Browse verified priests in your city, check transparent pricing, and book home pujas with easy cash payment after completion.
         </p>
       </div>
 

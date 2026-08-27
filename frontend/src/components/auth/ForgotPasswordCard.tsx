@@ -29,15 +29,15 @@ export const ForgotPasswordCard: React.FC<ForgotPasswordCardProps> = ({
 
   const roleConfig = {
     USER: {
-      title: 'Devotee Password Recovery',
+      title: 'User Password Recovery',
       subtitle: 'Enter your registered email to receive a password reset code.',
       demoEmail: 'user@example.demo',
       login: '/user/login',
       reset: '/user/reset-password',
     },
     PRIEST: {
-      title: 'Purohit Password Recovery',
-      subtitle: 'Enter your registered purohit email to receive a password reset code.',
+      title: 'Priest Password Recovery',
+      subtitle: 'Enter your registered priest email to receive a password reset code.',
       demoEmail: 'priest@example.demo',
       login: '/priest/login',
       reset: '/priest/reset-password',

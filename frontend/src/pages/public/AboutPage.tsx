@@ -44,9 +44,9 @@ export const AboutPage: React.FC = () => {
               <div className="h-10 w-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center">
                 <HeartHandshake className="h-5 w-5" />
               </div>
-              <h3 className="font-semibold text-sm sm:text-base text-foreground">Direct Cash Dakshina</h3>
+              <h3 className="font-semibold text-sm sm:text-base text-foreground">Direct Cash Payment</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Full sacred dakshina is offered directly in cash to Pandit Ji upon ceremony completion with zero commission deductions.
+                Pay directly in cash to the priest upon puja completion with zero platform commission deductions.
               </p>
             </CardContent>
           </Card>

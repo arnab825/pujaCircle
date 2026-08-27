@@ -85,10 +85,10 @@ export const PriestServicesPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-primary" />
-            <span>My Ceremony Services & Prices</span>
+            <span>My Puja Services & Prices</span>
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Configure the specific Vedic rituals you offer and your custom expected cash Dakshina.
+            Configure the specific pujas you offer and your custom prices.
           </p>
         </div>
 
@@ -100,9 +100,9 @@ export const PriestServicesPage: React.FC = () => {
       {/* Services List / Table */}
       <Card className="border-border/80 shadow-xs">
         <CardHeader className="pb-3 border-b">
-          <CardTitle className="text-base font-serif">Offered Rituals ({services.length})</CardTitle>
+          <CardTitle className="text-base font-serif">Offered Pujas ({services.length})</CardTitle>
           <CardDescription className="text-xs">
-            Prices set here will be automatically applied when devotees book this ceremony with you.
+            Prices set here will be automatically applied when users book this puja with you.
           </CardDescription>
         </CardHeader>
 
@@ -136,9 +136,9 @@ export const PriestServicesPage: React.FC = () => {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <span>Expected Dakshina:</span>
+                      <span>Service Price:</span>
                       <strong className="text-foreground font-mono">₹{service.price.toLocaleString('en-IN')}</strong>
-                      <span className="text-[11px]">(Direct Cash)</span>
+                      <span className="text-[11px]">(Cash on completion)</span>
                     </p>
                   </div>
 

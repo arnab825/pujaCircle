@@ -252,7 +252,7 @@ export const BookingsPage: React.FC = () => {
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
                       <span className="text-muted-foreground">
-                        Dakshina: <strong className="text-foreground">{formatINR(b.servicePrice || b.dakshinaAmount || 2100)}</strong>
+                        Price: <strong className="text-foreground">{formatINR(b.servicePrice || b.dakshinaAmount || 2100)}</strong>
                       </span>
                       {b.status === 'CONFIRMED' && b.priest?.phoneNumber && (
                         <span className="text-muted-foreground flex items-center gap-1">

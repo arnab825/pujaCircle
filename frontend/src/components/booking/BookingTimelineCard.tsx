@@ -33,8 +33,8 @@ export const BookingTimelineCard: React.FC<BookingTimelineCardProps> = ({
       icon: isRejected ? Ban : Clock,
     },
     {
-      label: 'Ceremony',
-      desc: isCancelled ? 'Appointment Cancelled' : 'Sacred Puja & Cash Dakshina',
+      label: 'Puja',
+      desc: isCancelled ? 'Appointment Cancelled' : 'Puja & Cash Payment',
       isCompleted: status === 'COMPLETED',
       isCurrent: status === 'CONFIRMED',
       isFailed: isCancelled,

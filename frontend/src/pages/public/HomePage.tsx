@@ -62,8 +62,8 @@ export const HomePage: React.FC = () => {
               <ShieldCheck className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-foreground leading-snug">100% Direct Cash Dakshina</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">No Middleman Fee</p>
+              <p className="text-xs font-semibold text-foreground leading-snug">Pay After Puja</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">No Advance Required</p>
             </div>
           </div>
 
@@ -72,8 +72,8 @@ export const HomePage: React.FC = () => {
               <Award className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-foreground leading-snug">Gurukul-Certified</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">Vetted Purohits</p>
+              <p className="text-xs font-semibold text-foreground leading-snug">Verified Priests</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">Experienced Purohits</p>
             </div>
           </div>
 
@@ -92,8 +92,8 @@ export const HomePage: React.FC = () => {
               <Flame className="h-4 w-4" />
             </div>
             <div className="space-y-0.5">
-              <p className="text-xs font-semibold text-foreground leading-snug">Authentic Mantras</p>
-              <p className="text-[11px] text-muted-foreground leading-tight">Vedic Ritual Vidhi</p>
+              <p className="text-xs font-semibold text-foreground leading-snug">Traditional Vidhi</p>
+              <p className="text-[11px] text-muted-foreground leading-tight">Authentic Ceremonies</p>
             </div>
           </div>
         </div>
@@ -106,7 +106,7 @@ export const HomePage: React.FC = () => {
             How PujaCircle Works
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Simple, sacred, and transparent from muhurat to dakshina.
+            Simple, transparent, and hassle-free from booking to puja completion.
           </p>
         </div>
 
@@ -117,9 +117,9 @@ export const HomePage: React.FC = () => {
               <div className="h-9 w-9 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                 1
               </div>
-              <h3 className="font-semibold text-base text-foreground">Select Sacred Ritual</h3>
+              <h3 className="font-semibold text-base text-foreground">Select Ceremony</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Choose from traditional Vedic rituals including Griha Pravesh, Satyanarayan Katha, Rudrabhishek, and Havans.
+                Choose from ceremonies including Griha Pravesh, Satyanarayan Katha, Rudrabhishek, and Havans.
               </p>
             </CardContent>
           </Card>
@@ -130,9 +130,9 @@ export const HomePage: React.FC = () => {
               <div className="h-9 w-9 rounded-md bg-secondary/10 text-secondary flex items-center justify-center font-bold text-sm">
                 2
               </div>
-              <h3 className="font-semibold text-base text-foreground">Local Vedic Match</h3>
+              <h3 className="font-semibold text-base text-foreground">Match with Local Priest</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Enter your location to match with verified Purohits trained in authentic Gurukul traditions in your city.
+                Browse verified priests servicing your area with transparent prices and authentic reviews.
               </p>
             </CardContent>
           </Card>
@@ -143,9 +143,9 @@ export const HomePage: React.FC = () => {
               <div className="h-9 w-9 rounded-md bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold text-sm">
                 3
               </div>
-              <h3 className="font-semibold text-base text-foreground">Ceremony & Direct Dakshina</h3>
+              <h3 className="font-semibold text-base text-foreground">Puja & Cash Payment</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Pandit Ji arrives at your home with complete samagri guidance. Direct cash dakshina is offered upon completion.
+                The priest arrives at your home with samagri guidance. Pay in cash directly after puja completion.
               </p>
             </CardContent>
           </Card>
@@ -159,26 +159,26 @@ export const HomePage: React.FC = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Find answers to common questions about booking, Purohit verification, and rituals.
+            Find answers to common questions about booking, priest verification, and pujas.
           </p>
         </div>
 
         <Accordion type="single" collapsible className="w-full space-y-3">
           <AccordionItem value="item-1" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
-              How are Purohits verified on PujaCircle?
+              How are priests verified on PujaCircle?
             </AccordionTrigger>
             <AccordionContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Every Purohit undergoes thorough background verification, including validation of Gurukul education, Vedic lineage, identity documents, and practical mantra recitation proficiency.
+              Every priest undergoes thorough background verification, including validation of qualifications, experience, identity documents, and ceremony knowledge.
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-2" className="border border-border rounded-lg px-5 bg-card shadow-xs">
             <AccordionTrigger className="text-sm sm:text-base font-semibold hover:no-underline text-foreground">
-              How does the Dakshina (payment) process work?
+              How does the payment process work?
             </AccordionTrigger>
             <AccordionContent className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              PujaCircle believes in transparent, sacred dakshina. Dakshina is settled directly with the Purohit at your home upon completion of the ceremony, with no hidden platform markups.
+              Payment is straightforward and transparent. You pay directly in cash to the priest at your home after the puja is completed, with zero hidden fees.
             </AccordionContent>
           </AccordionItem>
 

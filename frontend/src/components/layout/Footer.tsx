@@ -15,34 +15,34 @@ type PolicyType = "terms" | "privacy" | "cookies" | null;
 const POLICY_CONTENT = {
   terms: {
     title: "Terms of Service",
-    description: "Guidelines and principles for devotees and Vedic Purohits on PujaCircle.",
+    description: "Guidelines and terms for users and priests on PujaCircle.",
     content: (
       <div className="space-y-3.5 text-xs text-muted-foreground leading-relaxed">
         <p>
-          <strong className="text-foreground">1. Platform Nature:</strong> PujaCircle is a technology platform connecting devotees with verified, knowledgeable Vedic Purohits for spiritual ceremonies and pujas across Indian cities.
+          <strong className="text-foreground">1. Platform Service:</strong> PujaCircle connects users with verified priests for home pujas and ceremonies across major cities.
         </p>
         <p>
-          <strong className="text-foreground">2. Sacred Dakshina:</strong> Dakshina amounts listed are transparent suggestions. Full dakshina is offered directly in cash to Pandit Ji upon ceremony completion with zero commission deductions.
+          <strong className="text-foreground">2. Transparent Pricing:</strong> Listed prices are clear and upfront. Payment is made directly in cash to the priest upon puja completion.
         </p>
         <p>
-          <strong className="text-foreground">3. Respectful Conduct:</strong> All parties agree to maintain mutual respect, honor traditional Vedic Vidhi, and notify in advance for any unavoidable ceremony reschedules.
+          <strong className="text-foreground">3. Conduct & Rescheduling:</strong> Users and priests agree to treat each other respectfully and provide advance notice for any unavoidable schedule changes.
         </p>
       </div>
     ),
   },
   privacy: {
     title: "Privacy Policy",
-    description: "How your personal information and ceremony addresses are protected.",
+    description: "How your personal information and puja address are protected.",
     content: (
       <div className="space-y-3.5 text-xs text-muted-foreground leading-relaxed">
         <p>
-          <strong className="text-foreground">1. Data Collected:</strong> We collect your mobile number, optional email, and ceremony address solely for ritual coordination and Purohit travel dispatch.
+          <strong className="text-foreground">1. Data Collected:</strong> We collect your mobile number, email, and address solely to coordinate your puja booking and priest arrival.
         </p>
         <p>
-          <strong className="text-foreground">2. Security:</strong> All communications and personal details are encrypted. We never sell, rent, or trade your personal information to third-party marketing services.
+          <strong className="text-foreground">2. Data Security:</strong> Your personal information is secure and never sold, rented, or shared with third-party advertisers.
         </p>
         <p>
-          <strong className="text-foreground">3. Address Privacy:</strong> Your detailed residential address is only shared with the assigned Purohit once a ceremony booking request is confirmed.
+          <strong className="text-foreground">3. Address Privacy:</strong> Your exact location address is only shared with the booked priest once your booking is confirmed.
         </p>
       </div>
     ),

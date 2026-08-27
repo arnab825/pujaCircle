@@ -46,10 +46,10 @@ export const AuthRoleTabs: React.FC<AuthRoleTabsProps> = ({
                 : 'text-muted-foreground'
             )}
           />
-          <span>Devotee</span>
+          <span>User</span>
         </button>
 
-        {/* 2. Purohit (Priest) Tab */}
+        {/* 2. Priest Tab */}
         <button
           type="button"
           onClick={() => onChange('PRIEST')}
@@ -69,7 +69,7 @@ export const AuthRoleTabs: React.FC<AuthRoleTabsProps> = ({
                 : 'text-primary'
             )}
           />
-          <span>Purohit (Priest)</span>
+          <span>Priest (Purohit)</span>
         </button>
       </div>
     </div>

@@ -71,14 +71,14 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
             {serviceToEdit ? 'Edit Ceremony Service' : 'Add New Ceremony Service'}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Set your priest-specific ceremonial offering and custom cash Dakshina.
+            Set your service details and price.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 pt-2">
           {/* Service Name */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Ceremony / Puja Name</Label>
+            <Label className="text-xs font-medium">Puja / Ceremony Name</Label>
             <Input
               placeholder="e.g. Griha Pravesh & Vastu Shanti"
               {...register('serviceName')}
@@ -91,7 +91,7 @@ export const ServiceFormModal: React.FC<ServiceFormModalProps> = ({
 
           {/* Price */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Expected Cash Dakshina (₹ INR)</Label>
+            <Label className="text-xs font-medium">Service Price (₹ INR)</Label>
             <div className="relative">
               <IndianRupee className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input

@@ -54,13 +54,13 @@ export const UserHomePage: React.FC = () => {
         <div className="space-y-2 max-w-xl">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>PujaCircle Devotee Portal</span>
+            <span>PujaCircle Portal</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground">
-            Namaste, {user?.name || 'Devotee'} 🙏
+            Namaste, {user?.name || 'User'} 🙏
           </h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Schedule sacred Vedic ceremonies, browse verified Purohits, and manage your family pujas with direct offline Dakshina.
+            Browse verified priests, schedule home pujas, and pay easily in cash after completion.
           </p>
         </div>
 
@@ -121,10 +121,10 @@ export const UserHomePage: React.FC = () => {
             </div>
             <div className="space-y-1">
               <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-                100% Vedic Verification
+                100% Verified Priests
               </h3>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                All listed Purohits undergo background verification and Gurukul lineage review by our administrator.
+                All listed priests undergo background and qualification verification by our administration.
               </p>
             </div>
           </div>
@@ -159,10 +159,10 @@ export const UserHomePage: React.FC = () => {
                   {upcomingBooking.bookingDate} ({upcomingBooking.startTime} - {upcomingBooking.endTime})
                 </span>
                 <span>
-                  Pandit Ji: <strong>{upcomingBooking.priest?.displayName || 'Vedic Purohit'}</strong>
+                  Priest: <strong>{upcomingBooking.priest?.displayName || 'Priest'}</strong>
                 </span>
                 <span>
-                  Dakshina: <strong>₹{upcomingBooking.servicePrice || upcomingBooking.dakshinaAmount}</strong> (Offline Cash)
+                  Price: <strong>₹{upcomingBooking.servicePrice || upcomingBooking.dakshinaAmount}</strong> (Pay after puja)
                 </span>
               </div>
             </div>

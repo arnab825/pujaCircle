@@ -194,7 +194,7 @@ export const PriestDashboardPage: React.FC = () => {
 
         <Card className="border-border/80 shadow-xs">
           <CardContent className="p-4 space-y-1">
-            <span className="text-[11px] font-semibold text-muted-foreground uppercase">Recorded Cash Dakshina</span>
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase">Total Cash Recorded</span>
             <div className="text-2xl font-bold font-mono text-foreground">
               ₹{totalDakshinaRecorded.toLocaleString('en-IN')}
             </div>
@@ -243,12 +243,12 @@ export const PriestDashboardPage: React.FC = () => {
                 </div>
 
                 <div className="text-xs text-muted-foreground pt-0.5">
-                  Dakshina: <strong className="font-mono text-foreground">{formatINR(req.servicePrice || 2100)}</strong> (Direct Cash)
+                  Price: <strong className="font-mono text-foreground">{formatINR(req.servicePrice || 2100)}</strong> (Cash on completion)
                 </div>
 
                 {req.userNotes && (
                   <p className="text-[11px] text-muted-foreground italic bg-background/80 p-2 rounded-lg border border-border/60">
-                    Devotee Note: "{req.userNotes}"
+                    User Note: "{req.userNotes}"
                   </p>
                 )}
 
@@ -316,7 +316,7 @@ export const PriestDashboardPage: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      Locked Dakshina: <strong className="font-mono text-foreground">₹{b.servicePrice}</strong> (Offline Cash)
+                      Price: <strong className="font-mono text-foreground">₹{b.servicePrice}</strong> (Cash on completion)
                     </p>
                   </div>
 

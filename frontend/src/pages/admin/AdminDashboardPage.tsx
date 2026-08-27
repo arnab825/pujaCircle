@@ -108,11 +108,11 @@ export const AdminDashboardPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Recorded Cash Dakshina */}
+        {/* Recorded Cash Volume */}
         <Card className="border-border/80 shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Cash Dakshina Recorded
+              Total Cash Recorded
             </CardTitle>
             <div className="p-2 rounded-lg bg-primary/10 text-primary">
               <Sparkles className="w-4 h-4" />
@@ -122,7 +122,7 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="text-2xl font-bold font-mono text-foreground">
               ₹{(stats?.completedDakshinaAmountRecorded ?? 0).toLocaleString('en-IN')}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Completed direct offline cash</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Completed puja volume</p>
           </CardContent>
         </Card>
       </div>

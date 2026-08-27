@@ -43,11 +43,11 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
         </DialogHeader>
 
         <div className="space-y-4 py-2 text-xs">
-          {/* Ceremony & Dakshina Banner */}
+          {/* Puja & Price Banner */}
           <div className="p-3.5 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-between">
             <div>
               <p className="font-bold text-sm text-foreground">{booking.serviceName || 'Puja Ceremony'}</p>
-              <p className="text-muted-foreground text-[11px]">Direct offline Dakshina</p>
+              <p className="text-muted-foreground text-[11px]">Cash on completion</p>
             </div>
             <span className="text-xl font-bold font-serif text-primary">
               {formatINR(booking.servicePrice || booking.dakshinaAmount || 2100)}

@@ -53,29 +53,29 @@ export const AuthLoginForm: React.FC<AuthLoginFormProps> = ({
 
   const roleConfig = {
     USER: {
-      title: "Devotee Sign In",
+      title: "User Sign In",
       subtitle:
-        "Sign in with your mobile number to view and book Vedic ceremonies.",
-      badge: "Devotee Portal",
+        "Sign in with your mobile number to browse priests and book pujas.",
+      badge: "User Portal",
       demoPhone: "+919876543210",
       demoPass: "User@123",
       redirect: "/user/home",
       forgot: "/user/forgot-password",
       register: "/user/register",
-      registerPrompt: "Don't have a devotee account?",
-      registerCta: "Create an account",
+      registerPrompt: "Don't have an account?",
+      registerCta: "Sign up",
     },
     PRIEST: {
-      title: "Purohit Sign In",
+      title: "Priest Sign In",
       subtitle:
-        "Welcome Pandit Ji. Access your ritual bookings and ceremony schedule.",
-      badge: "Purohit Portal",
+        "Welcome! Access your puja bookings and schedule.",
+      badge: "Priest Portal",
       demoPhone: "+919876543211",
       demoPass: "Priest@123",
       redirect: "/priest/dashboard",
       forgot: "/priest/forgot-password",
       register: "/priest/register",
-      registerPrompt: "Are you a verified Vedic Purohit?",
+      registerPrompt: "Are you a priest?",
       registerCta: "Apply to join",
     },
   }[activeRole];
@@ -119,7 +119,7 @@ export const AuthLoginForm: React.FC<AuthLoginFormProps> = ({
 
     if (success) {
       toast.success(
-        `Welcome back to PujaCircle! Signed in as ${isPriest ? "Pandit Ji" : "Devotee"}.`,
+        `Welcome back to PujaCircle! Signed in as ${isPriest ? "Priest" : "User"}.`,
       );
       navigate(roleConfig.redirect);
     }
@@ -252,7 +252,7 @@ export const AuthLoginForm: React.FC<AuthLoginFormProps> = ({
             >
               {isLoading
                 ? "Signing In..."
-                : `Sign In as ${isPriest ? "Purohit" : "Devotee"}`}
+                : `Sign In as ${isPriest ? "Priest" : "User"}`}
               <ArrowRight className="h-4 w-4" />
             </Button>
 

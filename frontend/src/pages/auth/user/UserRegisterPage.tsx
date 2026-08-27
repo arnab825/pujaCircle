@@ -158,7 +158,7 @@ const UserRegisterPage: React.FC = () => {
         <CardHeader className="text-center space-y-1 pb-4">
           <PujaCircleLogo size={44} className="mx-auto shadow-sm mb-2" />
           <CardTitle className="text-2xl font-bold font-serif text-foreground">
-            Create Devotee Account
+            Create Account
           </CardTitle>
           <CardDescription className="text-xs">
             Step {step} of 3 • {step === 1 ? 'Personal Details' : step === 2 ? 'Contact Verification' : 'Ceremony Address'}

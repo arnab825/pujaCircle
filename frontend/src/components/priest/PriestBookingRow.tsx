@@ -49,14 +49,14 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
           <div className="flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
             <span className="truncate">
-              {booking.address ? `${booking.address.villageTown || booking.address.city}, ${booking.address.city}` : 'Devotee Address'}
+              {booking.address ? `${booking.address.villageTown || booking.address.city}, ${booking.address.city}` : 'User Address'}
             </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-xs">
           <span className="text-muted-foreground">
-            Dakshina: <strong className="text-foreground">{formatINR(booking.servicePrice || booking.dakshinaAmount || 2100)}</strong> (Cash on Completion)
+            Price: <strong className="text-foreground">{formatINR(booking.servicePrice || booking.dakshinaAmount || 2100)}</strong> (Cash on Completion)
           </span>
           {booking.user?.phoneNumber && (
             <span className="text-muted-foreground">
