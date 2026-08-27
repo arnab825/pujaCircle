@@ -7,6 +7,7 @@ export interface AuthUser {
   phoneNumber: string;
   email?: string;
   role: Role;
+  avatarUrl?: string;
   accountStatus?: AccountStatus;
   banReason?: string;
   hasAddress?: boolean;
