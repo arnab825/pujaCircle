@@ -60,18 +60,7 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
     return eh * 60 + em - (sh * 60 + sm);
   };
 
-  const applyDuration = (hours: number) => {
-    const [sh, sm] = startTime.split(':').map(Number);
-    const totalMinutes = sh * 60 + sm + hours * 60;
-    if (totalMinutes >= 24 * 60) {
-      setEndTime('23:59');
-    } else {
-      const eh = Math.floor(totalMinutes / 60);
-      const em = totalMinutes % 60;
-      setEndTime(`${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`);
-    }
-    setErrorMsg(null);
-  };
+
 
   const applyPreset = (start: string, end: string) => {
     setStartTime(start);
@@ -222,41 +211,6 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
             </div>
           </div>
 
-          {/* Quick Duration Helpers */}
-          <div className="space-y-1.5 pt-1">
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-              <span className="font-medium">Quick Durations:</span>
-              <span className="font-mono text-primary font-semibold">
-                {calculateDuration(startTime, endTime) > 0
-                  ? `${(calculateDuration(startTime, endTime) / 60).toFixed(1)} hrs`
-                  : '—'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => applyDuration(1)}
-                className="px-2.5 py-1 text-[11px] rounded-md border border-border bg-muted/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                +1 Hour
-              </button>
-              <button
-                type="button"
-                onClick={() => applyDuration(2)}
-                className="px-2.5 py-1 text-[11px] rounded-md border border-border bg-muted/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                +2 Hours
-              </button>
-              <button
-                type="button"
-                onClick={() => applyDuration(3)}
-                className="px-2.5 py-1 text-[11px] rounded-md border border-border bg-muted/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-colors"
-              >
-                +3 Hours
-              </button>
-            </div>
-          </div>
-
           {/* Vedic Muhurat Presets */}
           <div className="space-y-1.5 pt-1 border-t border-border/40">
             <span className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
@@ -266,26 +220,26 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
               <button
                 type="button"
                 onClick={() => applyPreset('08:00', '11:00')}
-                className="p-1.5 text-center text-[10px] rounded-md border border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                className="p-6 text-center text-[13px] rounded-md border border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors"
               >
                 <div className="font-medium text-foreground">Morning</div>
-                <div className="text-muted-foreground font-mono text-[9px]">08:00 - 11:00</div>
+                <div className="text-muted-foreground font-mono text-[12px]">08:00 - 11:00</div>
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('11:30', '14:30')}
-                className="p-1.5 text-center text-[10px] rounded-md border border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                className="p-6 text-center text-[13px] rounded-md border border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors"
               >
                 <div className="font-medium text-foreground">Midday</div>
-                <div className="text-muted-foreground font-mono text-[9px]">11:30 - 14:30</div>
+                <div className="text-muted-foreground font-mono text-[12px]">11:30 - 14:30</div>
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset('16:00', '19:00')}
-                className="p-1.5 text-center text-[10px] rounded-md border border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                className="p-6 text-center text-[13px] rounded-md border border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5 transition-colors"
               >
                 <div className="font-medium text-foreground">Evening</div>
-                <div className="text-muted-foreground font-mono text-[9px]">16:00 - 19:00</div>
+                <div className="text-muted-foreground font-mono text-[12px]">16:00 - 19:00</div>
               </button>
             </div>
           </div>
@@ -328,8 +282,8 @@ export const AddSlotModal: React.FC<AddSlotModalProps> = ({
             {isSubmitting
               ? 'Saving...'
               : editingSlot
-              ? 'Save Changes'
-              : 'Add Slot'}
+                ? 'Save Changes'
+                : 'Add Slot'}
           </Button>
         </DialogFooter>
       </DialogContent>

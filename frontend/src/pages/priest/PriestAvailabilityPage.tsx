@@ -197,7 +197,7 @@ export const PriestAvailabilityPage: React.FC = () => {
           className="gap-2 text-xs sm:text-sm h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shrink-0"
         >
           <Plus className="h-4 w-4" />
-          <span>+ Add Availability</span>
+          <span>Add Availability</span>
         </Button>
       </div>
 
@@ -311,11 +311,10 @@ export const PriestAvailabilityPage: React.FC = () => {
                       return (
                         <Card
                           key={slot.id}
-                          className={`border transition-all shadow-2xs ${
-                            isAvailable
+                          className={`border transition-all shadow-2xs ${isAvailable
                               ? 'bg-card border-border hover:border-emerald-500/40'
                               : 'bg-primary/5 border-primary/30'
-                          }`}
+                            }`}
                         >
                           <CardContent className="p-4 space-y-3">
                             {/* Time & Status Row */}
@@ -331,11 +330,10 @@ export const PriestAvailabilityPage: React.FC = () => {
 
                               <Badge
                                 variant="outline"
-                                className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 ${
-                                  isAvailable
+                                className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 ${isAvailable
                                     ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                                     : 'bg-primary/15 text-primary border-primary/40'
-                                }`}
+                                  }`}
                               >
                                 {isAvailable ? (
                                   <span className="flex items-center gap-1.5">
@@ -444,11 +442,10 @@ export const PriestAvailabilityPage: React.FC = () => {
                           </div>
                           <Badge
                             variant="outline"
-                            className={`text-[9px] ${
-                              slot.status === 'BOOKED'
+                            className={`text-[9px] ${slot.status === 'BOOKED'
                                 ? 'bg-primary/10 text-primary border-primary/20'
                                 : 'bg-muted text-muted-foreground border-border'
-                            }`}
+                              }`}
                           >
                             {slot.status}
                           </Badge>
