@@ -13,13 +13,10 @@ import {
   mockCreatePriestService,
   mockUpdatePriestService,
   mockDeletePriestService,
-  mockGetWeeklyAvailability,
-  mockCreateWeeklyAvailabilityRule,
-  mockUpdateWeeklyAvailabilityRule,
-  mockDeleteWeeklyAvailabilityRule,
-  mockGetAvailabilityExceptions,
-  mockCreateAvailabilityException,
-  mockDeleteAvailabilityException,
+  mockGetPriestSlots,
+  mockCreateAvailabilitySlot,
+  mockUpdateAvailabilitySlot,
+  mockDeleteAvailabilitySlot,
   mockGetAvailableSlotsForDate,
   mockCreateBooking,
   mockAcceptBooking,
@@ -197,95 +194,84 @@ async function runValidationTests() {
   assert(!unauthorizedServiceEdit.success, 'Priest-2 blocked from editing Priest-1 service');
 
   // ----------------------------------------------------
-  // TEST 5: Recurring Weekly Availability & Slot Generator Engine
+  // TEST 5: Direct Date-Based Availability Slots & Conflict Prevention
   // ----------------------------------------------------
-  console.log('\n[5/11] Testing Recurring Weekly Availability Schedule & Strict Time Validation...');
-  const rulesRes = await mockGetWeeklyAvailability('priest-1');
-  assert(rulesRes.success && rulesRes.data.length >= 7, 'Retrieved weekly schedule rules for Priest-1');
+  console.log('\n[5/11] Testing Direct Date Availability Slots (AVAILABILITY_SLOTS) & Overlap Prevention...');
+  const initialSlotsRes = await mockGetPriestSlots('priest-1');
+  assert(initialSlotsRes.success && initialSlotsRes.data.length >= 5, 'Retrieved direct availability slots for Priest-1');
 
-  // Create a new valid weekly rule (Thursday afternoon)
-  const addRuleRes = await mockCreateWeeklyAvailabilityRule('priest-1', {
-    dayOfWeek: 4, // Thursday
+  // Create a new valid slot for a future date
+  const addSlotRes = await mockCreateAvailabilitySlot('priest-1', {
+    slotDate: '2026-09-20',
+    startTime: '10:00',
+    endTime: '12:00',
+  });
+  assert(addSlotRes.success && addSlotRes.data?.status === 'AVAILABLE', 'Created single availability slot for 2026-09-20 (10:00 - 12:00)');
+
+  // Add another slot on the same date (e.g. "Add & Add Another" flow)
+  const addAnotherSlotRes = await mockCreateAvailabilitySlot('priest-1', {
+    slotDate: '2026-09-20',
     startTime: '14:00',
-    endTime: '18:00',
-    slotDurationMinutes: 60,
-    bufferMinutes: 0,
-    isActive: true,
+    endTime: '16:00',
   });
-  assert(addRuleRes.success && addRuleRes.data?.startTime === '14:00', 'Created non-overlapping weekly availability rule');
+  assert(addAnotherSlotRes.success && addAnotherSlotRes.data?.startTime === '14:00', 'Added second non-overlapping slot on 2026-09-20 (14:00 - 16:00)');
 
-  // Invalid time format rejection (e.g. "25:99")
-  const invalidTimeRuleRes = await mockCreateWeeklyAvailabilityRule('priest-1', {
-    dayOfWeek: 4,
-    startTime: '25:99',
-    endTime: '28:00',
-    slotDurationMinutes: 60,
-    bufferMinutes: 0,
-    isActive: true,
+  // Reject overlapping slot on same date
+  const overlapSlotRes = await mockCreateAvailabilitySlot('priest-1', {
+    slotDate: '2026-09-20',
+    startTime: '11:00',
+    endTime: '13:00',
   });
-  assert(!invalidTimeRuleRes.success, 'Invalid time format (25:99) strictly rejected by weeklyAvailabilityRuleSchema');
+  assert(!overlapSlotRes.success, 'Overlapping slot on same date strictly rejected ("This time overlaps with an existing availability slot.")');
 
-  // Update rule
-  const updateRuleRes = await mockUpdateWeeklyAvailabilityRule(addRuleRes.data!.id, 'priest-1', {
-    endTime: '19:00',
+  // Reject past date
+  const pastSlotRes = await mockCreateAvailabilitySlot('priest-1', {
+    slotDate: '2025-01-01',
+    startTime: '10:00',
+    endTime: '12:00',
   });
-  assert(updateRuleRes.success && updateRuleRes.data?.endTime === '19:00', 'Updated weekly availability rule');
+  assert(!pastSlotRes.success, 'Past date availability slot strictly rejected ("Please select a future date.")');
 
-  // Delete rule
-  const deleteRuleRes = await mockDeleteWeeklyAvailabilityRule(addRuleRes.data!.id, 'priest-1');
-  assert(deleteRuleRes.success, 'Deleted weekly availability rule');
-
-  // Overlapping weekly rule rejection
-  const overlapRuleRes = await mockCreateWeeklyAvailabilityRule('priest-1', {
-    dayOfWeek: 1, // Monday (already 08:00-14:00)
-    startTime: '09:00',
-    endTime: '11:00',
-    slotDurationMinutes: 60,
-    bufferMinutes: 0,
-    isActive: true,
+  // Reject end time before start time
+  const invalidTimeSlotRes = await mockCreateAvailabilitySlot('priest-1', {
+    slotDate: '2026-09-20',
+    startTime: '14:00',
+    endTime: '13:00',
   });
-  assert(!overlapRuleRes.success, 'Overlapping weekly availability rule on same weekday correctly rejected');
+  assert(!invalidTimeSlotRes.success, 'End time before start time strictly rejected');
 
-  // Test slot generator for a future Monday (e.g. 2026-09-07)
-  const slotsForMonday = await mockGetAvailableSlotsForDate('priest-1', '2026-09-07');
-  assert(slotsForMonday.success && slotsForMonday.data.length > 0, 'Generated bookable slots from weekly schedule for Monday');
-  assert(slotsForMonday.data.some((s) => s.startTime === '08:00' && s.endTime === '09:00'), 'Generated exact 60-minute slots starting at 08:00');
-
-  // Test date exception: Block a specific date (e.g. 2026-09-14)
-  const blockDateRes = await mockCreateAvailabilityException('priest-1', {
-    date: '2026-09-14',
-    type: 'BLOCKED',
-    reason: 'Family temple visit',
+  // Update available slot
+  const updateSlotRes = await mockUpdateAvailabilitySlot(addSlotRes.data!.id, 'priest-1', {
+    startTime: '09:30',
+    endTime: '11:30',
   });
-  assert(blockDateRes.success, 'Blocked specific calendar date exception created');
+  assert(updateSlotRes.success && updateSlotRes.data?.startTime === '09:30', 'Successfully updated available slot time');
 
-  const invalidDateFormatException = await mockCreateAvailabilityException('priest-1', {
-    date: '14-09-2026', // wrong format, should be YYYY-MM-DD
-    type: 'BLOCKED',
-  });
-  assert(!invalidDateFormatException.success, 'Invalid date format (14-09-2026) strictly rejected by availabilityExceptionSchema');
+  // Prevent editing a booked slot
+  const bookedSlot = mockDb.availabilitySlots.find((s) => s.priestId === 'priest-1' && s.status === 'BOOKED');
+  if (bookedSlot) {
+    const editBookedRes = await mockUpdateAvailabilitySlot(bookedSlot.id, 'priest-1', { startTime: '06:00' });
+    assert(!editBookedRes.success, 'Priest prevented from editing BOOKED slot');
 
-  const excList = await mockGetAvailabilityExceptions('priest-1');
-  assert(excList.success && excList.data.some((e) => e.date === '2026-09-14'), 'Retrieved priest availability exceptions list');
+    const deleteBookedRes = await mockDeleteAvailabilitySlot(bookedSlot.id, 'priest-1');
+    assert(!deleteBookedRes.success, 'Priest prevented from deleting BOOKED slot');
+  }
 
-  const slotsForBlockedDate = await mockGetAvailableSlotsForDate('priest-1', '2026-09-14');
-  assert(
-    slotsForBlockedDate.data.length === 1 && slotsForBlockedDate.data[0].status === 'BLOCKED',
-    'Blocked date exception overrides weekly rules and returns BLOCKED status'
-  );
+  // Delete available slot
+  const deleteSlotRes = await mockDeleteAvailabilitySlot(addSlotRes.data!.id, 'priest-1');
+  assert(deleteSlotRes.success, 'Successfully deleted available slot');
 
-  // Delete exception
-  const deleteExcRes = await mockDeleteAvailabilityException(blockDateRes.data!.id, 'priest-1');
-  assert(deleteExcRes.success, 'Deleted availability date exception');
+  // Query devotee availability for date
+  const devoteeDateSlots = await mockGetAvailableSlotsForDate('priest-1', '2026-09-20');
+  assert(devoteeDateSlots.success && devoteeDateSlots.data.length === 1, 'Devotee retrieved open available slot for 2026-09-20');
 
   // ----------------------------------------------------
   // TEST 6: Booking Creation, Immutability & Double Booking Prevention
   // ----------------------------------------------------
-  console.log('\n[6/11] Testing Booking Creation & Authoritative Price Snapshotting...');
-  const testDate = '2026-09-21'; // A Monday
-  const generatedSlots = await mockGetAvailableSlotsForDate('priest-1', testDate);
-  const targetSlot = generatedSlots.data.find((s) => s.status === 'AVAILABLE');
-  assert(!!targetSlot, 'Found available generated slot for booking test');
+  const testDate = '2026-09-10';
+  const availableSlotsRes = await mockGetAvailableSlotsForDate('priest-1', testDate);
+  const targetSlot = availableSlotsRes.data.find((s) => s.status === 'AVAILABLE');
+  assert(!!targetSlot, 'Found available slot for booking test on 2026-09-10');
 
   // Invalid date format on booking creation rejected
   const badDateBooking = await mockCreateBooking('user-devotee-1', {
@@ -341,6 +327,11 @@ async function runValidationTests() {
 
   // Test cancel & reject flows on a separate booking
   const cancelTestDate = '2026-09-28';
+  await mockCreateAvailabilitySlot('priest-1', {
+    slotDate: cancelTestDate,
+    startTime: '10:00',
+    endTime: '12:00',
+  });
   const cancelSlots = await mockGetAvailableSlotsForDate('priest-1', cancelTestDate);
   const cancelSlot = cancelSlots.data.find((s) => s.status === 'AVAILABLE');
   const b2Res = await mockCreateBooking('user-devotee-1', {

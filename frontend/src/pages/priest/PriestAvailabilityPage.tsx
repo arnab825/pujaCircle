@@ -1,27 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { priestApi } from '@/api/priest.api';
-import {
-  WeeklyAvailabilityRule,
-  AvailabilityException,
-  PriestSlot,
-} from '@/types/priest.types';
+import { bookingApi } from '@/api/booking.api';
+import { PriestSlot } from '@/types/priest.types';
+import { Booking } from '@/types/booking.types';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { AddWeeklyRuleModal } from '@/components/priest/AddWeeklyRuleModal';
-import { AddExceptionModal } from '@/components/priest/AddExceptionModal';
-import { DAYS_OF_WEEK } from '@/lib/constants';
+import { AddSlotModal } from '@/components/priest/AddSlotModal';
+import { PriestBookingDetailsDialog } from '@/components/priest/PriestBookingDetailsDialog';
 import { formatTime, formatFullDate } from '@/lib/utils';
 import {
   Clock,
   Plus,
   Trash2,
   Edit2,
-  CalendarOff,
   Calendar as CalendarIcon,
-  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+
+  CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -30,87 +28,64 @@ export const PriestAvailabilityPage: React.FC = () => {
   const priestId = user?.id === 'user-priest-1' ? 'priest-1' : user?.id || 'priest-1';
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
-  const [weeklyRules, setWeeklyRules] = useState<WeeklyAvailabilityRule[]>([]);
-  const [exceptions, setExceptions] = useState<AvailabilityException[]>([]);
-  const [previewSlots, setPreviewSlots] = useState<PriestSlot[]>([]);
+  const [slots, setSlots] = useState<PriestSlot[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
-  // Modals
-  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<WeeklyAvailabilityRule | null>(null);
-  const [ruleModalDay, setRuleModalDay] = useState<number>(1);
-  const [isExceptionModalOpen, setIsExceptionModalOpen] = useState(false);
+  // Modals state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<PriestSlot | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
-  const fetchScheduleData = async () => {
+
+
+  const fetchSlotsAndBookings = async () => {
     try {
-      const [rules, excs] = await Promise.all([
-        priestApi.getWeeklyAvailability(priestId),
-        priestApi.getAvailabilityExceptions(priestId),
+      setIsLoading(true);
+      const [slotData, bookingData] = await Promise.all([
+        priestApi.getPriestSlots(priestId),
+        bookingApi.getPriestBookings(priestId),
       ]);
-      setWeeklyRules(rules);
-      setExceptions(excs);
+      setSlots(slotData);
+      setBookings(bookingData);
     } catch {
-      toast.error('Failed to load availability schedule.');
+      toast.error('Failed to load availability slots.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchPreviewSlots = async (date: string) => {
-    setIsPreviewLoading(true);
-    try {
-      const slots = await priestApi.getAvailableSlotsForDate(priestId, date);
-      setPreviewSlots(slots);
-    } catch {
-      toast.error('Failed to calculate preview slots.');
-    } finally {
-      setIsPreviewLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchScheduleData();
+    fetchSlotsAndBookings();
   }, [priestId]);
 
-  useEffect(() => {
-    fetchPreviewSlots(selectedDate);
-  }, [selectedDate, priestId, weeklyRules, exceptions]);
-
-  // Weekly Rule Actions
-  const handleOpenAddRule = (dayOfWeek: number) => {
-    setEditingRule(null);
-    setRuleModalDay(dayOfWeek);
-    setIsRuleModalOpen(true);
-  };
-
-  const handleOpenEditRule = (rule: WeeklyAvailabilityRule) => {
-    setEditingRule(rule);
-    setRuleModalDay(rule.dayOfWeek);
-    setIsRuleModalOpen(true);
-  };
-
-  const handleSaveWeeklyRule = async (
-    data: Omit<WeeklyAvailabilityRule, 'id' | 'priestId' | 'createdAt'>
+  // Handle Save (Create or Update)
+  const handleSaveSlot = async (
+    data: { slotDate: string; startTime: string; endTime: string },
+    addAnother: boolean = false
   ): Promise<boolean> => {
     try {
-      if (editingRule) {
-        const res = await priestApi.updateWeeklyAvailabilityRule(editingRule.id, priestId, data);
+      if (editingSlot) {
+        const res = await priestApi.updateAvailabilitySlot(editingSlot.id, priestId, data);
         if (res.success) {
           toast.success(res.message);
-          fetchScheduleData();
+          await fetchSlotsAndBookings();
+          setEditingSlot(null);
           return true;
         } else {
           toast.error(res.message);
           return false;
         }
       } else {
-        const res = await priestApi.createWeeklyAvailabilityRule(priestId, data);
+        const res = await priestApi.createAvailabilitySlot(priestId, data);
         if (res.success) {
           toast.success(res.message);
-          fetchScheduleData();
+          await fetchSlotsAndBookings();
+          if (!addAnother) {
+            setIsAddModalOpen(false);
+          }
           return true;
         } else {
           toast.error(res.message);
@@ -118,379 +93,325 @@ export const PriestAvailabilityPage: React.FC = () => {
         }
       }
     } catch {
-      toast.error('An unexpected error occurred while saving schedule.');
+      toast.error('An unexpected error occurred while saving availability.');
       return false;
     }
   };
 
-  const handleDeleteWeeklyRule = async (ruleId: string) => {
+  // Handle Delete
+  const handleDeleteSlot = async (slot: PriestSlot) => {
+    if (slot.status === 'BOOKED') {
+      toast.error('Cannot delete a booked availability slot.');
+      return;
+    }
+
+    if (!window.confirm(`Delete availability slot for ${formatFullDate(slot.slotDate || slot.date || '')} (${formatTime(slot.startTime)} - ${formatTime(slot.endTime)})?`)) {
+      return;
+    }
+
     try {
-      const res = await priestApi.deleteWeeklyAvailabilityRule(ruleId, priestId);
+      const res = await priestApi.deleteAvailabilitySlot(slot.id, priestId);
       if (res.success) {
         toast.success(res.message);
-        fetchScheduleData();
+        fetchSlotsAndBookings();
       } else {
         toast.error(res.message);
       }
     } catch {
-      toast.error('Failed to remove schedule rule.');
+      toast.error('Failed to remove availability slot.');
     }
   };
 
-  // Exception Actions
-  const handleSaveException = async (
-    data: Omit<AvailabilityException, 'id' | 'priestId' | 'createdAt'>
-  ): Promise<boolean> => {
-    try {
-      const res = await priestApi.createAvailabilityException(priestId, data);
-      if (res.success) {
-        toast.success(res.message);
-        fetchScheduleData();
-        return true;
-      } else {
-        toast.error(res.message);
-        return false;
-      }
-    } catch {
-      toast.error('Failed to save date exception.');
-      return false;
+  // Handle View Booking
+  const handleViewBooking = (slot: PriestSlot) => {
+    const slotDate = slot.slotDate || slot.date;
+    const matchedBooking = bookings.find(
+      (b) =>
+        b.priestId === priestId &&
+        (b.slotId === slot.id || b.availabilitySlotId === slot.id ||
+          (b.bookingDate === slotDate && b.startTime === slot.startTime))
+    );
+
+    if (matchedBooking) {
+      setSelectedBooking(matchedBooking);
+      setIsBookingModalOpen(true);
+    } else {
+      toast.info('Booking details for this time slot are currently being processed.');
     }
   };
 
-  const handleDeleteException = async (exceptionId: string) => {
-    try {
-      const res = await priestApi.deleteAvailabilityException(exceptionId, priestId);
-      if (res.success) {
-        toast.success(res.message);
-        fetchScheduleData();
-      } else {
-        toast.error(res.message);
-      }
-    } catch {
-      toast.error('Failed to remove date exception.');
-    }
-  };
+  // Separate upcoming and past slots
+  const upcomingSlots = slots.filter((s) => (s.slotDate || s.date || '') >= todayStr);
+  const pastSlots = slots.filter((s) => (s.slotDate || s.date || '') < todayStr);
 
-  // Days order: Monday (1) through Sunday (0)
-  const orderedDays = [1, 2, 3, 4, 5, 6, 0];
+  // Group upcoming slots by date
+  const groupedUpcoming: Record<string, PriestSlot[]> = {};
+  upcomingSlots.forEach((slot) => {
+    const d = slot.slotDate || slot.date || '';
+    if (!groupedUpcoming[d]) {
+      groupedUpcoming[d] = [];
+    }
+    groupedUpcoming[d].push(slot);
+  });
+
+  // Group past slots by date
+  const groupedPast: Record<string, PriestSlot[]> = {};
+  pastSlots.forEach((slot) => {
+    const d = slot.slotDate || slot.date || '';
+    if (!groupedPast[d]) {
+      groupedPast[d] = [];
+    }
+    groupedPast[d].push(slot);
+  });
+
+  const upcomingDates = Object.keys(groupedUpcoming).sort();
+
+
+  // Metrics
+  const totalUpcomingCount = upcomingSlots.length;
+  const availableUpcomingCount = upcomingSlots.filter((s) => s.status === 'AVAILABLE').length;
+  const bookedUpcomingCount = upcomingSlots.filter((s) => s.status === 'BOOKED').length;
 
   return (
     <div className="space-y-8 max-w-5xl">
-      {/* Header */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-serif text-foreground flex items-center gap-2">
-            <Clock className="h-6 w-6 text-primary" />
-            <span>Availability Schedule</span>
+          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-foreground flex items-center gap-2.5">
+            <Clock className="h-7 w-7 text-primary shrink-0" />
+            <span>Availability Management</span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-1">
-            Define your recurring weekly hours once. Devotee booking slots are generated automatically.
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            Set your specific date & time availability for devotees to book auspicious ceremonies.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button
-            variant="outline"
-            onClick={() => setIsExceptionModalOpen(true)}
-            className="gap-1.5 text-xs h-9 w-full sm:w-auto"
-          >
-            <CalendarOff className="h-4 w-4" /> Add Date Exception
-          </Button>
-          <Button
-            onClick={() => handleOpenAddRule(1)}
-            className="gap-1.5 text-xs h-9 w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4" /> Add Working Hours
-          </Button>
-        </div>
+        <Button
+          onClick={() => {
+            setEditingSlot(null);
+            setIsAddModalOpen(true);
+          }}
+          className="gap-2 text-xs sm:text-sm h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shrink-0"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Add Availability</span>
+        </Button>
       </div>
 
-      {/* SECTION 1: WEEKLY RECURRING SCHEDULE */}
+      {/* Metrics Summary Banner */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="border-border/80 bg-card p-4 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              Total Upcoming
+            </span>
+            <CalendarDays className="h-4 w-4 text-muted-foreground/60" />
+          </div>
+          <div className="text-2xl font-bold font-serif text-foreground mt-1">
+            {totalUpcomingCount}
+          </div>
+        </Card>
+
+        <Card className="border-border/80 bg-card p-4 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+              Available Slots
+            </span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-bold font-serif text-emerald-600 dark:text-emerald-400 mt-1">
+            {availableUpcomingCount}
+          </div>
+        </Card>
+
+        <Card className="border-border/80 bg-card p-4 shadow-2xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-primary uppercase tracking-wider">
+              Booked Ceremonies
+            </span>
+            <Clock className="h-4 w-4 text-primary" />
+          </div>
+          <div className="text-2xl font-bold font-serif text-primary mt-1">
+            {bookedUpcomingCount}
+          </div>
+        </Card>
+      </div>
+
+      {/* SECTION 1: UPCOMING AVAILABILITY */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pb-1 border-b border-border/60">
           <div>
-            <h2 className="text-lg font-bold font-serif text-foreground">Weekly Recurring Schedule</h2>
+            <h2 className="text-lg font-bold font-serif text-foreground flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4 text-primary" />
+              <span>Upcoming Availability</span>
+            </h2>
             <p className="text-xs text-muted-foreground">
-              Configure regular appointment hours for each day of the week.
+              Dates and time windows currently open or reserved on your schedule.
             </p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-muted-foreground">Loading schedule rules...</div>
+          <div className="py-16 text-center text-xs text-muted-foreground">
+            Loading your availability calendar...
+          </div>
+        ) : upcomingDates.length === 0 ? (
+          <Card className="border-dashed border-border/80 p-10 text-center bg-card">
+            <div className="max-w-md mx-auto space-y-3">
+              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary mx-auto flex items-center justify-center">
+                <CalendarIcon className="h-6 w-6" />
+              </div>
+              <h3 className="font-serif font-bold text-base text-foreground">No Upcoming Availability Set</h3>
+              <p className="text-xs text-muted-foreground">
+                You haven't listed any availability slots yet. Add your available dates and hours so devotees can request bookings.
+              </p>
+              <Button
+                onClick={() => {
+                  setEditingSlot(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="gap-2 text-xs h-9 mt-2 bg-primary text-primary-foreground"
+              >
+                <Plus className="h-4 w-4" /> Add Your First Slot
+              </Button>
+            </div>
+          </Card>
         ) : (
-          <div className="space-y-3">
-            {orderedDays.map((dayIdx) => {
-              const dayName = DAYS_OF_WEEK[dayIdx];
-              const rulesForDay = weeklyRules.filter((r) => r.dayOfWeek === dayIdx && r.isActive);
-              const isAvailable = rulesForDay.length > 0;
+          <div className="space-y-6">
+            {upcomingDates.map((dateStr) => {
+              const daySlots = groupedUpcoming[dateStr];
+              const isToday = dateStr === todayStr;
 
               return (
-                <Card key={dayIdx} className="border-border/80 shadow-2xs overflow-hidden">
-                  <div className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    {/* Day Name & Status */}
-                    <div className="flex items-center gap-3 w-full sm:w-40 shrink-0 justify-between sm:justify-start">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`h-2.5 w-2.5 rounded-full ${
-                            isAvailable ? 'bg-emerald-500' : 'bg-muted-foreground/30'
-                          }`}
-                        />
-                        <div>
-                          <h3 className="font-semibold text-sm text-foreground font-serif">{dayName}</h3>
-                          <p className="text-[11px] text-muted-foreground">
-                            {isAvailable ? `${rulesForDay.length} time range(s)` : 'Not available'}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleOpenAddRule(dayIdx)}
-                        className="h-8 text-xs gap-1 hover:text-primary sm:hidden"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Add
-                      </Button>
-                    </div>
-
-                    {/* Time Ranges List */}
-                    <div className="flex-1 space-y-2 w-full">
-                      {isAvailable ? (
-                        <div className="flex flex-wrap gap-2">
-                          {rulesForDay.map((rule) => (
-                            <div
-                              key={rule.id}
-                              className="inline-flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 px-3 py-1.5 rounded-lg bg-muted/40 border border-border text-xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono font-semibold text-foreground">
-                                  {formatTime(rule.startTime)} – {formatTime(rule.endTime)}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground">
-                                  ({rule.slotDurationMinutes}m slots
-                                  {rule.bufferMinutes > 0 ? ` + ${rule.bufferMinutes}m rest` : ''})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-0.5 ml-1 border-l pl-1.5 border-border shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditRule(rule)}
-                                  className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                  title="Edit range"
-                                >
-                                  <Edit2 className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteWeeklyRule(rule.id)}
-                                  className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                                  title="Remove range"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/70 italic">
-                          No working hours configured for {dayName}.
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Desktop Action */}
-                    <div className="hidden sm:block shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleOpenAddRule(dayIdx)}
-                        className="h-8 text-xs gap-1 hover:text-primary"
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Add Range
-                      </Button>
-                    </div>
+                <div key={dateStr} className="space-y-3">
+                  {/* Date Heading */}
+                  <div className="flex items-center gap-2.5">
+                    <span className="h-2 w-2 rounded-full bg-primary" />
+                    <h3 className="text-sm font-bold font-serif text-foreground">
+                      {formatFullDate(dateStr)}
+                    </h3>
+                    {isToday && (
+                      <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                        Today
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      ({daySlots.length} {daySlots.length === 1 ? 'slot' : 'slots'})
+                    </span>
                   </div>
-                </Card>
+
+                  {/* Slots Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {daySlots.map((slot) => {
+                      const isAvailable = slot.status === 'AVAILABLE';
+
+                      return (
+                        <Card
+                          key={slot.id}
+                          className={`border transition-all shadow-2xs ${isAvailable
+                            ? 'bg-card border-border hover:border-emerald-500/40'
+                            : 'bg-primary/5 border-primary/30'
+                            }`}
+                        >
+                          <CardContent className="p-4 space-y-3">
+                            {/* Time & Status Row */}
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <div className="font-mono text-sm font-bold text-foreground">
+                                  {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                                </div>
+                                <span className="text-[11px] text-muted-foreground block mt-0.5">
+                                  Puja Window
+                                </span>
+                              </div>
+
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] uppercase font-semibold tracking-wider px-2 py-0.5 ${isAvailable
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                  : 'bg-primary/15 text-primary border-primary/40'
+                                  }`}
+                              >
+                                {isAvailable ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    AVAILABLE
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1.5">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                    BOOKED
+                                  </span>
+                                )}
+                              </Badge>
+                            </div>
+
+                            {/* Card Footer Actions */}
+                            <div className="pt-2 border-t border-border/50 flex items-center justify-end gap-2">
+                              {isAvailable ? (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => {
+                                      setEditingSlot(slot);
+                                      setIsAddModalOpen(true);
+                                    }}
+                                    className="h-7 px-2.5 text-xs text-muted-foreground hover:text-primary gap-1"
+                                  >
+                                    <Edit2 className="h-3 w-3" /> Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleDeleteSlot(slot)}
+                                    className="h-7 px-2.5 text-xs text-muted-foreground hover:text-destructive gap-1"
+                                  >
+                                    <Trash2 className="h-3 w-3" /> Delete
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleViewBooking(slot)}
+                                  className="h-7 px-3 text-xs gap-1.5 bg-background border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> View Booking
+                                </Button>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </div>
         )}
       </div>
 
-      {/* SECTION 2: DAYS OFF & DATE EXCEPTIONS */}
-      <div className="space-y-4 pt-2">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-bold font-serif text-foreground">Days Off & Special Dates</h2>
-            <p className="text-xs text-muted-foreground">
-              Exceptions override your weekly schedule for specific dates (festivals, travel, or custom muhurats).
-            </p>
-          </div>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsExceptionModalOpen(true)}
-            className="h-9 sm:h-8 text-xs gap-1.5 w-full sm:w-auto"
-          >
-            <Plus className="h-3.5 w-3.5" /> Block Date / Exception
-          </Button>
-        </div>
-
-        {exceptions.length === 0 ? (
-          <Card className="border-dashed border-border/80 p-6 text-center">
-            <p className="text-xs text-muted-foreground">
-              No date exceptions active. Your weekly schedule applies on all upcoming calendar dates.
-            </p>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {exceptions.map((exc) => (
-              <Card key={exc.id} className="border-border/80 shadow-2xs">
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-foreground">
-                        {formatFullDate(exc.date)}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] ${
-                          exc.type === 'BLOCKED'
-                            ? 'bg-destructive/10 text-destructive border-destructive/30'
-                            : 'bg-primary/10 text-primary border-primary/30'
-                        }`}
-                      >
-                        {exc.type === 'BLOCKED' ? 'Blocked (Day Off)' : 'Custom Hours'}
-                      </Badge>
-                    </div>
-                    {exc.reason && (
-                      <p className="text-[11px] text-muted-foreground truncate">{exc.reason}</p>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteException(exc.id)}
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive shrink-0"
-                    title="Remove exception"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* SECTION 3: LIVE AVAILABILITY PREVIEW */}
-      <Card className="border-border/80 shadow-xs">
-        <CardHeader className="pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-base font-serif flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4 text-primary" />
-              <span>Live Availability Preview</span>
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Select any date to see the exact bookable slots devotees will see on your profile.
-            </CardDescription>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-muted-foreground">Inspect Date:</span>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="text-xs h-8 bg-card border-border w-38"
-            />
-          </div>
-        </CardHeader>
-
-        <CardContent className="p-4 sm:p-6">
-          <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border/50">
-            <h4 className="text-xs font-semibold text-foreground font-serif">
-              Slots for {formatFullDate(selectedDate)}
-            </h4>
-            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-[11px] text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-md font-medium">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Available
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-2 py-0.5 rounded-md font-medium">
-                <span className="h-2 w-2 rounded-full bg-primary" /> Booked
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-destructive/10 text-destructive px-2 py-0.5 rounded-md font-medium">
-                <span className="h-2 w-2 rounded-full bg-destructive" /> Blocked
-              </span>
-            </div>
-          </div>
-
-          {isPreviewLoading ? (
-            <div className="py-8 text-center text-xs text-muted-foreground">Calculating slots...</div>
-          ) : previewSlots.length === 0 ? (
-            <div className="py-8 text-center space-y-2">
-              <AlertCircle className="h-6 w-6 mx-auto text-muted-foreground/40" />
-              <p className="text-xs text-muted-foreground">
-                No slots available on this date according to your weekly schedule.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {previewSlots.map((slot) => {
-                const isAvail = slot.status === 'AVAILABLE';
-                const isBooked = slot.status === 'BOOKED';
-
-                return (
-                  <div
-                    key={slot.id}
-                    className={`p-3 rounded-xl border text-center transition-all ${
-                      isAvail
-                        ? 'bg-emerald-500/5 border-emerald-500/30'
-                        : isBooked
-                        ? 'bg-primary/5 border-primary/30'
-                        : 'bg-muted/40 border-border text-muted-foreground'
-                    }`}
-                  >
-                    <div className="font-mono font-bold text-xs text-foreground">
-                      {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-[9px] mt-1.5 py-0 ${
-                        isAvail
-                          ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                          : isBooked
-                          ? 'bg-primary/10 text-primary border-primary/20'
-                          : 'bg-muted text-muted-foreground border-border'
-                      }`}
-                    >
-                      {slot.status}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Modals */}
-      <AddWeeklyRuleModal
-        isOpen={isRuleModalOpen}
-        onClose={() => setIsRuleModalOpen(false)}
-        onSave={handleSaveWeeklyRule}
-        editingRule={editingRule}
-        initialDay={ruleModalDay}
+      {/* Add / Edit Slot Modal */}
+      <AddSlotModal
+        isOpen={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEditingSlot(null);
+        }}
+        onSave={handleSaveSlot}
+        editingSlot={editingSlot}
       />
 
-      <AddExceptionModal
-        isOpen={isExceptionModalOpen}
-        onClose={() => setIsExceptionModalOpen(false)}
-        onSave={handleSaveException}
-        initialDate={selectedDate}
+      {/* Booking Details Modal */}
+      <PriestBookingDetailsDialog
+        isOpen={isBookingModalOpen}
+        onClose={() => {
+          setIsBookingModalOpen(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
       />
     </div>
   );

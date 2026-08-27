@@ -636,28 +636,44 @@ const SEED_EXCEPTIONS: AvailabilityException[] = [
 ];
 
 /**
- * Static Legacy Slots (used for pre-seeded past/pending booking references)
+ * Direct Date-Based Availability Slots (AVAILABILITY_SLOTS)
  */
 const SEED_SLOTS: PriestSlot[] = [
+  // Past slots (Priest 1)
   {
     id: 'slot-1',
     priestId: 'priest-1',
+    slotDate: '2026-08-10',
     date: '2026-08-10',
     startTime: '10:00',
     endTime: '12:00',
     status: 'BOOKED',
+    bookingId: 'booking-completed-1',
   },
   {
     id: 'slot-2',
     priestId: 'priest-1',
+    slotDate: '2026-08-18',
     date: '2026-08-18',
     startTime: '11:00',
     endTime: '14:00',
     status: 'AVAILABLE',
   },
   {
+    id: 'slot-past-1',
+    priestId: 'priest-1',
+    slotDate: '2026-08-20',
+    date: '2026-08-20',
+    startTime: '08:00',
+    endTime: '10:30',
+    status: 'AVAILABLE',
+  },
+
+  // Upcoming slots (Priest 1)
+  {
     id: 'slot-3',
     priestId: 'priest-1',
+    slotDate: '2026-09-02',
     date: '2026-09-02',
     startTime: '08:00',
     endTime: '11:00',
@@ -666,34 +682,125 @@ const SEED_SLOTS: PriestSlot[] = [
   {
     id: 'slot-pending-1',
     priestId: 'priest-1',
+    slotDate: '2026-09-05',
     date: '2026-09-05',
     startTime: '09:00',
     endTime: '12:00',
     status: 'BOOKED',
+    bookingId: 'booking-pending-1',
+  },
+  {
+    id: 'slot-p1-sep5-afternoon',
+    priestId: 'priest-1',
+    slotDate: '2026-09-05',
+    date: '2026-09-05',
+    startTime: '14:00',
+    endTime: '16:30',
+    status: 'AVAILABLE',
   },
   {
     id: 'slot-pending-2',
     priestId: 'priest-1',
+    slotDate: '2026-09-06',
     date: '2026-09-06',
     startTime: '07:00',
     endTime: '10:00',
     status: 'BOOKED',
+    bookingId: 'booking-pending-2',
+  },
+  {
+    id: 'slot-p1-sep6-midday',
+    priestId: 'priest-1',
+    slotDate: '2026-09-06',
+    date: '2026-09-06',
+    startTime: '11:00',
+    endTime: '13:00',
+    status: 'AVAILABLE',
   },
   {
     id: 'slot-pending-3',
     priestId: 'priest-1',
+    slotDate: '2026-09-08',
     date: '2026-09-08',
     startTime: '10:30',
     endTime: '13:30',
     status: 'BOOKED',
+    bookingId: 'booking-pending-3',
   },
+  {
+    id: 'slot-p1-sep10-morning',
+    priestId: 'priest-1',
+    slotDate: '2026-09-10',
+    date: '2026-09-10',
+    startTime: '10:00',
+    endTime: '12:00',
+    status: 'AVAILABLE',
+  },
+  {
+    id: 'slot-p1-sep10-afternoon',
+    priestId: 'priest-1',
+    slotDate: '2026-09-10',
+    date: '2026-09-10',
+    startTime: '14:00',
+    endTime: '16:00',
+    status: 'AVAILABLE',
+  },
+  {
+    id: 'slot-p1-sep11-afternoon',
+    priestId: 'priest-1',
+    slotDate: '2026-09-11',
+    date: '2026-09-11',
+    startTime: '14:00',
+    endTime: '16:00',
+    status: 'AVAILABLE',
+  },
+  {
+    id: 'slot-p1-sep12-morning',
+    priestId: 'priest-1',
+    slotDate: '2026-09-12',
+    date: '2026-09-12',
+    startTime: '09:00',
+    endTime: '11:00',
+    status: 'AVAILABLE',
+  },
+
+  // Priest 2 (Acharya Vidyadhar Bhatt)
   {
     id: 'slot-pending-p2',
     priestId: 'priest-2',
+    slotDate: '2026-09-04',
     date: '2026-09-04',
     startTime: '08:30',
     endTime: '11:30',
     status: 'BOOKED',
+    bookingId: 'booking-pending-p2',
+  },
+  {
+    id: 'slot-p2-sep4-afternoon',
+    priestId: 'priest-2',
+    slotDate: '2026-09-04',
+    date: '2026-09-04',
+    startTime: '14:00',
+    endTime: '17:00',
+    status: 'AVAILABLE',
+  },
+  {
+    id: 'slot-p2-sep10-morning',
+    priestId: 'priest-2',
+    slotDate: '2026-09-10',
+    date: '2026-09-10',
+    startTime: '08:00',
+    endTime: '11:00',
+    status: 'AVAILABLE',
+  },
+  {
+    id: 'slot-p2-sep12-morning',
+    priestId: 'priest-2',
+    slotDate: '2026-09-12',
+    date: '2026-09-12',
+    startTime: '10:00',
+    endTime: '13:00',
+    status: 'AVAILABLE',
   },
 ];
 
@@ -1033,7 +1140,18 @@ export function validateMockDbIntegrity(): { isValid: boolean; errors: string[] 
     }
   }
 
-  // 5. Verify Ratings
+  // 5. Verify Availability Slots
+  for (const slot of mockDb.availabilitySlots) {
+    if (!priestIds.has(slot.priestId)) {
+      errors.push(`Slot ${slot.id} references non-existent priestId ${slot.priestId}`);
+    }
+    const slotDate = slot.slotDate || slot.date;
+    if (!slotDate || !/^\d{4}-\d{2}-\d{2}$/.test(slotDate)) {
+      errors.push(`Slot ${slot.id} has invalid slotDate ${slotDate}`);
+    }
+  }
+
+  // 6. Verify Ratings
   for (const rating of mockDb.ratings) {
     if (!bookingIds.has(rating.bookingId)) {
       errors.push(`Rating ${rating.id} references non-existent bookingId ${rating.bookingId}`);

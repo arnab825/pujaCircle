@@ -81,11 +81,21 @@ export const availabilityExceptionSchema = z
   })
   .strict();
 
-export const availabilitySlotSchema = z
+export const createAvailabilitySlotSchema = z
   .object({
-    date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid date required (YYYY-MM-DD)'),
-    startTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Valid start time required (HH:MM)'),
-    endTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Valid end time required (HH:MM)'),
+    slotDate: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Valid date required (YYYY-MM-DD)'),
+    date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    startTime: z
+      .string()
+      .trim()
+      .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Valid start time required (HH:MM format, 00:00 to 23:59)'),
+    endTime: z
+      .string()
+      .trim()
+      .regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Valid end time required (HH:MM format, 00:00 to 23:59)'),
   })
   .strict()
   .refine(
@@ -95,13 +105,24 @@ export const availabilitySlotSchema = z
       const startTotal = startHour * 60 + startMin;
       const endTotal = endHour * 60 + endMin;
       const duration = endTotal - startTotal;
-      return duration >= 30 && duration <= 720;
+      return duration >= 30;
     },
     {
       message: 'End time must be at least 30 minutes after start time',
       path: ['endTime'],
     }
   );
+
+export const updateAvailabilitySlotSchema = z
+  .object({
+    slotDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    startTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+    endTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)$/).optional(),
+  })
+  .strict();
+
+export const availabilitySlotSchema = createAvailabilitySlotSchema;
 
 export const updatePriestProfileSchema = z
   .object({

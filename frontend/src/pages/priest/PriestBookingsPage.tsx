@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-type TabFilter = "ALL" | "PENDING" | "CONFIRMED" | "COMPLETED" | "HISTORY";
+type TabFilter = "PENDING" | "CONFIRMED" | "COMPLETED" | "HISTORY";
 
 export const PriestBookingsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -27,7 +27,7 @@ export const PriestBookingsPage: React.FC = () => {
     user?.id === "user-priest-1" ? "priest-1" : user?.id || "priest-1";
 
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [activeTab, setActiveTab] = useState<TabFilter>("ALL");
+  const [activeTab, setActiveTab] = useState<TabFilter>("PENDING");
   const [searchQuery, setSearchQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -123,7 +123,7 @@ export const PriestBookingsPage: React.FC = () => {
 
   // Calculate status counts for tab badges
   const counts = {
-    all: bookings.length,
+
     pending: bookings.filter((b) => b.status === "PENDING").length,
     confirmed: bookings.filter((b) => b.status === "CONFIRMED").length,
     completed: bookings.filter((b) => b.status === "COMPLETED").length,
@@ -163,16 +163,6 @@ export const PriestBookingsPage: React.FC = () => {
             onValueChange={(val) => setActiveTab(val as TabFilter)}
           >
             <TabsList className="inline-flex h-10 items-center justify-start rounded-xl bg-muted/60 p-1 text-muted-foreground border border-border/80 min-w-max gap-1">
-              <TabsTrigger
-                value="ALL"
-                className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"
-              >
-                <span>All</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
-                  {counts.all}
-                </span>
-              </TabsTrigger>
-
               <TabsTrigger
                 value="PENDING"
                 className="text-xs px-3 py-1.5 h-8 gap-1.5 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium"

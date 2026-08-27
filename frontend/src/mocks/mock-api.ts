@@ -15,8 +15,6 @@ import {
   PriestSlot,
   Ritual,
   PriestService,
-  WeeklyAvailabilityRule,
-  AvailabilityException,
 } from '@/types/priest.types';
 import {
   Address,
@@ -30,7 +28,7 @@ import {
   SubmitRatingRequest,
   Rating,
 } from '@/types/booking.types';
-import { slotsOverlap, calculateSlotDuration } from '@/lib/utils';
+import { slotsOverlap } from '@/lib/utils';
 import {
   phoneLoginSchema,
   adminLoginSchema,
@@ -52,10 +50,7 @@ import {
 } from '@/schemas/booking.schema';
 import {
   priestServiceSchema,
-  baseWeeklyAvailabilityRuleSchema,
-  weeklyAvailabilityRuleSchema,
-  availabilityExceptionSchema,
-  availabilitySlotSchema,
+  createAvailabilitySlotSchema,
   updatePriestProfileSchema,
 } from '@/schemas/priest.schema';
 import { updateUserProfileSchema } from '@/schemas/user.schema';
@@ -776,382 +771,263 @@ export async function mockGetRituals(): Promise<{ success: boolean; data: Ritual
   return { success: true, data: deepClone(mockDb.rituals) };
 }
 
+
 // ============================================================================
-// 4. RECURRING PRIEST AVAILABILITY & EXCEPTION ENGINE
+// 4. DIRECT DATE-BASED AVAILABILITY SLOTS MOCK API
 // ============================================================================
 
-export async function mockGetWeeklyAvailability(
-  priestId: string
-): Promise<{ success: boolean; data: WeeklyAvailabilityRule[] }> {
-  await delay(250);
-  const rules = mockDb.weeklyAvailabilityRules.filter((r) => r.priestId === priestId);
-  return { success: true, data: deepClone(rules) };
-}
-
-export async function mockCreateWeeklyAvailabilityRule(
+export async function mockGetPriestSlots(
   priestId: string,
-  payload: Omit<WeeklyAvailabilityRule, 'id' | 'priestId' | 'createdAt'>
-): Promise<{ success: boolean; data?: WeeklyAvailabilityRule; message: string }> {
-  await delay(300);
-
-  const parseResult = weeklyAvailabilityRuleSchema.safeParse(payload);
-  if (!parseResult.success) {
-    return {
-      success: false,
-      message: parseResult.error.errors[0]?.message || 'Invalid weekly schedule rule format.',
-    };
-  }
-
-  const validated = parseResult.data;
-
-  const priest = mockDb.priests.find((p) => p.id === priestId);
-  if (!priest) return { success: false, message: 'Priest not found.' };
-  if (priest.accountStatus === 'BANNED') {
-    return { success: false, message: 'Banned priest accounts cannot manage availability.' };
-  }
-
-  // Validate time range
-  const duration = calculateSlotDuration(validated.startTime, validated.endTime);
-  if (duration < validated.slotDurationMinutes) {
-    return {
-      success: false,
-      message: `Time range must fit at least one ${validated.slotDurationMinutes}-minute slot.`,
-    };
-  }
-
-  // Check for overlap with existing rules on the same weekday
-  const existingRules = mockDb.weeklyAvailabilityRules.filter(
-    (r) => r.priestId === priestId && r.dayOfWeek === validated.dayOfWeek && r.isActive
-  );
-
-  for (const existing of existingRules) {
-    if (slotsOverlap(existing, validated)) {
-      return {
-        success: false,
-        message: `This time range overlaps with an existing schedule on this day (${existing.startTime} - ${existing.endTime}).`,
-      };
-    }
-  }
-
-  const newRule: WeeklyAvailabilityRule = {
-    id: `rule-${Date.now()}`,
-    priestId,
-    dayOfWeek: validated.dayOfWeek,
-    startTime: validated.startTime,
-    endTime: validated.endTime,
-    slotDurationMinutes: validated.slotDurationMinutes || 60,
-    bufferMinutes: validated.bufferMinutes || 0,
-    isActive: validated.isActive ?? true,
-    createdAt: new Date().toISOString(),
-  };
-
-  mockDb.weeklyAvailabilityRules.push(newRule);
-  return { success: true, data: deepClone(newRule), message: 'Weekly schedule rule created!' };
-}
-
-export async function mockUpdateWeeklyAvailabilityRule(
-  ruleId: string,
-  priestId: string,
-  payload: Partial<WeeklyAvailabilityRule>
-): Promise<{ success: boolean; data?: WeeklyAvailabilityRule; message: string }> {
-  await delay(300);
-  const rule = mockDb.weeklyAvailabilityRules.find((r) => r.id === ruleId);
-  if (!rule) return { success: false, message: 'Schedule rule not found.' };
-  if (rule.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
-
-  const parseResult = baseWeeklyAvailabilityRuleSchema.partial().safeParse(payload);
-  if (!parseResult.success) {
-    return {
-      success: false,
-      message: parseResult.error.errors[0]?.message || 'Invalid rule update format.',
-    };
-  }
-
-  const validated = parseResult.data;
-
-  const targetStart = validated.startTime || rule.startTime;
-  const targetEnd = validated.endTime || rule.endTime;
-  const targetDay = validated.dayOfWeek !== undefined ? validated.dayOfWeek : rule.dayOfWeek;
-  const targetDuration = validated.slotDurationMinutes || rule.slotDurationMinutes;
-
-  if (calculateSlotDuration(targetStart, targetEnd) < targetDuration) {
-    return { success: false, message: 'Time range must fit at least one slot duration.' };
-  }
-
-  // Check overlap with OTHER rules on the same day
-  const otherRules = mockDb.weeklyAvailabilityRules.filter(
-    (r) => r.id !== ruleId && r.priestId === priestId && r.dayOfWeek === targetDay && r.isActive
-  );
-
-  for (const other of otherRules) {
-    if (slotsOverlap(other, { startTime: targetStart, endTime: targetEnd })) {
-      return {
-        success: false,
-        message: `Updated time overlaps with another schedule on this day (${other.startTime} - ${other.endTime}).`,
-      };
-    }
-  }
-
-  if (validated.dayOfWeek !== undefined) rule.dayOfWeek = validated.dayOfWeek;
-  if (validated.startTime !== undefined) rule.startTime = validated.startTime;
-  if (validated.endTime !== undefined) rule.endTime = validated.endTime;
-  if (validated.slotDurationMinutes !== undefined) rule.slotDurationMinutes = validated.slotDurationMinutes;
-  if (validated.bufferMinutes !== undefined) rule.bufferMinutes = validated.bufferMinutes;
-  if (validated.isActive !== undefined) rule.isActive = validated.isActive;
-  rule.updatedAt = new Date().toISOString();
-
-  return { success: true, data: deepClone(rule), message: 'Schedule rule updated successfully.' };
-}
-
-export async function mockDeleteWeeklyAvailabilityRule(
-  ruleId: string,
-  priestId: string
-): Promise<{ success: boolean; message: string }> {
-  await delay(250);
-  const idx = mockDb.weeklyAvailabilityRules.findIndex((r) => r.id === ruleId && r.priestId === priestId);
-  if (idx === -1) return { success: false, message: 'Schedule rule not found or unauthorized.' };
-
-  mockDb.weeklyAvailabilityRules.splice(idx, 1);
-  return { success: true, message: 'Schedule rule removed successfully.' };
-}
-
-export async function mockGetAvailabilityExceptions(
-  priestId: string
-): Promise<{ success: boolean; data: AvailabilityException[] }> {
+  date?: string
+): Promise<{ success: boolean; data: PriestSlot[] }> {
   await delay(200);
-  const exceptions = mockDb.availabilityExceptions.filter((e) => e.priestId === priestId);
-  return { success: true, data: deepClone(exceptions) };
-}
-
-export async function mockCreateAvailabilityException(
-  priestId: string,
-  payload: Omit<AvailabilityException, 'id' | 'priestId' | 'createdAt'>
-): Promise<{ success: boolean; data?: AvailabilityException; message: string }> {
-  await delay(300);
-
-  const parseResult = availabilityExceptionSchema.safeParse(payload);
-  if (!parseResult.success) {
-    return {
-      success: false,
-      message: parseResult.error.errors[0]?.message || 'Invalid date exception format.',
-    };
+  let slots = mockDb.availabilitySlots.filter((s) => s.priestId === priestId);
+  if (date) {
+    slots = slots.filter((s) => (s.slotDate === date || s.date === date));
   }
-
-  const validated = parseResult.data;
-
-  // Replace any existing exception on that exact date
-  const existingIdx = mockDb.availabilityExceptions.findIndex(
-    (e) => e.priestId === priestId && e.date === validated.date
-  );
-
-  const newException: AvailabilityException = {
-    id: `exc-${Date.now()}`,
-    priestId,
-    date: validated.date,
-    type: validated.type,
-    reason: validated.reason,
-    customSlots: validated.customSlots,
-    createdAt: new Date().toISOString(),
-  };
-
-  if (existingIdx !== -1) {
-    mockDb.availabilityExceptions[existingIdx] = newException;
-  } else {
-    mockDb.availabilityExceptions.push(newException);
-  }
-
-  return {
-    success: true,
-    data: deepClone(newException),
-    message: `Date exception saved for ${validated.date}.`,
-  };
-}
-
-export async function mockDeleteAvailabilityException(
-  exceptionId: string,
-  priestId: string
-): Promise<{ success: boolean; message: string }> {
-  await delay(250);
-  const idx = mockDb.availabilityExceptions.findIndex((e) => e.id === exceptionId && e.priestId === priestId);
-  if (idx === -1) return { success: false, message: 'Date exception not found or unauthorized.' };
-
-  mockDb.availabilityExceptions.splice(idx, 1);
-  return { success: true, message: 'Date exception removed.' };
+  // Sort chronologically: date asc, startTime asc
+  slots.sort((a, b) => {
+    const dateA = a.slotDate || a.date || '';
+    const dateB = b.slotDate || b.date || '';
+    if (dateA !== dateB) return dateA.localeCompare(dateB);
+    return a.startTime.localeCompare(b.startTime);
+  });
+  return { success: true, data: deepClone(slots) };
 }
 
 export async function mockGetAvailableSlotsForDate(
   priestId: string,
   dateString: string
 ): Promise<{ success: boolean; data: PriestSlot[]; message?: string }> {
-  await delay(250);
+  await delay(200);
 
   const targetDate = new Date(dateString);
   if (isNaN(targetDate.getTime())) {
     return { success: false, data: [], message: 'Invalid calendar date.' };
   }
 
-  const dayOfWeek = targetDate.getDay(); // 0 = Sun, 1 = Mon...
-
-  // Check for Date Exception
-  const exception = mockDb.availabilityExceptions.find(
-    (e) => e.priestId === priestId && e.date === dateString
+  // Retrieve direct availability slots for this date
+  const slots = mockDb.availabilitySlots.filter(
+    (s) =>
+      s.priestId === priestId &&
+      (s.slotDate === dateString || s.date === dateString) &&
+      s.status === 'AVAILABLE'
   );
 
-  if (exception && exception.type === 'BLOCKED') {
-    return {
-      success: true,
-      data: [
-        {
-          id: `slot-blocked-${dateString}`,
-          priestId,
-          date: dateString,
-          startTime: '00:00',
-          endTime: '23:59',
-          status: 'BLOCKED',
-          isException: true,
-        },
-      ],
-      message: exception.reason || 'Priest is unavailable on this date.',
-    };
-  }
-
-  const generatedSlots: PriestSlot[] = [];
-
-  if (exception && exception.type === 'CUSTOM' && exception.customSlots) {
-    // Generate from custom slots
-    exception.customSlots.forEach((cs, i) => {
-      generatedSlots.push({
-        id: `slot-custom-${dateString}-${i}`,
-        priestId,
-        date: dateString,
-        startTime: cs.startTime,
-        endTime: cs.endTime,
-        status: 'AVAILABLE',
-        isException: true,
-      });
-    });
-  } else {
-    // Generate from weekly rules
-    const rules = mockDb.weeklyAvailabilityRules.filter(
-      (r) => r.priestId === priestId && r.dayOfWeek === dayOfWeek && r.isActive
-    );
-
-    for (const rule of rules) {
-      const [startH, startM] = rule.startTime.split(':').map(Number);
-      const [endH, endM] = rule.endTime.split(':').map(Number);
-
-      const startTotal = startH * 60 + startM;
-      const endTotal = endH * 60 + endM;
-      const step = rule.slotDurationMinutes + rule.bufferMinutes;
-
-      let current = startTotal;
-      let slotIdx = 0;
-
-      while (current + rule.slotDurationMinutes <= endTotal) {
-        const slotStartH = Math.floor(current / 60);
-        const slotStartM = current % 60;
-        const slotEndMinutes = current + rule.slotDurationMinutes;
-        const slotEndH = Math.floor(slotEndMinutes / 60);
-        const slotEndM = slotEndMinutes % 60;
-
-        const startTime = `${String(slotStartH).padStart(2, '0')}:${String(slotStartM).padStart(2, '0')}`;
-        const endTime = `${String(slotEndH).padStart(2, '0')}:${String(slotEndM).padStart(2, '0')}`;
-
-        generatedSlots.push({
-          id: `slot-gen-${rule.id}-${dateString}-${slotIdx}`,
-          priestId,
-          date: dateString,
-          startTime,
-          endTime,
-          status: 'AVAILABLE',
-          ruleId: rule.id,
-        });
-
-        current += step;
-        slotIdx++;
-      }
-    }
-  }
-
-  // Check active bookings on that date (PENDING or CONFIRMED)
+  // Cross-check against any active pending/confirmed bookings to prevent double-booking
   const activeBookings = mockDb.bookings.filter(
-    (b) => b.priestId === priestId && b.bookingDate === dateString && (b.status === 'PENDING' || b.status === 'CONFIRMED')
+    (b) =>
+      b.priestId === priestId &&
+      b.bookingDate === dateString &&
+      (b.status === 'PENDING' || b.status === 'CONFIRMED')
   );
 
-  for (const slot of generatedSlots) {
-    const isBooked = activeBookings.some((b) => slotsOverlap(slot, b));
-    if (isBooked) {
-      slot.status = 'BOOKED';
-    }
-  }
+  const filteredSlots = slots.filter((slot) => {
+    return !activeBookings.some((b) => slotsOverlap(slot, { startTime: b.startTime, endTime: b.endTime }));
+  });
 
-  // Also include any pre-seeded compatibility slots for that date
-  const staticSlots = mockDb.availabilitySlots.filter((s) => s.priestId === priestId && s.date === dateString);
-  for (const s of staticSlots) {
-    if (!generatedSlots.some((g) => g.startTime === s.startTime && g.endTime === s.endTime)) {
-      generatedSlots.push(deepClone(s));
-    }
-  }
+  filteredSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
 
-  // Sort chronologically
-  generatedSlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
-
-  return { success: true, data: generatedSlots };
+  return { success: true, data: deepClone(filteredSlots) };
 }
 
-// Backward compatibility slot methods for legacy callers
-export async function mockGetPriestSlots(priestId: string, date?: string): Promise<{ success: boolean; data: PriestSlot[] }> {
-  if (date) {
-    return mockGetAvailableSlotsForDate(priestId, date);
-  }
-  await delay(200);
-  const slots = mockDb.availabilitySlots.filter((s) => s.priestId === priestId);
-  return { success: true, data: deepClone(slots) };
-}
-
-export async function mockCreatePriestSlot(
+export async function mockCreateAvailabilitySlot(
   priestId: string,
-  data: { date: string; startTime: string; endTime: string }
+  data: { slotDate?: string; date?: string; startTime: string; endTime: string }
 ): Promise<{ success: boolean; data?: PriestSlot; message: string }> {
   await delay(250);
 
-  const parseResult = availabilitySlotSchema.safeParse(data);
+  const parseResult = createAvailabilitySlotSchema.safeParse({
+    slotDate: data.slotDate || data.date,
+    date: data.slotDate || data.date,
+    startTime: data.startTime,
+    endTime: data.endTime,
+  });
+
   if (!parseResult.success) {
     return {
       success: false,
-      message: parseResult.error.errors[0]?.message || 'Invalid slot timing format.',
+      message: parseResult.error.errors[0]?.message || 'Invalid slot timing or date format.',
     };
   }
 
   const valid = parseResult.data;
+  const targetDate = valid.slotDate;
+
+  // Validate date is not in the past
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (targetDate < todayStr) {
+    return {
+      success: false,
+      message: 'Please select a future date.',
+    };
+  }
+
+  // Prevent overlapping slots for same priest on same date
+  const existingOnDate = mockDb.availabilitySlots.filter(
+    (s) => s.priestId === priestId && (s.slotDate === targetDate || s.date === targetDate)
+  );
+
+  for (const existing of existingOnDate) {
+    if (slotsOverlap(existing, { startTime: valid.startTime, endTime: valid.endTime })) {
+      return {
+        success: false,
+        message: 'This time overlaps with an existing availability slot.',
+      };
+    }
+  }
+
   const newSlot: PriestSlot = {
-    id: `slot-${Date.now()}`,
+    id: `slot-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     priestId,
-    date: valid.date,
+    slotDate: targetDate,
+    date: targetDate,
     startTime: valid.startTime,
     endTime: valid.endTime,
     status: 'AVAILABLE',
+    createdAt: new Date().toISOString(),
   };
-  mockDb.availabilitySlots.unshift(newSlot);
-  return { success: true, data: newSlot, message: 'Slot created successfully.' };
+
+  mockDb.availabilitySlots.push(newSlot);
+
+  return {
+    success: true,
+    data: deepClone(newSlot),
+    message: 'Availability slot added successfully.',
+  };
 }
 
-export async function mockDeleteSlot(slotId: string, priestId: string): Promise<{ success: boolean; message: string }> {
-  await delay(200);
-  const idx = mockDb.availabilitySlots.findIndex((s) => s.id === slotId && s.priestId === priestId);
-  if (idx !== -1) mockDb.availabilitySlots.splice(idx, 1);
-  return { success: true, message: 'Slot removed.' };
+export async function mockUpdateAvailabilitySlot(
+  slotId: string,
+  priestId: string,
+  payload: { slotDate?: string; date?: string; startTime?: string; endTime?: string }
+): Promise<{ success: boolean; data?: PriestSlot; message: string }> {
+  await delay(250);
+
+  const slot = mockDb.availabilitySlots.find((s) => s.id === slotId);
+  if (!slot) return { success: false, message: 'Availability slot not found.' };
+  if (slot.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
+
+  if (slot.status === 'BOOKED') {
+    return {
+      success: false,
+      message: 'Cannot edit a booked slot. Devotee booking is confirmed or pending.',
+    };
+  }
+
+  const targetDate: string = payload.slotDate || payload.date || slot.slotDate || slot.date || '';
+  const targetStart = payload.startTime || slot.startTime;
+  const targetEnd = payload.endTime || slot.endTime;
+
+  const [startH, startM] = targetStart.split(':').map(Number);
+  const [endH, endM] = targetEnd.split(':').map(Number);
+  if (endH * 60 + endM - (startH * 60 + startM) < 30) {
+    return {
+      success: false,
+      message: 'End time must be at least 30 minutes after start time.',
+    };
+  }
+
+  // Check overlap with other slots on the same date
+  const otherSlots = mockDb.availabilitySlots.filter(
+    (s) =>
+      s.id !== slotId &&
+      s.priestId === priestId &&
+      (s.slotDate === targetDate || s.date === targetDate)
+  );
+
+  for (const other of otherSlots) {
+    if (slotsOverlap(other, { startTime: targetStart, endTime: targetEnd })) {
+      return {
+        success: false,
+        message: 'This time overlaps with an existing availability slot.',
+      };
+    }
+  }
+
+  slot.slotDate = targetDate;
+  slot.date = targetDate;
+  slot.startTime = targetStart;
+  slot.endTime = targetEnd;
+  slot.updatedAt = new Date().toISOString();
+
+  return {
+    success: true,
+    data: deepClone(slot),
+    message: 'Availability slot updated successfully.',
+  };
 }
 
-export async function mockToggleSlotStatus(
+export async function mockDeleteAvailabilitySlot(
+  slotId: string,
+  priestId: string
+): Promise<{ success: boolean; message: string }> {
+  await delay(250);
+
+  const idx = mockDb.availabilitySlots.findIndex((s) => s.id === slotId);
+  if (idx === -1) return { success: false, message: 'Availability slot not found.' };
+
+  const slot = mockDb.availabilitySlots[idx];
+  if (slot.priestId !== priestId) return { success: false, message: 'Unauthorized.' };
+
+  if (slot.status === 'BOOKED') {
+    return {
+      success: false,
+      message: 'Cannot delete a booked availability slot.',
+    };
+  }
+
+  mockDb.availabilitySlots.splice(idx, 1);
+  return { success: true, message: 'Availability slot removed.' };
+}
+
+// Aliases and legacy backward-compat wrappers
+export const mockCreatePriestSlot = mockCreateAvailabilitySlot;
+export const mockDeleteSlot = mockDeleteAvailabilitySlot;
+export const mockToggleSlotStatus = async (
   slotId: string,
   priestId: string,
   newStatus: 'AVAILABLE' | 'BLOCKED'
-): Promise<{ success: boolean; message: string }> {
-  await delay(200);
+) => {
   const slot = mockDb.availabilitySlots.find((s) => s.id === slotId && s.priestId === priestId);
-  if (slot) slot.status = newStatus;
+  if (!slot) return { success: false, message: 'Slot not found.' };
+  if (slot.status === 'BOOKED') return { success: false, message: 'Cannot modify booked slot.' };
+  slot.status = newStatus;
   return { success: true, message: `Slot status updated to ${newStatus}.` };
+};
+
+// Stubs for legacy weekly rules & exceptions
+export async function mockGetWeeklyAvailability(priestId: string) {
+  return { success: true, data: mockDb.weeklyAvailabilityRules.filter((r) => r.priestId === priestId) };
+}
+export async function mockCreateWeeklyAvailabilityRule(priestId: string, payload: any) {
+  const rule = { id: `rule-${Date.now()}`, priestId, ...payload, createdAt: new Date().toISOString() };
+  mockDb.weeklyAvailabilityRules.push(rule);
+  return { success: true, data: rule, message: 'Schedule rule saved.' };
+}
+export async function mockUpdateWeeklyAvailabilityRule(ruleId: string, priestId: string, payload: any) {
+  const rule = mockDb.weeklyAvailabilityRules.find((r) => r.id === ruleId && r.priestId === priestId);
+  if (!rule) return { success: false, message: 'Rule not found.' };
+  Object.assign(rule, payload, { updatedAt: new Date().toISOString() });
+  return { success: true, data: rule, message: 'Rule updated.' };
+}
+export async function mockDeleteWeeklyAvailabilityRule(ruleId: string, priestId: string) {
+  const idx = mockDb.weeklyAvailabilityRules.findIndex((r) => r.id === ruleId && r.priestId === priestId);
+  if (idx !== -1) mockDb.weeklyAvailabilityRules.splice(idx, 1);
+  return { success: true, message: 'Rule deleted.' };
+}
+export async function mockGetAvailabilityExceptions(priestId: string) {
+  return { success: true, data: mockDb.availabilityExceptions.filter((e) => e.priestId === priestId) };
+}
+export async function mockCreateAvailabilityException(priestId: string, payload: any) {
+  const exc = { id: `exc-${Date.now()}`, priestId, ...payload, createdAt: new Date().toISOString() };
+  mockDb.availabilityExceptions.push(exc);
+  return { success: true, data: exc, message: 'Exception saved.' };
+}
+export async function mockDeleteAvailabilityException(exceptionId: string, priestId: string) {
+  const idx = mockDb.availabilityExceptions.findIndex((e) => e.id === exceptionId && e.priestId === priestId);
+  if (idx !== -1) mockDb.availabilityExceptions.splice(idx, 1);
+  return { success: true, message: 'Exception removed.' };
 }
 
 // ============================================================================

@@ -5,8 +5,6 @@ import {
   PriestSlot,
   Ritual,
   PriestService,
-  WeeklyAvailabilityRule,
-  AvailabilityException,
 } from '@/types/priest.types';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
@@ -107,99 +105,17 @@ export const priestApi = {
     }
   },
 
-  // Recurring Weekly Availability Schedules
-  getWeeklyAvailability: async (priestId: string): Promise<WeeklyAvailabilityRule[]> => {
+  // Direct Date-Based Availability Slots
+  getPriestSlots: async (priestId: string, date?: string): Promise<PriestSlot[]> => {
     try {
-      const res = await mockApi.mockGetWeeklyAvailability(priestId);
+      const res = await mockApi.mockGetPriestSlots(priestId, date);
       return res.data || [];
     } catch (error) {
-      logAppError('priestApi.getWeeklyAvailability', error, { priestId });
+      logAppError('priestApi.getPriestSlots', error, { priestId, date });
       return [];
     }
   },
 
-  createWeeklyAvailabilityRule: async (
-    priestId: string,
-    payload: Omit<WeeklyAvailabilityRule, 'id' | 'priestId' | 'createdAt'>
-  ) => {
-    try {
-      return await mockApi.mockCreateWeeklyAvailabilityRule(priestId, payload);
-    } catch (error) {
-      logAppError('priestApi.createWeeklyAvailabilityRule', error, { priestId, payload });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to save working hours.'),
-      };
-    }
-  },
-
-  updateWeeklyAvailabilityRule: async (
-    ruleId: string,
-    priestId: string,
-    payload: Partial<WeeklyAvailabilityRule>
-  ) => {
-    try {
-      return await mockApi.mockUpdateWeeklyAvailabilityRule(ruleId, priestId, payload);
-    } catch (error) {
-      logAppError('priestApi.updateWeeklyAvailabilityRule', error, { ruleId, priestId });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to update schedule rule.'),
-      };
-    }
-  },
-
-  deleteWeeklyAvailabilityRule: async (ruleId: string, priestId: string) => {
-    try {
-      return await mockApi.mockDeleteWeeklyAvailabilityRule(ruleId, priestId);
-    } catch (error) {
-      logAppError('priestApi.deleteWeeklyAvailabilityRule', error, { ruleId, priestId });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to remove schedule rule.'),
-      };
-    }
-  },
-
-  // Date Exceptions (Days off / Blocked / Custom)
-  getAvailabilityExceptions: async (priestId: string): Promise<AvailabilityException[]> => {
-    try {
-      const res = await mockApi.mockGetAvailabilityExceptions(priestId);
-      return res.data || [];
-    } catch (error) {
-      logAppError('priestApi.getAvailabilityExceptions', error, { priestId });
-      return [];
-    }
-  },
-
-  createAvailabilityException: async (
-    priestId: string,
-    payload: Omit<AvailabilityException, 'id' | 'priestId' | 'createdAt'>
-  ) => {
-    try {
-      return await mockApi.mockCreateAvailabilityException(priestId, payload);
-    } catch (error) {
-      logAppError('priestApi.createAvailabilityException', error, { priestId, payload });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to save date exception.'),
-      };
-    }
-  },
-
-  deleteAvailabilityException: async (exceptionId: string, priestId: string) => {
-    try {
-      return await mockApi.mockDeleteAvailabilityException(exceptionId, priestId);
-    } catch (error) {
-      logAppError('priestApi.deleteAvailabilityException', error, { exceptionId, priestId });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to remove date exception.'),
-      };
-    }
-  },
-
-  // Calculated Generated Slots for Date
   getAvailableSlotsForDate: async (priestId: string, date: string): Promise<PriestSlot[]> => {
     try {
       const res = await mockApi.mockGetAvailableSlotsForDate(priestId, date);
@@ -210,14 +126,52 @@ export const priestApi = {
     }
   },
 
-  getPriestSlots: async (priestId: string, date?: string): Promise<PriestSlot[]> => {
+  createAvailabilitySlot: async (
+    priestId: string,
+    payload: { slotDate?: string; date?: string; startTime: string; endTime: string }
+  ) => {
     try {
-      const res = await mockApi.mockGetPriestSlots(priestId, date);
-      return res.data || [];
+      return await mockApi.mockCreateAvailabilitySlot(priestId, payload);
     } catch (error) {
-      logAppError('priestApi.getPriestSlots', error, { priestId, date });
-      return [];
+      logAppError('priestApi.createAvailabilitySlot', error, { priestId, payload });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to create availability slot.'),
+      };
     }
+  },
+
+  updateAvailabilitySlot: async (
+    slotId: string,
+    priestId: string,
+    payload: { slotDate?: string; date?: string; startTime?: string; endTime?: string }
+  ) => {
+    try {
+      return await mockApi.mockUpdateAvailabilitySlot(slotId, priestId, payload);
+    } catch (error) {
+      logAppError('priestApi.updateAvailabilitySlot', error, { slotId, priestId, payload });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to update availability slot.'),
+      };
+    }
+  },
+
+  deleteAvailabilitySlot: async (slotId: string, priestId: string) => {
+    try {
+      return await mockApi.mockDeleteAvailabilitySlot(slotId, priestId);
+    } catch (error) {
+      logAppError('priestApi.deleteAvailabilitySlot', error, { slotId, priestId });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to remove availability slot.'),
+      };
+    }
+  },
+
+  // Backward compatibility alias
+  createPriestSlot: async (priestId: string, data: { date: string; startTime: string; endTime: string }) => {
+    return mockApi.mockCreateAvailabilitySlot(priestId, { slotDate: data.date, ...data });
   },
 
   getRituals: async (): Promise<Ritual[]> => {
