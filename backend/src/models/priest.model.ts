@@ -1,8 +1,8 @@
-import { pgTable, uuid, varchar, text, integer, numeric, timestamp, pgEnum, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, numeric, timestamp, pgEnum, jsonb, boolean, date, time } from 'drizzle-orm/pg-core';
 import { users } from './user.model.js';
 
 export const approvalStatusEnum = pgEnum('priest_approval_status', ['PENDING', 'APPROVED', 'REJECTED']);
-export const slotStatusEnum = pgEnum('slot_status', ['AVAILABLE', 'BOOKED', 'BLOCKED']);
+export const slotStatusEnum = pgEnum('slot_status', ['AVAILABLE', 'BOOKED']);
 
 /**
  * [MODEL] Priest Profiles Table
@@ -53,14 +53,11 @@ export const priestServices = pgTable('priest_services', {
 export const priestSlots = pgTable('priest_slots', {
   id: uuid('id').defaultRandom().primaryKey(),
   priestId: uuid('priest_id').notNull().references(() => priestProfiles.id, { onDelete: 'cascade' }),
-  slotDate: varchar('slot_date', { length: 10 }).notNull(), // YYYY-MM-DD
-  startTime: varchar('start_time', { length: 10 }).notNull(), // HH:mm
-  endTime: varchar('end_time', { length: 10 }).notNull(), // HH:mm
-  status: slotStatusEnum('status').default('AVAILABLE').notNull(),
-  bookingId: uuid('booking_id'),
-  isException: boolean('is_exception').default(false).notNull(),
+  slotDate: date('slot_date').notNull(), // Date of ceremony (YYYY-MM-DD)
+  startTime: time('start_time').notNull(), // Start time (HH:MM)
+  endTime: time('end_time').notNull(), // End time (HH:MM)
+  status: varchar('status', { length: 20 }).$type<'AVAILABLE' | 'BOOKED'>().default('AVAILABLE').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export type PriestProfile = typeof priestProfiles.$inferSelect;

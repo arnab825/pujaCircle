@@ -1,6 +1,6 @@
-import { eq, or } from 'drizzle-orm';
+import { eq, or, and, asc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, priestProfiles, priestServices } from '../models/index.js';
+import { users, priestProfiles, priestServices, priestSlots } from '../models/index.js';
 import {
   UpdatePriestProfileInput,
   CreatePriestServiceInput,
@@ -129,9 +129,9 @@ export class PriestService {
   /**
    * Query all service offerings for a given priest
    */
-  async getPriestServices(_priestId: string): Promise<any[]> {
-    // TODO: [Teammate - Priest] Query priest_services table by priestId
-    return [];
+  async getPriestServices(priestId: string): Promise<any[]> {
+    const priest = await this.getPriestById(priestId);
+    return priest?.services ?? [];
   }
 
   /**
@@ -172,9 +172,24 @@ export class PriestService {
   /**
    * Query availability slots for a priest on a given date or range
    */
-  async getPriestSlots(_priestId: string, _date?: string): Promise<any[]> {
-    // TODO: [Teammate - Priest] Query priest_slots table by priestId and optional slotDate
-    return [];
+  async getPriestSlots(priestId: string, date?: string): Promise<any[]> {
+    const priest = await this.getPriestById(priestId);
+    if (!priest) return [];
+
+    const records = await db
+      .select()
+      .from(priestSlots)
+      .where(
+        date
+          ? and(eq(priestSlots.priestId, priest.id), eq(priestSlots.slotDate, date))
+          : eq(priestSlots.priestId, priest.id)
+      )
+      .orderBy(asc(priestSlots.slotDate), asc(priestSlots.startTime));
+
+    return records.map((s) => ({
+      ...s,
+      date: s.slotDate,
+    }));
   }
 
   /**
@@ -188,9 +203,22 @@ export class PriestService {
   /**
    * Create a new date-based availability slot for bookings
    */
-  async createPriestSlot(_priestId: string, _data: CreatePriestSlotInput): Promise<any> {
-    // TODO: [Teammate - Priest] Insert new availability slot into priest_slots table
-    return null;
+  async createPriestSlot(priestId: string, data: CreatePriestSlotInput): Promise<any> {
+    const priest = await this.getPriestById(priestId);
+    if (!priest) return null;
+
+    const [slot] = await db
+      .insert(priestSlots)
+      .values({
+        priestId: priest.id,
+        slotDate: (data.slotDate || data.date)!,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        status: data.isAvailable === false ? 'BOOKED' : 'AVAILABLE',
+      })
+      .returning();
+
+    return slot;
   }
 
   /**
