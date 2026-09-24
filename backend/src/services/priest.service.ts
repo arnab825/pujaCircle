@@ -1,6 +1,6 @@
-import { eq } from 'drizzle-orm';
+import { eq, or, and, asc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, priestProfiles, priestServices } from '../models/index.js';
+import { users, priestProfiles, priestServices, priestSlots } from '../models/index.js';
 import {
   UpdatePriestProfileInput,
   CreatePriestServiceInput,
@@ -65,6 +65,7 @@ export class PriestService {
         phoneNumber: users.phoneNumber,
         email: users.email,
         approvalStatus: priestProfiles.approvalStatus,
+        rejectionReason: priestProfiles.rejectionReason,
         accountStatus: users.accountStatus,
         banReason: users.banReason,
         experienceYears: priestProfiles.experienceYears,
@@ -74,14 +75,16 @@ export class PriestService {
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
+        pincode: priestProfiles.pincode,
         profileImageUrl: priestProfiles.profileImageUrl,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
         createdAt: priestProfiles.createdAt,
+        updatedAt: priestProfiles.updatedAt,
       })
       .from(priestProfiles)
       .innerJoin(users, eq(priestProfiles.userId, users.id))
-      .where(eq(priestProfiles.id, priestId))
+      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
       .limit(1);
 
     if (!record) return null;
@@ -89,13 +92,14 @@ export class PriestService {
     const services = await db
       .select()
       .from(priestServices)
-      .where(eq(priestServices.priestId, priestId));
+      .where(eq(priestServices.priestId, record.id));
 
     return {
       ...record,
       isPhoneVerified: true,
       rating: Number(record.rating || 0),
       createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: record.updatedAt ? new Date(record.updatedAt).toISOString() : undefined,
       services,
     };
   }
@@ -103,25 +107,31 @@ export class PriestService {
   /**
    * Retrieve the current authenticated priest's profile
    */
-  async getMyProfile(_userId: string): Promise<any> {
-    // TODO: [Teammate - Priest] Query priest profile by current authenticated userId
-    return null;
+  async getMyProfile(userId: string): Promise<any> {
+    return this.getPriestById(userId);
   }
 
   /**
    * Update priest profile credentials, bio, and languages
    */
-  async updatePriestProfile(_id: string, _updates: UpdatePriestProfileInput): Promise<any> {
-    // TODO: [Teammate - Priest] Update priest profile in priest_profiles table
-    return null;
+  async updatePriestProfile(id: string, updates: UpdatePriestProfileInput): Promise<any> {
+    await db
+      .update(priestProfiles)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
+
+    return this.getPriestById(id);
   }
 
   /**
    * Query all service offerings for a given priest
    */
-  async getPriestServices(_priestId: string): Promise<any[]> {
-    // TODO: [Teammate - Priest] Query priest_services table by priestId
-    return [];
+  async getPriestServices(priestId: string): Promise<any[]> {
+    const priest = await this.getPriestById(priestId);
+    return priest?.services ?? [];
   }
 
   /**
@@ -162,9 +172,24 @@ export class PriestService {
   /**
    * Query availability slots for a priest on a given date or range
    */
-  async getPriestSlots(_priestId: string, _date?: string): Promise<any[]> {
-    // TODO: [Teammate - Priest] Query priest_slots table by priestId and optional slotDate
-    return [];
+  async getPriestSlots(priestId: string, date?: string): Promise<any[]> {
+    const priest = await this.getPriestById(priestId);
+    if (!priest) return [];
+
+    const records = await db
+      .select()
+      .from(priestSlots)
+      .where(
+        date
+          ? and(eq(priestSlots.priestId, priest.id), eq(priestSlots.slotDate, date))
+          : eq(priestSlots.priestId, priest.id)
+      )
+      .orderBy(asc(priestSlots.slotDate), asc(priestSlots.startTime));
+
+    return records.map((s) => ({
+      ...s,
+      date: s.slotDate,
+    }));
   }
 
   /**
@@ -178,9 +203,22 @@ export class PriestService {
   /**
    * Create a new date-based availability slot for bookings
    */
-  async createPriestSlot(_priestId: string, _data: CreatePriestSlotInput): Promise<any> {
-    // TODO: [Teammate - Priest] Insert new availability slot into priest_slots table
-    return null;
+  async createPriestSlot(priestId: string, data: CreatePriestSlotInput): Promise<any> {
+    const priest = await this.getPriestById(priestId);
+    if (!priest) return null;
+
+    const [slot] = await db
+      .insert(priestSlots)
+      .values({
+        priestId: priest.id,
+        slotDate: (data.slotDate || data.date)!,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        status: data.isAvailable === false ? 'BOOKED' : 'AVAILABLE',
+      })
+      .returning();
+
+    return slot;
   }
 
   /**
