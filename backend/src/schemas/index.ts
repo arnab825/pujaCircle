@@ -9,3 +9,4 @@ export * from './booking.schema.js';
 export * from './address.schema.js';
 export * from './catalog.schema.js';
 export * from './admin.schema.js';
+export * from './common.schema.js';

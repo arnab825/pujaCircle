@@ -22,7 +22,11 @@ export const validate = (
       if (error instanceof ZodError) {
         const issue = error.issues[0];
         const errorMessage = issue ? `${issue.path.join('.') || 'input'}: ${issue.message}` : 'Validation failed';
-        sendError(res, errorMessage, 400, error.format());
+        const cleanErrors = error.issues.map((i) => ({
+          field: i.path.join('.') || 'input',
+          message: i.message,
+        }));
+        sendError(res, errorMessage, 400, cleanErrors);
         return;
       }
       sendError(res, 'Invalid request data', 400);

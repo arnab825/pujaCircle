@@ -1,4 +1,5 @@
 import { eq, or } from 'drizzle-orm';
+import { env } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { db } from '../db/index.js';
 import { users } from '../models/user.model.js';
@@ -6,7 +7,6 @@ import { priestProfiles } from '../models/priest.model.js';
 import { addresses } from '../models/address.model.js';
 import { toUserView, UserViewModel } from '../views/user.view.js';
 import { brevoEmailService } from './email.service.js';
-import { smsService } from './sms.service.js';
 import {
   LoginInput,
   RegisterUserInput,
@@ -41,11 +41,13 @@ const generateDynamicOtp = (destination: string): string => {
     attempts: 0,
   });
 
-  console.log('\n============================================================');
-  console.log(`[OTP DISPATCH] Destination: ${destination}`);
-  console.log(`[OTP DISPATCH] Dynamic Verification Code: ${code}`);
-  console.log(`[OTP DISPATCH] Valid for: 10 minutes`);
-  console.log('============================================================\n');
+  if (env.NODE_ENV !== 'production') {
+    console.log('\n============================================================');
+    console.log(`[OTP DISPATCH] Destination: ${destination}`);
+    console.log(`[OTP DISPATCH] Dynamic Verification Code: ${code}`);
+    console.log(`[OTP DISPATCH] Valid for: 10 minutes`);
+    console.log('============================================================\n');
+  }
 
   return code;
 };
@@ -336,16 +338,13 @@ export class AuthService {
   }
 
   /**
-   * Dispatch Phone OTP via MSG91 Gateway & Dynamic OTP Engine
+   * Dispatch Phone OTP via Dynamic OTP Engine
    */
   async sendPhoneOtp(phoneNumber: string): Promise<{ message: string }> {
     const cleanPhone = phoneNumber.trim();
     const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
-    const code = generateDynamicOtp(cleanPhone);
+    generateDynamicOtp(cleanPhone);
     generateDynamicOtp(formattedPhone);
-
-    // Send SMS OTP via MSG91 Gateway (for Devotee & Purohit)
-    await smsService.sendOtpSms(cleanPhone, code);
 
     return {
       message: `Verification code dispatched successfully to ${formattedPhone}.`,
