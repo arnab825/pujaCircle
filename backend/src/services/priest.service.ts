@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, or } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, priestProfiles, priestServices } from '../models/index.js';
 import {
@@ -65,6 +65,7 @@ export class PriestService {
         phoneNumber: users.phoneNumber,
         email: users.email,
         approvalStatus: priestProfiles.approvalStatus,
+        rejectionReason: priestProfiles.rejectionReason,
         accountStatus: users.accountStatus,
         banReason: users.banReason,
         experienceYears: priestProfiles.experienceYears,
@@ -74,14 +75,16 @@ export class PriestService {
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
+        pincode: priestProfiles.pincode,
         profileImageUrl: priestProfiles.profileImageUrl,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
         createdAt: priestProfiles.createdAt,
+        updatedAt: priestProfiles.updatedAt,
       })
       .from(priestProfiles)
       .innerJoin(users, eq(priestProfiles.userId, users.id))
-      .where(eq(priestProfiles.id, priestId))
+      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
       .limit(1);
 
     if (!record) return null;
@@ -89,13 +92,14 @@ export class PriestService {
     const services = await db
       .select()
       .from(priestServices)
-      .where(eq(priestServices.priestId, priestId));
+      .where(eq(priestServices.priestId, record.id));
 
     return {
       ...record,
       isPhoneVerified: true,
       rating: Number(record.rating || 0),
       createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: record.updatedAt ? new Date(record.updatedAt).toISOString() : undefined,
       services,
     };
   }
@@ -103,17 +107,23 @@ export class PriestService {
   /**
    * Retrieve the current authenticated priest's profile
    */
-  async getMyProfile(_userId: string): Promise<any> {
-    // TODO: [Teammate - Priest] Query priest profile by current authenticated userId
-    return null;
+  async getMyProfile(userId: string): Promise<any> {
+    return this.getPriestById(userId);
   }
 
   /**
    * Update priest profile credentials, bio, and languages
    */
-  async updatePriestProfile(_id: string, _updates: UpdatePriestProfileInput): Promise<any> {
-    // TODO: [Teammate - Priest] Update priest profile in priest_profiles table
-    return null;
+  async updatePriestProfile(id: string, updates: UpdatePriestProfileInput): Promise<any> {
+    await db
+      .update(priestProfiles)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
+
+    return this.getPriestById(id);
   }
 
   /**
