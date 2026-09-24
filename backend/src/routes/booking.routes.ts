@@ -3,6 +3,7 @@ import { bookingController } from '../controllers/booking.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createBookingSchema, bookingActionReasonSchema } from '../schemas/booking.schema.js';
+import { uuidParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 
@@ -12,11 +13,11 @@ const router = Router();
  */
 router.get('/', bookingController.getBookings);
 router.post('/', requireAuth, validate(createBookingSchema), bookingController.createBooking);
-router.get('/:id', bookingController.getBookingById);
-router.post('/:id/accept', requireAuth, bookingController.acceptBooking);
-router.post('/:id/reject', requireAuth, validate(bookingActionReasonSchema), bookingController.rejectBooking);
-router.post('/:id/cancel', requireAuth, validate(bookingActionReasonSchema), bookingController.cancelBooking);
-router.post('/:id/complete', requireAuth, bookingController.completeBooking);
+router.get('/:id', validate(uuidParamSchema, 'params'), bookingController.getBookingById);
+router.post('/:id/accept', requireAuth, validate(uuidParamSchema, 'params'), bookingController.acceptBooking);
+router.post('/:id/reject', requireAuth, validate(uuidParamSchema, 'params'), validate(bookingActionReasonSchema), bookingController.rejectBooking);
+router.post('/:id/cancel', requireAuth, validate(uuidParamSchema, 'params'), validate(bookingActionReasonSchema), bookingController.cancelBooking);
+router.post('/:id/complete', requireAuth, validate(uuidParamSchema, 'params'), bookingController.completeBooking);
 
 export const bookingRoutes = router;
 

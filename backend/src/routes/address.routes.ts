@@ -3,6 +3,7 @@ import { addressController } from '../controllers/address.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createAddressSchema, updateAddressSchema } from '../schemas/address.schema.js';
+import { uuidParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 
@@ -12,9 +13,9 @@ const router = Router();
  */
 router.get('/', addressController.getAddresses);
 router.post('/', requireAuth, validate(createAddressSchema), addressController.createAddress);
-router.put('/:id', requireAuth, validate(updateAddressSchema), addressController.updateAddress);
-router.delete('/:id', requireAuth, addressController.deleteAddress);
-router.patch('/:id/default', requireAuth, addressController.setDefaultAddress);
+router.put('/:id', requireAuth, validate(uuidParamSchema, 'params'), validate(updateAddressSchema), addressController.updateAddress);
+router.delete('/:id', requireAuth, validate(uuidParamSchema, 'params'), addressController.deleteAddress);
+router.patch('/:id/default', requireAuth, validate(uuidParamSchema, 'params'), addressController.setDefaultAddress);
 
 export const addressRoutes = router;
 

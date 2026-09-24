@@ -1,4 +1,5 @@
 import { eq, or } from 'drizzle-orm';
+import { env } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { db } from '../db/index.js';
 import { users } from '../models/user.model.js';
@@ -40,11 +41,13 @@ const generateDynamicOtp = (destination: string): string => {
     attempts: 0,
   });
 
-  console.log('\n============================================================');
-  console.log(`[OTP DISPATCH] Destination: ${destination}`);
-  console.log(`[OTP DISPATCH] Dynamic Verification Code: ${code}`);
-  console.log(`[OTP DISPATCH] Valid for: 10 minutes`);
-  console.log('============================================================\n');
+  if (env.NODE_ENV !== 'production') {
+    console.log('\n============================================================');
+    console.log(`[OTP DISPATCH] Destination: ${destination}`);
+    console.log(`[OTP DISPATCH] Dynamic Verification Code: ${code}`);
+    console.log(`[OTP DISPATCH] Valid for: 10 minutes`);
+    console.log('============================================================\n');
+  }
 
   return code;
 };

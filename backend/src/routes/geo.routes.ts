@@ -1,5 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../views/response.view.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { pincodeParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 
@@ -7,7 +9,7 @@ const router = Router();
  * [ROUTE] /api/v1/geo/pincode/:pincode
  * Real postal pincode directory lookup.
  */
-router.get('/pincode/:pincode', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/pincode/:pincode', validate(pincodeParamSchema, 'params'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const cleanPin = (req.params.pincode || '').trim().replace(/\D/g, '');
     if (cleanPin.length === 6) {
