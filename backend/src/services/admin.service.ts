@@ -101,8 +101,8 @@ export class AdminService {
    * Query pending priest registration applications
    */
   async getPendingPriests(): Promise<any[]> {
-    // TODO: [Teammate - Admin] Query priest_profiles where approvalStatus = 'PENDING' joined with users table
-    return [];
+    const priests = await this.getAllPriests();
+    return priests.filter((p) => p.approvalStatus === 'PENDING');
   }
 
   /**
