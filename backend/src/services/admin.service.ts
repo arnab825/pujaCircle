@@ -132,7 +132,10 @@ export class AdminService {
    * Reopen a rejected priest application for reconsideration
    */
   async reopenPriestApplication(priestId: string): Promise<void> {
-    // TODO: [Teammate - Admin] Update priest_profiles SET approvalStatus = 'PENDING', rejectionReason = null WHERE id = priestId
+    await db
+      .update(priestProfiles)
+      .set({ approvalStatus: 'PENDING', rejectionReason: null })
+      .where(eq(priestProfiles.id, priestId));
   }
 
   /**
