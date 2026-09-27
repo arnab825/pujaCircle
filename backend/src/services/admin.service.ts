@@ -236,11 +236,39 @@ export class AdminService {
   }
 
   /**
-   * Query all platform ceremony bookings
+   * Query all platform ceremony bookings joined with devotee and priest profiles
    */
   async getAllBookings(): Promise<any[]> {
-    // TODO: [Teammate - Admin] Query all platform bookings joined with devotee and priest profiles
-    return [];
+    const allBookings = await db.select().from(bookings);
+    const allUsers = await db.select().from(users);
+    const allPriests = await this.getAllPriests();
+
+    const userMap = new Map(allUsers.map((u) => [u.id, u]));
+    const priestMap = new Map(allPriests.map((p) => [p.id, p]));
+
+    return allBookings.map((b) => {
+      const devotee = userMap.get(b.userId);
+      const priest = priestMap.get(b.priestId);
+
+      return {
+        ...b,
+        createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+        updatedAt: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined,
+        cancelledAt: b.cancelledAt ? new Date(b.cancelledAt).toISOString() : undefined,
+        completedAt: b.completedAt ? new Date(b.completedAt).toISOString() : undefined,
+        userName: devotee?.name || 'Devotee',
+        userPhone: devotee?.phoneNumber || '',
+        user: devotee
+          ? {
+              id: devotee.id,
+              name: devotee.name,
+              phoneNumber: devotee.phoneNumber,
+              email: devotee.email,
+            }
+          : undefined,
+        priest: priest || undefined,
+      };
+    });
   }
 }
 
