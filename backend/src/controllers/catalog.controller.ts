@@ -47,6 +47,10 @@ export class CatalogController {
   async updateCatalogEntry(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const updated = await catalogService.updateCatalogEntry(req.params.id, req.body);
+      if (!updated) {
+        sendError(res, `Catalog entry ${req.params.id} not found.`, 404);
+        return;
+      }
       sendSuccess(res, `Ceremony catalog entry ${req.params.id} updated successfully.`, updated);
     } catch (error) {
       next(error);

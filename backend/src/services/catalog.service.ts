@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pujaCatalog, NewPujaCatalog } from '../models/catalog.model.js';
 
@@ -23,9 +24,18 @@ export class CatalogService {
   /**
    * Query a single sacred ceremony from catalog by ID
    */
-  async getCatalogById(_id: string): Promise<any> {
-    // TODO: [Teammate - Catalog] Query single ceremony from puja_catalog table by id
-    return null;
+  async getCatalogById(id: string): Promise<any> {
+    const [entry] = await db
+      .select()
+      .from(pujaCatalog)
+      .where(eq(pujaCatalog.id, id));
+
+    if (!entry) return null;
+
+    return {
+      ...entry,
+      coverImage: entry.coverImage || '/images/hero_vedic_puja.jpg',
+    };
   }
 
   /**
@@ -54,9 +64,22 @@ export class CatalogService {
   /**
    * Update a sacred ceremony in the catalog by ID
    */
-  async updateCatalogEntry(_id: string, _data: Partial<NewPujaCatalog>): Promise<any> {
-    // TODO: [Teammate - Catalog] Update ceremony in puja_catalog table by id
-    return null;
+  async updateCatalogEntry(id: string, data: Partial<NewPujaCatalog>): Promise<any> {
+    const [updated] = await db
+      .update(pujaCatalog)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(pujaCatalog.id, id))
+      .returning();
+
+    if (!updated) return null;
+
+    return {
+      ...updated,
+      coverImage: updated.coverImage || '/images/hero_vedic_puja.jpg',
+    };
   }
 
   /**
