@@ -85,8 +85,10 @@ export class CatalogService {
   /**
    * Delete or deactivate a sacred ceremony in the catalog by ID
    */
-  async deleteCatalogEntry(_id: string): Promise<void> {
-    // TODO: [Teammate - Catalog] Delete or soft-deactivate ceremony from puja_catalog table by id
+  async deleteCatalogEntry(id: string): Promise<void> {
+    await db
+      .delete(pujaCatalog)
+      .where(eq(pujaCatalog.id, id));
   }
 }
 
