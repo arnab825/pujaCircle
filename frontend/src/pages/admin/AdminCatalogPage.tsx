@@ -10,9 +10,12 @@ import {
   Layers,
   UploadCloud,
   AlertCircle,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { PujaCatalogEntry } from "@/types/catalog.types";
 import { catalogApi } from "@/api/catalog.api";
+import { apiClient } from "@/api/client";
 import { modalTransition, buttonPress } from "@/motion/variants";
 import { toast } from "sonner";
 
@@ -28,15 +31,14 @@ export const AdminCatalogPage: React.FC = () => {
     null,
   );
 
-  // Form states
+  // Form states - strictly no default picture automatically
   const [name, setName] = useState("");
   const [deity, setDeity] = useState("");
   const [category, setCategory] =
     useState<PujaCatalogEntry["category"]>("life-event");
   const [description, setDescription] = useState("");
-  const [coverImage, setCoverImage] = useState<string>(
-    "/images/hero_vedic_puja.jpg",
-  );
+  const [coverImage, setCoverImage] = useState<string>("");
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadFileName, setUploadFileName] = useState<string>("");
   const [intentTagsText, setIntentTagsText] = useState("");
@@ -64,9 +66,10 @@ export const AdminCatalogPage: React.FC = () => {
     setDeity("");
     setCategory("life-event");
     setDescription("");
-    setCoverImage("/images/hero_vedic_puja.jpg");
+    setCoverImage(""); // Strictly empty: user must upload ceremony picture
     setUploadError(null);
     setUploadFileName("");
+    setIsUploading(false);
     setIntentTagsText("");
     setSamagriText("");
     setStepsText("");
@@ -80,9 +83,10 @@ export const AdminCatalogPage: React.FC = () => {
     setDeity(entry.deity);
     setCategory(entry.category);
     setDescription(entry.description);
-    setCoverImage(entry.coverImage || "/images/hero_vedic_puja.jpg");
+    setCoverImage(entry.coverImage || "");
     setUploadError(null);
     setUploadFileName("");
+    setIsUploading(false);
     setIntentTagsText(entry.intentTags.join(", "));
     setSamagriText(entry.samagriList.join("\n"));
     setStepsText(entry.steps.join("\n"));
@@ -95,11 +99,11 @@ export const AdminCatalogPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Strict validation: strictly less than 2MB per requirements
+    // Strict validation: strictly under 2MB
     const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
     if (file.size > MAX_SIZE_BYTES) {
       setUploadError(
-        `File size exceeds limit. Image must be strictly less than 2MB (Current size: ${(file.size / (1024 * 1024)).toFixed(2)} MB).`,
+        `File size exceeds limit. Image must be strictly under 2MB (Selected size: ${(file.size / (1024 * 1024)).toFixed(2)} MB).`
       );
       e.target.value = "";
       return;
@@ -112,12 +116,44 @@ export const AdminCatalogPage: React.FC = () => {
     }
 
     setUploadFileName(file.name);
+    setIsUploading(true);
+
     const reader = new FileReader();
-    reader.onload = (event) => {
-      if (typeof event.target?.result === "string") {
-        setCoverImage(event.target.result);
+    reader.onload = async (event) => {
+      const base64Data = event.target?.result as string;
+      if (!base64Data) {
+        setUploadError("Failed to read image file.");
+        setIsUploading(false);
+        return;
+      }
+
+      try {
+        const res = await apiClient.post("/media/upload", {
+          file: base64Data,
+          folder: "pujacircle/catalog",
+        });
+
+        const uploadedUrl = (res as any)?.data?.url || (res as any)?.url;
+        if (uploadedUrl) {
+          setCoverImage(uploadedUrl);
+          toast.success("Picture successfully uploaded to Cloudinary!");
+        } else {
+          throw new Error("No URL returned from Cloudinary upload.");
+        }
+      } catch (err: any) {
+        const msg = err.message || "Failed to upload image to Cloudinary.";
+        setUploadError(msg);
+        toast.error("Cloudinary upload error: " + msg);
+      } finally {
+        setIsUploading(false);
       }
     };
+
+    reader.onerror = () => {
+      setUploadError("Failed to read file for upload.");
+      setIsUploading(false);
+    };
+
     reader.readAsDataURL(file);
   };
 
@@ -138,37 +174,78 @@ export const AdminCatalogPage: React.FC = () => {
   const handleSaveEntry = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!name.trim()) {
+      toast.error("Ceremony name is strictly required.");
+      return;
+    }
+
+    if (!deity.trim()) {
+      toast.error("Presiding deity is strictly required.");
+      return;
+    }
+
+    if (!category) {
+      toast.error("Category is strictly required.");
+      return;
+    }
+
+    if (!coverImage.trim()) {
+      setUploadError("A ceremony cover image must be uploaded to Cloudinary (strictly under 2MB).");
+      toast.error("Please upload a ceremony picture (strictly under 2MB).");
+      return;
+    }
+
+    if (!description.trim() || description.trim().length < 10) {
+      toast.error("Description is required and must be at least 10 characters.");
+      return;
+    }
+
     const tags = intentTagsText
       .split(",")
       .map((t) => t.trim().toLowerCase())
       .filter(Boolean);
+
+    if (tags.length === 0) {
+      toast.error("At least one intent tag is strictly required.");
+      return;
+    }
 
     const samagri = samagriText
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean);
 
+    if (samagri.length === 0) {
+      toast.error("At least one samagri item is strictly required.");
+      return;
+    }
+
     const steps = stepsText
       .split("\n")
       .map((s) => s.trim())
       .filter(Boolean);
 
-    if (!coverImage) {
-      setUploadError("A cover image is strictly required for this ceremony.");
+    if (steps.length === 0) {
+      toast.error("At least one vidhi step is strictly required.");
+      return;
+    }
+
+    if (!timingNote.trim()) {
+      toast.error("Auspicious timing note is strictly required.");
       return;
     }
 
     if (editingEntry) {
       const res = await catalogApi.updateCatalogEntry(editingEntry.id, {
-        name,
-        deity,
+        name: name.trim(),
+        deity: deity.trim(),
         category,
-        description,
-        coverImage,
+        description: description.trim(),
+        coverImage: coverImage.trim(),
         intentTags: tags,
         samagriList: samagri,
         steps,
-        timingNote,
+        timingNote: timingNote.trim(),
       });
       if (res.success) {
         toast.success(res.message);
@@ -177,15 +254,15 @@ export const AdminCatalogPage: React.FC = () => {
       }
     } else {
       const res = await catalogApi.createCatalogEntry({
-        name,
-        deity,
+        name: name.trim(),
+        deity: deity.trim(),
         category,
-        description,
-        coverImage,
+        description: description.trim(),
+        coverImage: coverImage.trim(),
         intentTags: tags,
         samagriList: samagri,
         steps,
-        timingNote: timingNote || "Auspicious timing determined by tradition.",
+        timingNote: timingNote.trim(),
       });
       if (res.success) {
         toast.success(res.message);
@@ -216,9 +293,13 @@ export const AdminCatalogPage: React.FC = () => {
     name.trim() &&
     deity.trim() &&
     category &&
-    coverImage &&
+    coverImage.trim() &&
     description.trim() &&
-    intentTagsText.trim(),
+    intentTagsText.trim() &&
+    samagriText.trim() &&
+    stepsText.trim() &&
+    timingNote.trim() &&
+    !isUploading
   );
 
   return (
@@ -480,14 +561,14 @@ export const AdminCatalogPage: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Cover Image Upload (Strictly Upload Only < 2MB per requirements) */}
+                {/* Cover Image Upload (Strictly Upload Only < 2MB to Cloudinary) */}
                 <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/30 p-3.5">
                   <div className="flex items-center justify-between">
                     <label className="block font-semibold text-stone-800 text-xs">
-                      Ceremony Cover Image *
+                      Ceremony Cover Picture (Cloudinary) *
                     </label>
                     <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
-                      Strictly Upload Only &lt; 2MB
+                      Cloudinary Storage • Strictly &lt; 2MB
                     </span>
                   </div>
 
@@ -501,52 +582,72 @@ export const AdminCatalogPage: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
                     {/* Image Preview Box */}
                     <div className="relative aspect-video sm:aspect-4/3 rounded-lg overflow-hidden border-2 border-dashed border-amber-300 bg-stone-100 flex items-center justify-center group shadow-xs">
-                      {coverImage ? (
-                        <img
-                          src={coverImage}
-                          alt="Cover preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "/images/hero_vedic_puja.jpg";
-                          }}
-                        />
+                      {isUploading ? (
+                        <div className="flex flex-col items-center justify-center p-3 text-center gap-1.5">
+                          <Loader2 className="w-6 h-6 text-[#780016] animate-spin" />
+                          <span className="text-[11px] font-semibold text-stone-700">Uploading to Cloudinary...</span>
+                        </div>
+                      ) : coverImage ? (
+                        <>
+                          <img
+                            src={coverImage}
+                            alt="Cover preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute top-1.5 right-1.5 z-10">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-700 text-[9px] text-white font-medium shadow-xs">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Cloudinary
+                            </span>
+                          </div>
+                        </>
                       ) : (
-                        <span className="text-xs text-stone-400">
-                          No image uploaded
-                        </span>
-                      )}
-                      {coverImage && (
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-[10px] text-white font-medium bg-black/60 px-2 py-1 rounded">
-                            Preview
-                          </span>
+                        <div className="flex flex-col items-center justify-center p-3 text-center">
+                          <UploadCloud className="w-6 h-6 text-amber-600 mb-1" />
+                          <span className="text-[11px] font-semibold text-stone-700">No Picture Uploaded</span>
+                          <span className="text-[9px] text-stone-500">Strictly required &lt; 2MB</span>
                         </div>
                       )}
                     </div>
 
                     {/* Upload Dropzone / Button */}
                     <div className="sm:col-span-2 space-y-2">
-                      <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-amber-400 hover:border-amber-500 rounded-lg bg-amber-50/60 hover:bg-amber-100/60 cursor-pointer transition-all">
-                        <UploadCloud className="w-6 h-6 text-amber-700 mb-1" />
-                        <span className="text-xs font-semibold text-stone-900 text-center">
-                          {uploadFileName
-                            ? `Selected: ${uploadFileName}`
-                            : "Click or drag to upload ceremony cover"}
-                        </span>
-                        <span className="text-[11px] text-stone-500 mt-0.5">
-                          PNG, JPG, WebP (Strictly max 2.0 MB)
-                        </span>
+                      <label
+                        className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg transition-all ${
+                          isUploading
+                            ? "border-stone-300 bg-stone-50 cursor-not-allowed opacity-60"
+                            : "border-amber-400 hover:border-amber-500 bg-amber-50/60 hover:bg-amber-100/60 cursor-pointer"
+                        }`}
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="w-6 h-6 text-[#780016] animate-spin mb-1" />
+                            <span className="text-xs font-semibold text-stone-700">
+                              Uploading picture to Cloudinary...
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="w-6 h-6 text-amber-700 mb-1" />
+                            <span className="text-xs font-semibold text-stone-900 text-center">
+                              {uploadFileName
+                                ? `Uploaded: ${uploadFileName}`
+                                : "Click to select and upload picture to Cloudinary *"}
+                            </span>
+                            <span className="text-[11px] text-stone-500 mt-0.5">
+                              PNG, JPG, WebP, AVIF (Strictly max 2.0 MB)
+                            </span>
+                          </>
+                        )}
                         <input
                           type="file"
                           accept="image/*"
+                          disabled={isUploading}
                           onChange={handleImageUpload}
                           className="hidden"
                         />
                       </label>
                       <p className="text-[10px] text-stone-500 leading-tight">
-                        Note: Strictly file upload under 2MB. Prepared for
-                        direct Cloudinary or ImageKit backend.
+                        Media is uploaded and stored securely in Cloudinary. File size must strictly not exceed 2MB.
                       </p>
                     </div>
                   </div>
@@ -561,7 +662,7 @@ export const AdminCatalogPage: React.FC = () => {
                     rows={2}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Brief description of the ritual's significance..."
+                    placeholder="Brief description of the ritual's significance (minimum 10 characters)..."
                     className="w-full rounded-md border border-amber-300 bg-white p-2 text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#780016]"
                   />
                 </div>
@@ -582,9 +683,10 @@ export const AdminCatalogPage: React.FC = () => {
 
                 <div>
                   <label className="block font-semibold text-stone-800 mb-1">
-                    Samagri List (One item per line)
+                    Samagri List (One item per line) *
                   </label>
                   <textarea
+                    required
                     rows={3}
                     value={samagriText}
                     onChange={(e) => setSamagriText(e.target.value)}
@@ -595,9 +697,10 @@ export const AdminCatalogPage: React.FC = () => {
 
                 <div>
                   <label className="block font-semibold text-stone-800 mb-1">
-                    Vedic Vidhi Steps (One step per line)
+                    Vedic Vidhi Steps (One step per line) *
                   </label>
                   <textarea
+                    required
                     rows={3}
                     value={stepsText}
                     onChange={(e) => setStepsText(e.target.value)}
@@ -608,10 +711,11 @@ export const AdminCatalogPage: React.FC = () => {
 
                 <div>
                   <label className="block font-semibold text-stone-800 mb-1">
-                    Auspicious Timing Note
+                    Auspicious Timing Note *
                   </label>
                   <input
                     type="text"
+                    required
                     value={timingNote}
                     onChange={(e) => setTimingNote(e.target.value)}
                     placeholder="e.g. Shukla Paksha morning hours recommended."
@@ -629,10 +733,17 @@ export const AdminCatalogPage: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={!isFormValid}
-                    className="bg-[#780016] hover:bg-[#600012] text-white border border-amber-400 rounded-md px-5 py-2 text-xs font-bold shadow-xs cursor-pointer transition-colors disabled:opacity-50"
+                    disabled={!isFormValid || isUploading}
+                    className="bg-[#780016] hover:bg-[#600012] text-white border border-amber-400 rounded-md px-5 py-2 text-xs font-bold shadow-xs cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                   >
-                    {editingEntry ? "Update Entry" : "Create Entry"}
+                    {isUploading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    <span>
+                      {isUploading
+                        ? "Uploading..."
+                        : editingEntry
+                        ? "Update Entry"
+                        : "Create Entry"}
+                    </span>
                   </button>
                 </div>
               </form>

@@ -28,10 +28,11 @@ apiRouter.get('/health', (_req, res) => {
 });
 
 /**
- * Cloudinary Direct Upload Signature
- * Provides signed authentication parameters for direct frontend-to-Cloudinary upload.
+ * Cloudinary Media Storage
+ * Provides direct upload endpoint and signed parameters for Cloudinary storage.
  */
 apiRouter.get('/media/signature', mediaController.getUploadSignature);
+apiRouter.post('/media/upload', mediaController.uploadImage);
 
 /**
  * Module Subrouters

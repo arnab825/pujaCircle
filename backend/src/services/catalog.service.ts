@@ -53,7 +53,7 @@ export class CatalogService {
         samagriList: data.samagriList || [],
         steps: data.steps || [],
         timingNote: data.timingNote || '',
-        coverImage: data.coverImage || null,
+        coverImage: data.coverImage,
         isActive: data.isActive ?? true,
       })
       .returning();

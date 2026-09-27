@@ -40,9 +40,9 @@ app.use(
 // Explicit preflight handler for all routes
 app.options('*', cors());
 
-// Body and Cookie Parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body and Cookie Parsers (10mb limit for Cloudinary media uploads strictly under 2mb)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser(env.COOKIE_SECRET));
 
 // API v1 Routing
