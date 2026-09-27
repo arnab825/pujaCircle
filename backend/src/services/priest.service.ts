@@ -8,6 +8,8 @@ import {
   CreatePriestSlotInput,
   PriestFilterParams,
 } from '../schemas/priest.schema.js';
+import { cloudinaryService } from './cloudinary.service.js';
+
 
 /**
  * [SERVICE] Priest Service
@@ -112,9 +114,20 @@ export class PriestService {
   }
 
   /**
-   * Update priest profile credentials, bio, and languages
+   * Update priest profile credentials, bio, and languages.
+   * If profileImageUrl is updated, purges the old image from Cloudinary.
    */
   async updatePriestProfile(id: string, updates: UpdatePriestProfileInput): Promise<any> {
+    const existing = await this.getPriestById(id);
+    if (
+      existing &&
+      updates.profileImageUrl &&
+      existing.profileImageUrl &&
+      updates.profileImageUrl !== existing.profileImageUrl
+    ) {
+      await cloudinaryService.deleteImageByUrl(existing.profileImageUrl);
+    }
+
     await db
       .update(priestProfiles)
       .set({

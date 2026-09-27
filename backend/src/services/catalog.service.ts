@@ -1,5 +1,7 @@
+import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pujaCatalog, NewPujaCatalog } from '../models/catalog.model.js';
+import { cloudinaryService } from './cloudinary.service.js';
 
 /**
  * [SERVICE] Catalog Service
@@ -23,9 +25,18 @@ export class CatalogService {
   /**
    * Query a single sacred ceremony from catalog by ID
    */
-  async getCatalogById(_id: string): Promise<any> {
-    // TODO: [Teammate - Catalog] Query single ceremony from puja_catalog table by id
-    return null;
+  async getCatalogById(id: string): Promise<any> {
+    const [entry] = await db
+      .select()
+      .from(pujaCatalog)
+      .where(eq(pujaCatalog.id, id));
+
+    if (!entry) return null;
+
+    return {
+      ...entry,
+      coverImage: entry.coverImage || '/images/hero_vedic_puja.jpg',
+    };
   }
 
   /**
@@ -43,7 +54,7 @@ export class CatalogService {
         samagriList: data.samagriList || [],
         steps: data.steps || [],
         timingNote: data.timingNote || '',
-        coverImage: data.coverImage || null,
+        coverImage: data.coverImage,
         isActive: data.isActive ?? true,
       })
       .returning();
@@ -52,18 +63,56 @@ export class CatalogService {
   }
 
   /**
-   * Update a sacred ceremony in the catalog by ID
+   * Update a sacred ceremony in the catalog by ID.
+   * If the coverImage is updated, automatically purges the old image from Cloudinary.
    */
-  async updateCatalogEntry(_id: string, _data: Partial<NewPujaCatalog>): Promise<any> {
-    // TODO: [Teammate - Catalog] Update ceremony in puja_catalog table by id
-    return null;
+  async updateCatalogEntry(id: string, data: Partial<NewPujaCatalog>): Promise<any> {
+    const [existing] = await db
+      .select()
+      .from(pujaCatalog)
+      .where(eq(pujaCatalog.id, id));
+
+    if (!existing) return null;
+
+    // Purge old cover image from Cloudinary if replacing with a new one or removing it
+    if (
+      existing.coverImage &&
+      data.coverImage !== undefined &&
+      data.coverImage !== existing.coverImage
+    ) {
+      await cloudinaryService.deleteImageByUrl(existing.coverImage);
+    }
+
+    const [updated] = await db
+      .update(pujaCatalog)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(pujaCatalog.id, id))
+      .returning();
+
+    return updated;
   }
 
   /**
-   * Delete or deactivate a sacred ceremony in the catalog by ID
+   * Delete a sacred ceremony in the catalog by ID.
+   * Automatically purges its associated cover image from Cloudinary.
    */
-  async deleteCatalogEntry(_id: string): Promise<void> {
-    // TODO: [Teammate - Catalog] Delete or soft-deactivate ceremony from puja_catalog table by id
+  async deleteCatalogEntry(id: string): Promise<void> {
+    const [existing] = await db
+      .select()
+      .from(pujaCatalog)
+      .where(eq(pujaCatalog.id, id));
+
+    if (existing) {
+      if (existing.coverImage) {
+        await cloudinaryService.deleteImageByUrl(existing.coverImage);
+      }
+      await db
+        .delete(pujaCatalog)
+        .where(eq(pujaCatalog.id, id));
+    }
   }
 }
 
