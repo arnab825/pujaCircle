@@ -33,6 +33,7 @@ apiRouter.get('/health', (_req, res) => {
  */
 apiRouter.get('/media/signature', mediaController.getUploadSignature);
 apiRouter.post('/media/upload', mediaController.uploadImage);
+apiRouter.delete('/media', mediaController.deleteMedia);
 
 /**
  * Module Subrouters

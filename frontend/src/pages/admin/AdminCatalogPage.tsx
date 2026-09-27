@@ -11,7 +11,6 @@ import {
   UploadCloud,
   AlertCircle,
   Loader2,
-  CheckCircle2,
 } from "lucide-react";
 import { PujaCatalogEntry } from "@/types/catalog.types";
 import { catalogApi } from "@/api/catalog.api";
@@ -94,6 +93,17 @@ export const AdminCatalogPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleCloseModal = () => {
+    // If a new image was uploaded to Cloudinary in this modal session but cancelled, purge it from Cloudinary
+    if (coverImage && coverImage.includes("cloudinary.com")) {
+      const originalImage = editingEntry ? editingEntry.coverImage : "";
+      if (coverImage !== originalImage) {
+        apiClient.delete("/media", { data: { url: coverImage } }).catch(() => {});
+      }
+    }
+    setIsModalOpen(false);
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError(null);
     const file = e.target.files?.[0];
@@ -135,15 +145,23 @@ export const AdminCatalogPage: React.FC = () => {
 
         const uploadedUrl = (res as any)?.data?.url || (res as any)?.url;
         if (uploadedUrl) {
+          // Immediately delete the previous picture from Cloudinary so only the current updated picture exists
+          const prevUrl = coverImage;
+          if (prevUrl && prevUrl.includes("cloudinary.com") && prevUrl !== uploadedUrl) {
+            apiClient.delete("/media", { data: { url: prevUrl } }).catch((err) => {
+              console.warn("Failed to delete previous media from Cloudinary:", err);
+            });
+          }
+
           setCoverImage(uploadedUrl);
-          toast.success("Picture successfully uploaded to Cloudinary!");
+          toast.success("Picture updated successfully!");
         } else {
-          throw new Error("No URL returned from Cloudinary upload.");
+          throw new Error("No URL returned from upload.");
         }
       } catch (err: any) {
-        const msg = err.message || "Failed to upload image to Cloudinary.";
+        const msg = err.message || "Failed to upload image.";
         setUploadError(msg);
-        toast.error("Cloudinary upload error: " + msg);
+        toast.error("Upload error: " + msg);
       } finally {
         setIsUploading(false);
       }
@@ -190,7 +208,7 @@ export const AdminCatalogPage: React.FC = () => {
     }
 
     if (!coverImage.trim()) {
-      setUploadError("A ceremony cover image must be uploaded to Cloudinary (strictly under 2MB).");
+      setUploadError("A ceremony cover image is required (strictly under 2MB).");
       toast.error("Please upload a ceremony picture (strictly under 2MB).");
       return;
     }
@@ -500,7 +518,7 @@ export const AdminCatalogPage: React.FC = () => {
                 </h3>
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={handleCloseModal}
                   className="rounded-full p-1.5 text-stone-400 hover:text-stone-700 hover:bg-amber-100 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
@@ -561,14 +579,14 @@ export const AdminCatalogPage: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Cover Image Upload (Strictly Upload Only < 2MB to Cloudinary) */}
+                {/* Cover Image Upload (Strictly Under 2MB) */}
                 <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/30 p-3.5">
                   <div className="flex items-center justify-between">
                     <label className="block font-semibold text-stone-800 text-xs">
-                      Ceremony Cover Picture (Cloudinary) *
+                      Ceremony Cover Picture *
                     </label>
                     <span className="text-[10px] font-semibold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
-                      Cloudinary Storage • Strictly &lt; 2MB
+                      Strictly &lt; 2MB
                     </span>
                   </div>
 
@@ -580,26 +598,19 @@ export const AdminCatalogPage: React.FC = () => {
                   )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
-                    {/* Image Preview Box */}
-                    <div className="relative aspect-video sm:aspect-4/3 rounded-lg overflow-hidden border-2 border-dashed border-amber-300 bg-stone-100 flex items-center justify-center group shadow-xs">
+                    {/* Image Preview Box - Clean presentation without overlays */}
+                    <div className="relative aspect-video sm:aspect-4/3 rounded-lg overflow-hidden border border-amber-300 bg-stone-100 flex items-center justify-center shadow-xs">
                       {isUploading ? (
                         <div className="flex flex-col items-center justify-center p-3 text-center gap-1.5">
                           <Loader2 className="w-6 h-6 text-[#780016] animate-spin" />
-                          <span className="text-[11px] font-semibold text-stone-700">Uploading to Cloudinary...</span>
+                          <span className="text-[11px] font-semibold text-stone-700">Uploading picture...</span>
                         </div>
                       ) : coverImage ? (
-                        <>
-                          <img
-                            src={coverImage}
-                            alt="Cover preview"
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute top-1.5 right-1.5 z-10">
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-700 text-[9px] text-white font-medium shadow-xs">
-                              <CheckCircle2 className="w-2.5 h-2.5" /> Cloudinary
-                            </span>
-                          </div>
-                        </>
+                        <img
+                          src={coverImage}
+                          alt="Cover preview"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="flex flex-col items-center justify-center p-3 text-center">
                           <UploadCloud className="w-6 h-6 text-amber-600 mb-1" />
@@ -622,7 +633,7 @@ export const AdminCatalogPage: React.FC = () => {
                           <>
                             <Loader2 className="w-6 h-6 text-[#780016] animate-spin mb-1" />
                             <span className="text-xs font-semibold text-stone-700">
-                              Uploading picture to Cloudinary...
+                              Uploading picture...
                             </span>
                           </>
                         ) : (
@@ -631,7 +642,9 @@ export const AdminCatalogPage: React.FC = () => {
                             <span className="text-xs font-semibold text-stone-900 text-center">
                               {uploadFileName
                                 ? `Uploaded: ${uploadFileName}`
-                                : "Click to select and upload picture to Cloudinary *"}
+                                : coverImage
+                                ? "Click to replace picture *"
+                                : "Click to select and upload picture *"}
                             </span>
                             <span className="text-[11px] text-stone-500 mt-0.5">
                               PNG, JPG, WebP, AVIF (Strictly max 2.0 MB)
@@ -647,7 +660,7 @@ export const AdminCatalogPage: React.FC = () => {
                         />
                       </label>
                       <p className="text-[10px] text-stone-500 leading-tight">
-                        Media is uploaded and stored securely in Cloudinary. File size must strictly not exceed 2MB.
+                        File size must strictly not exceed 2MB.
                       </p>
                     </div>
                   </div>
@@ -726,7 +739,7 @@ export const AdminCatalogPage: React.FC = () => {
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-amber-200">
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={handleCloseModal}
                     className="border-2 border-amber-300 text-stone-800 hover:bg-amber-50 rounded-md px-4 py-2 text-xs font-semibold cursor-pointer transition-colors"
                   >
                     Cancel

@@ -51,6 +51,28 @@ export class MediaController {
       sendError(res, error.message || 'Failed to upload image to Cloudinary.', 500);
     }
   }
+
+  /**
+   * DELETE /api/v1/media
+   * Deletes an image from Cloudinary storage by url or publicId.
+   */
+  async deleteMedia(req: Request, res: Response, _next: NextFunction): Promise<void> {
+    try {
+      const { publicId, url } = req.body || {};
+      const target = publicId || url || (req.query.publicId as string) || (req.query.url as string);
+
+      if (!target) {
+        sendError(res, 'A publicId or url is required to delete media from Cloudinary.', 400);
+        return;
+      }
+
+      const result = await cloudinaryService.deleteImageByUrl(target);
+      sendSuccess(res, 'Media removed from Cloudinary successfully.', result);
+    } catch (error: any) {
+      sendError(res, error.message || 'Failed to delete media from Cloudinary.', 500);
+    }
+  }
 }
 
 export const mediaController = new MediaController();
+

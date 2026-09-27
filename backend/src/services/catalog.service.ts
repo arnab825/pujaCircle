@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { pujaCatalog, NewPujaCatalog } from '../models/catalog.model.js';
+import { cloudinaryService } from './cloudinary.service.js';
 
 /**
  * [SERVICE] Catalog Service
@@ -62,9 +63,26 @@ export class CatalogService {
   }
 
   /**
-   * Update a sacred ceremony in the catalog by ID
+   * Update a sacred ceremony in the catalog by ID.
+   * If the coverImage is updated, automatically purges the old image from Cloudinary.
    */
   async updateCatalogEntry(id: string, data: Partial<NewPujaCatalog>): Promise<any> {
+    const [existing] = await db
+      .select()
+      .from(pujaCatalog)
+      .where(eq(pujaCatalog.id, id));
+
+    if (!existing) return null;
+
+    // Purge old cover image from Cloudinary if replacing with a new one or removing it
+    if (
+      existing.coverImage &&
+      data.coverImage !== undefined &&
+      data.coverImage !== existing.coverImage
+    ) {
+      await cloudinaryService.deleteImageByUrl(existing.coverImage);
+    }
+
     const [updated] = await db
       .update(pujaCatalog)
       .set({
@@ -74,21 +92,27 @@ export class CatalogService {
       .where(eq(pujaCatalog.id, id))
       .returning();
 
-    if (!updated) return null;
-
-    return {
-      ...updated,
-      coverImage: updated.coverImage || '/images/hero_vedic_puja.jpg',
-    };
+    return updated;
   }
 
   /**
-   * Delete or deactivate a sacred ceremony in the catalog by ID
+   * Delete a sacred ceremony in the catalog by ID.
+   * Automatically purges its associated cover image from Cloudinary.
    */
   async deleteCatalogEntry(id: string): Promise<void> {
-    await db
-      .delete(pujaCatalog)
+    const [existing] = await db
+      .select()
+      .from(pujaCatalog)
       .where(eq(pujaCatalog.id, id));
+
+    if (existing) {
+      if (existing.coverImage) {
+        await cloudinaryService.deleteImageByUrl(existing.coverImage);
+      }
+      await db
+        .delete(pujaCatalog)
+        .where(eq(pujaCatalog.id, id));
+    }
   }
 }
 
