@@ -13,7 +13,7 @@ export const bookingStatusEnum = pgEnum('booking_status', [
   'COMPLETED',
 ]);
 
-export const paymentMethodEnum = pgEnum('payment_method', ['OFFLINE_CASH', 'CASH']);
+export const paymentMethodEnum = pgEnum('payment_method', ['OFFLINE_CASH']);
 export const paymentStatusEnum = pgEnum('payment_status', ['PENDING', 'PAID_OFFLINE']);
 export const cancelledByEnum = pgEnum('cancelled_by', ['USER', 'PRIEST', 'ADMIN']);
 

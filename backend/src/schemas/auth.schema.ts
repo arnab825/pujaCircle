@@ -29,7 +29,7 @@ export const registerUserSchema = z.object({
   fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100),
   phoneNumber: z.string().trim().regex(phoneRegex, 'Please enter a valid 10-digit Indian phone number'),
   email: z.string().trim().email('Invalid email address').max(255),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(100).optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(100),
   address: registerAddressSchema.optional(),
 });
 

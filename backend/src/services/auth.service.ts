@@ -1,4 +1,5 @@
-import { eq, or } from 'drizzle-orm';
+import { randomInt } from 'crypto';
+import { eq, or, gt, and } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
@@ -6,8 +7,10 @@ import { db } from '../db/index.js';
 import { users } from '../models/user.model.js';
 import { priestProfiles } from '../models/priest.model.js';
 import { addresses } from '../models/address.model.js';
+import { otpCodes } from '../models/otp.model.js';
 import { toUserView, UserViewModel } from '../views/user.view.js';
 import { brevoEmailService } from './email.service.js';
+import { AppError } from '../utils/AppError.js';
 import {
   LoginInput,
   RegisterUserInput,
@@ -21,8 +24,12 @@ import {
 export interface AuthResult {
   user: UserViewModel;
   token?: string;
+  verified?: boolean;
+  requiresRegistration?: boolean;
+  phoneNumber?: string;
 }
 
+// Generate signed application JWT with user identity claims
 const generateAppToken = (user: { id: string; email?: string | null; role: string }): string => {
   return jwt.sign(
     {
@@ -35,85 +42,69 @@ const generateAppToken = (user: { id: string; email?: string | null; role: strin
   );
 };
 
-interface StoredOtp {
-  code: string;
-  expiresAt: number;
-  attempts: number;
-}
+// Generate and persist a cryptographically secure 6-digit OTP in PostgreSQL
+const generateAndStoreOtp = async (destination: string): Promise<string> => {
+  const cleanDest = destination.trim().toLowerCase();
+  const code = randomInt(100000, 999999).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes TTL
 
-// In-memory dynamic OTP repository (TTL 10 mins)
-const dynamicOtpStore = new Map<string, StoredOtp>();
-
-const generateDynamicOtp = (destination: string): string => {
-  const cleanId = destination.trim().toLowerCase();
-  // Cryptographically random 6-digit number
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  dynamicOtpStore.set(cleanId, {
-    code,
-    expiresAt: Date.now() + 10 * 60 * 1000,
-    attempts: 0,
-  });
+  // Delete prior OTPs for this destination before inserting a fresh code
+  await db.delete(otpCodes).where(eq(otpCodes.destination, cleanDest));
+  await db.insert(otpCodes).values({ destination: cleanDest, code, expiresAt });
 
   if (env.NODE_ENV !== 'production') {
-    console.log('\n============================================================');
-    console.log(`[OTP DISPATCH] Destination: ${destination}`);
-    console.log(`[OTP DISPATCH] Dynamic Verification Code: ${code}`);
-    console.log(`[OTP DISPATCH] Valid for: 10 minutes`);
-    console.log('============================================================\n');
+    console.log(`[OTP] ${destination} -> ${code} (valid for 10 min)`);
   }
 
   return code;
 };
 
-const verifyStoredOtp = (destination: string, code: string): boolean => {
-  const cleanId = destination.trim().toLowerCase();
-  const entry = dynamicOtpStore.get(cleanId);
-  if (!entry) return false;
+// Validate submitted OTP against database record with attempt rate-limiting
+const verifyOtp = async (destination: string, code: string): Promise<boolean> => {
+  const cleanDest = destination.trim().toLowerCase();
 
-  if (Date.now() > entry.expiresAt) {
-    dynamicOtpStore.delete(cleanId);
+  const [record] = await db
+    .select()
+    .from(otpCodes)
+    .where(and(eq(otpCodes.destination, cleanDest), gt(otpCodes.expiresAt, new Date())))
+    .limit(1);
+
+  if (!record) return false;
+
+  // Maximum 5 failed attempts before code invalidation
+  if (record.attempts >= 5) {
+    await db.delete(otpCodes).where(eq(otpCodes.id, record.id));
     return false;
   }
 
-  entry.attempts += 1;
-  if (entry.attempts > 5) {
-    dynamicOtpStore.delete(cleanId);
-    return false;
-  }
+  await db
+    .update(otpCodes)
+    .set({ attempts: record.attempts + 1 })
+    .where(eq(otpCodes.id, record.id));
 
-  if (entry.code === code.trim()) {
-    dynamicOtpStore.delete(cleanId); // Single-use consumption
+  if (record.code === code.trim()) {
+    await db.delete(otpCodes).where(eq(otpCodes.id, record.id)); // Single-use consumption
     return true;
   }
 
   return false;
 };
 
-/**
- * [SERVICE] Authentication Service
- * Orchestrates Supabase Auth identity creation and PostgreSQL database profile synchronization.
- */
+// Service class handling authentication, registration, and credential recovery
 export class AuthService {
-  /**
-   * Authenticate a user with email and password
-   */
+  // Authenticate an existing user with email and password
   async login(input: LoginInput): Promise<AuthResult> {
     const targetEmail = input.email.trim().toLowerCase();
 
-    // 1. Sign in against Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: targetEmail,
       password: input.password,
     });
 
     if (authError || !authData.user) {
-      throw {
-        statusCode: 401,
-        message: authError?.message || 'Invalid credentials. Please verify your email and password.',
-      };
+      throw new AppError(401, authError?.message || 'Invalid credentials. Please verify your email and password.');
     }
 
-    // 2. Fetch application profile from PostgreSQL
     const [userRecord] = await db
       .select()
       .from(users)
@@ -121,30 +112,11 @@ export class AuthService {
       .limit(1);
 
     if (!userRecord) {
-      // Fallback: If user exists in Supabase but not in public.users, create their profile
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          id: authData.user.id,
-          name: authData.user.user_metadata?.name || targetEmail.split('@')[0],
-          email: targetEmail,
-          phoneNumber: authData.user.user_metadata?.phone || '',
-          role: authData.user.user_metadata?.role || 'USER',
-        })
-        .returning();
-
-      return {
-        user: toUserView(newUser),
-        token: generateAppToken(newUser) || authData.session?.access_token,
-      };
+      throw new AppError(404, 'Account profile not found. Please complete registration or contact support.');
     }
 
-    // 3. Moderation verification
     if (userRecord.accountStatus === 'BANNED') {
-      throw {
-        statusCode: 403,
-        message: `Account suspended: ${userRecord.banReason || 'Administrative decision'}.`,
-      };
+      throw new AppError(403, `Account suspended: ${userRecord.banReason || 'Administrative decision'}.`);
     }
 
     return {
@@ -153,11 +125,8 @@ export class AuthService {
     };
   }
 
-  /**
-   * Register a new Devotee
-   */
+  // Register a new devotee user account
   async registerUser(input: RegisterUserInput): Promise<AuthResult> {
-    // 1. Check if phone or email is already registered in DB
     const existing = await db
       .select()
       .from(users)
@@ -165,17 +134,12 @@ export class AuthService {
       .limit(1);
 
     if (existing.length > 0) {
-      throw {
-        statusCode: 409,
-        message: 'An account with this phone number or email address is already registered.',
-      };
+      throw new AppError(409, 'An account with this phone number or email address is already registered.');
     }
 
-    // 2. Create user in Supabase Auth via Admin client
-    const fallbackPassword = input.password || `Puja@${Math.random().toString(36).slice(-8)}`;
     const { data: authUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email: input.email,
-      password: fallbackPassword,
+      password: input.password,
       email_confirm: true,
       user_metadata: {
         name: input.fullName,
@@ -185,15 +149,11 @@ export class AuthService {
     });
 
     if (createAuthError || !authUser.user) {
-      throw {
-        statusCode: 400,
-        message: createAuthError?.message || 'Failed to create authentication credentials.',
-      };
+      throw new AppError(400, createAuthError?.message || 'Failed to create authentication credentials.');
     }
 
     const userId = authUser.user.id;
 
-    // 3. Insert profile into PostgreSQL users table
     const [createdUser] = await db
       .insert(users)
       .values({
@@ -205,7 +165,6 @@ export class AuthService {
       })
       .returning();
 
-    // 4. Optionally insert default address
     if (input.address) {
       await db.insert(addresses).values({
         userId,
@@ -222,10 +181,9 @@ export class AuthService {
       });
     }
 
-    // 5. Establish session token
     const { data: sessionData } = await supabase.auth.signInWithPassword({
       email: input.email,
-      password: fallbackPassword,
+      password: input.password,
     });
 
     return {
@@ -234,11 +192,8 @@ export class AuthService {
     };
   }
 
-  /**
-   * Register a new Priest Application
-   */
+  // Register a new Purohit priest profile application
   async registerPriest(input: RegisterPriestInput): Promise<AuthResult> {
-    // 1. Check if phone is already registered
     const existing = await db
       .select()
       .from(users)
@@ -246,15 +201,11 @@ export class AuthService {
       .limit(1);
 
     if (existing.length > 0) {
-      throw {
-        statusCode: 409,
-        message: 'A user account with this phone number is already registered.',
-      };
+      throw new AppError(409, 'A user account with this phone number is already registered.');
     }
 
-    // 2. Generate email if not provided
     const targetEmail = input.email || `priest.${input.phoneNumber}@pujacircle.internal`;
-    const targetPassword = input.password || `PujaPriest@${Math.random().toString(36).slice(-8)}`;
+    const targetPassword = input.password || `PujaPriest@${randomInt(100000, 999999)}`;
 
     const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: targetEmail,
@@ -268,15 +219,11 @@ export class AuthService {
     });
 
     if (authError || !authUser.user) {
-      throw {
-        statusCode: 400,
-        message: authError?.message || 'Failed to create priest authentication record.',
-      };
+      throw new AppError(400, authError?.message || 'Failed to create priest authentication record.');
     }
 
     const userId = authUser.user.id;
 
-    // 3. Insert into users table
     const [createdUser] = await db
       .insert(users)
       .values({
@@ -288,7 +235,6 @@ export class AuthService {
       })
       .returning();
 
-    // 4. Insert into priest_profiles table with PENDING approval status
     await db.insert(priestProfiles).values({
       userId,
       approvalStatus: 'PENDING',
@@ -303,7 +249,6 @@ export class AuthService {
       profileImageUrl: '',
     });
 
-    // 5. Sign in to generate token
     const { data: sessionData } = await supabase.auth.signInWithPassword({
       email: targetEmail,
       password: targetPassword,
@@ -315,9 +260,7 @@ export class AuthService {
     };
   }
 
-  /**
-   * Retrieve active user session profile
-   */
+  // Retrieve authenticated user profile by user UUID
   async getMe(userId: string): Promise<UserViewModel> {
     const [userRecord] = await db
       .select()
@@ -326,37 +269,37 @@ export class AuthService {
       .limit(1);
 
     if (!userRecord) {
-      throw { statusCode: 404, message: 'User profile not found.' };
+      throw new AppError(404, 'User profile not found.');
     }
 
     return toUserView(userRecord);
   }
 
-  /**
-   * Dispatch Phone OTP via Dynamic OTP Engine
-   */
+  // Dispatch phone verification OTP and store in database
   async sendPhoneOtp(phoneNumber: string): Promise<{ message: string }> {
     const cleanPhone = phoneNumber.trim();
     const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
-    generateDynamicOtp(cleanPhone);
-    generateDynamicOtp(formattedPhone);
+
+    const code = await generateAndStoreOtp(cleanPhone);
+    await db.delete(otpCodes).where(eq(otpCodes.destination, formattedPhone.toLowerCase()));
+    await db.insert(otpCodes).values({
+      destination: formattedPhone.toLowerCase(),
+      code,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
 
     return {
       message: `Verification code dispatched successfully to ${formattedPhone}.`,
     };
   }
 
-  /**
-   * Verify Phone OTP dynamically and return user session
-   */
+  // Verify submitted phone OTP and return registered user or registration requirement
   async verifyPhoneOtp(input: VerifyPhoneOtpInput): Promise<AuthResult> {
     const cleanPhone = input.phoneNumber.trim();
     const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
 
-    // 1. Verify against dynamic OTP engine
-    const isDynamicValid = verifyStoredOtp(cleanPhone, input.otp) || verifyStoredOtp(formattedPhone, input.otp);
+    const isDynamicValid = (await verifyOtp(cleanPhone, input.otp)) || (await verifyOtp(formattedPhone, input.otp));
 
-    // 2. Also check with Supabase verifyOtp
     let supabaseSuccess = false;
     if (!isDynamicValid) {
       try {
@@ -367,18 +310,14 @@ export class AuthService {
         });
         if (!error && data.user) supabaseSuccess = true;
       } catch {
-        // Live provider not active
+        // Live SMS provider optional fallback
       }
     }
 
     if (!isDynamicValid && !supabaseSuccess) {
-      throw {
-        statusCode: 400,
-        message: 'Invalid or expired phone verification code. Please check the code and try again.',
-      };
+      throw new AppError(400, 'Invalid or expired phone verification code. Please check the code and try again.');
     }
 
-    // Look up or create profile for verified phone
     const [dbUser] = await db
       .select()
       .from(users)
@@ -390,25 +329,17 @@ export class AuthService {
     }
 
     return {
-      user: {
-        id: 'temp-verified',
-        name: 'Verified Contact',
-        phoneNumber: input.phoneNumber,
-        role: 'USER',
-        accountStatus: 'ACTIVE',
-        createdAt: new Date().toISOString(),
-      },
-    };
+      verified: true,
+      requiresRegistration: true,
+      phoneNumber: input.phoneNumber,
+    } as any;
   }
 
-  /**
-   * Dispatch Email OTP via Brevo REST API & Dynamic Engine
-   */
+  // Dispatch email verification OTP via Brevo REST API
   async sendEmailOtp(email: string): Promise<{ message: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    const code = generateDynamicOtp(cleanEmail);
+    const code = await generateAndStoreOtp(cleanEmail);
 
-    // Dispatch real email via Brevo REST API (100% cloud safe)
     await brevoEmailService.sendOtpEmail(cleanEmail, code, 'VERIFICATION');
 
     return {
@@ -416,40 +347,40 @@ export class AuthService {
     };
   }
 
-  /**
-   * Verify Email OTP dynamically
-   */
+  // Verify submitted email OTP and optionally update account password
   async verifyEmailOtp(input: VerifyEmailOtpInput): Promise<{ message: string }> {
     const cleanEmail = input.email.trim().toLowerCase();
-    const isDynamicValid = verifyStoredOtp(cleanEmail, input.otp);
+    const isDynamicValid = await verifyOtp(cleanEmail, input.otp);
 
     if (!isDynamicValid) {
-      throw {
-        statusCode: 400,
-        message: 'Invalid or expired email verification code. Please check the code and try again.',
-      };
+      throw new AppError(400, 'Invalid or expired email verification code. Please check the code and try again.');
     }
 
     if (input.newPassword) {
-      const { data: userList } = await supabaseAdmin.auth.admin.listUsers();
-      const targetUser = userList.users.find((u) => u.email === cleanEmail);
-      if (targetUser) {
-        await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
-          password: input.newPassword,
-        });
+      const [dbUser] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, cleanEmail))
+        .limit(1);
+
+      if (!dbUser) throw new AppError(404, 'No registered account found for this email.');
+
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(dbUser.id, {
+        password: input.newPassword,
+      });
+
+      if (updateError) {
+        throw new AppError(400, updateError.message || 'Failed to update credentials.');
       }
     }
 
     return { message: 'Email verified successfully.' };
   }
 
-  /**
-   * Request password recovery OTP via Brevo REST API
-   */
+  // Initiate password recovery by validating user existence and sending OTP
   async forgotPassword(input: ForgotPasswordInput): Promise<{ message: string }> {
     const cleanEmail = input.email.trim().toLowerCase();
 
-    // Verify account exists in PostgreSQL or Supabase
     const [existingUser] = await db
       .select()
       .from(users)
@@ -457,16 +388,10 @@ export class AuthService {
       .limit(1);
 
     if (!existingUser) {
-      // User not in our database — do not check Supabase auth provider
-      throw {
-        statusCode: 404,
-        message: 'No registered account found with this email address.',
-      };
+      throw new AppError(404, 'No registered account found with this email address.');
     }
 
-    const code = generateDynamicOtp(cleanEmail);
-
-    // Dispatch password reset email via Brevo REST API
+    const code = await generateAndStoreOtp(cleanEmail);
     await brevoEmailService.sendOtpEmail(cleanEmail, code, 'PASSWORD_RESET');
 
     return {
@@ -474,47 +399,31 @@ export class AuthService {
     };
   }
 
-  /**
-   * Reset user password using OTP verification code
-   */
+  // Reset user password after validating OTP code
   async resetPassword(input: ResetPasswordInput): Promise<{ message: string }> {
     const cleanEmail = input.email.trim().toLowerCase();
-    const isDynamicValid = verifyStoredOtp(cleanEmail, input.otp);
+    const isDynamicValid = await verifyOtp(cleanEmail, input.otp);
 
     if (!isDynamicValid) {
-      throw {
-        statusCode: 400,
-        message: 'Invalid or expired recovery verification code. Please request a new code.',
-      };
+      throw new AppError(400, 'Invalid or expired recovery verification code. Please request a new code.');
     }
 
-    // Locate user in Supabase Auth
-    const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    if (listError || !userList?.users) {
-      throw {
-        statusCode: 500,
-        message: 'Unable to process credential reset at this time.',
-      };
+    const [dbUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, cleanEmail))
+      .limit(1);
+
+    if (!dbUser) {
+      throw new AppError(404, 'No active account found for password reset.');
     }
 
-    const targetUser = userList.users.find((u) => u.email?.toLowerCase() === cleanEmail);
-    if (!targetUser) {
-      throw {
-        statusCode: 404,
-        message: 'No active account found for password reset.',
-      };
-    }
-
-    // Update password in Supabase Auth
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(dbUser.id, {
       password: input.newPassword,
     });
 
     if (updateError) {
-      throw {
-        statusCode: 400,
-        message: updateError.message || 'Failed to update credentials. Please try again.',
-      };
+      throw new AppError(400, updateError.message || 'Failed to update credentials. Please try again.');
     }
 
     return {
@@ -522,9 +431,7 @@ export class AuthService {
     };
   }
 
-  /**
-   * Terminate active user session
-   */
+  // Invalidate session on logout
   async logout(token?: string): Promise<{ message: string }> {
     if (token) {
       await supabase.auth.signOut().catch(() => {});

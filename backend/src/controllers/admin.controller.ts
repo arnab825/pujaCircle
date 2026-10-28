@@ -118,9 +118,11 @@ export class AdminController {
   }
 
   // GET /api/v1/admin/bookings
-  async getAllBookings(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAllBookings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const bookingsList = await adminService.getAllBookings();
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+      const bookingsList = await adminService.getAllBookings(page, limit);
       sendSuccess(res, 'All platform ceremony bookings retrieved.', bookingsList);
     } catch (error) {
       next(error);

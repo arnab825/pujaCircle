@@ -395,14 +395,15 @@ export class PriestService {
     });
   }
 
-  /**
-   * Update an existing availability exception
-   */
+  // Update an existing availability exception owned by this priest
   async updatePriestException(
-    _priestId: string,
+    priestId: string,
     exceptionId: string,
     data: UpdatePriestAvailabilityExceptionInput
   ): Promise<any> {
+    const profileId = await this.resolvePriestProfileId(priestId);
+    if (!profileId) throw new AppError(404, 'Priest profile not found.');
+
     const updateData: Record<string, any> = { updatedAt: new Date() };
     if (data.startAt) updateData.startAt = new Date(data.startAt);
     if (data.endAt) updateData.endAt = new Date(data.endAt);
@@ -412,19 +413,39 @@ export class PriestService {
     const [updated] = await db
       .update(priestAvailabilityExceptions)
       .set(updateData)
-      .where(eq(priestAvailabilityExceptions.id, exceptionId))
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.id, exceptionId),
+          eq(priestAvailabilityExceptions.priestId, profileId)
+        )
+      )
       .returning();
+
+    if (!updated) {
+      throw new AppError(404, 'Availability exception not found or access denied.');
+    }
 
     return updated;
   }
 
-  /**
-   * Delete an availability exception (Cancel Leave or Remove Blackout)
-   */
-  async deletePriestException(_priestId: string, exceptionId: string): Promise<void> {
-    await db
+  // Delete an availability exception owned by this priest
+  async deletePriestException(priestId: string, exceptionId: string): Promise<void> {
+    const profileId = await this.resolvePriestProfileId(priestId);
+    if (!profileId) throw new AppError(404, 'Priest profile not found.');
+
+    const [deleted] = await db
       .delete(priestAvailabilityExceptions)
-      .where(eq(priestAvailabilityExceptions.id, exceptionId));
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.id, exceptionId),
+          eq(priestAvailabilityExceptions.priestId, profileId)
+        )
+      )
+      .returning();
+
+    if (!deleted) {
+      throw new AppError(404, 'Availability exception not found or access denied.');
+    }
   }
 
   /**

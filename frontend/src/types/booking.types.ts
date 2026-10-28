@@ -9,7 +9,7 @@ export type BookingStatus =
   | 'CANCELLED'
   | 'COMPLETED';
 
-export type PaymentMethod = 'OFFLINE_CASH' | 'CASH';
+export type PaymentMethod = 'OFFLINE_CASH';
 export type PaymentStatus = 'PENDING' | 'PAID_OFFLINE';
 
 export interface Booking {

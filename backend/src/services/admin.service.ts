@@ -1,4 +1,4 @@
-import { count, eq, sql } from 'drizzle-orm';
+import { count, eq, sql, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, priestProfiles, bookings } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -98,12 +98,42 @@ export class AdminService {
     }));
   }
 
-  /**
-   * Query pending priest registration applications
-   */
+  // Query pending priest registration applications directly from database
   async getPendingPriests(): Promise<any[]> {
-    const priests = await this.getAllPriests();
-    return priests.filter((p) => p.approvalStatus === 'PENDING');
+    const records = await db
+      .select({
+        id: priestProfiles.id,
+        userId: users.id,
+        fullName: users.name,
+        phoneNumber: users.phoneNumber,
+        email: users.email,
+        approvalStatus: priestProfiles.approvalStatus,
+        accountStatus: users.accountStatus,
+        experienceYears: priestProfiles.experienceYears,
+        bio: priestProfiles.bio,
+        languages: priestProfiles.languages,
+        specializations: priestProfiles.specializations,
+        serviceAreas: priestProfiles.serviceAreas,
+        city: priestProfiles.city,
+        state: priestProfiles.state,
+        pincode: priestProfiles.pincode,
+        profileImageUrl: priestProfiles.profileImageUrl,
+        rating: priestProfiles.rating,
+        reviewCount: priestProfiles.reviewCount,
+        defaultStartTime: priestProfiles.defaultStartTime,
+        defaultEndTime: priestProfiles.defaultEndTime,
+        createdAt: priestProfiles.createdAt,
+      })
+      .from(priestProfiles)
+      .innerJoin(users, eq(priestProfiles.userId, users.id))
+      .where(eq(priestProfiles.approvalStatus, 'PENDING'));
+
+    return records.map((p) => ({
+      ...p,
+      isPhoneVerified: true,
+      rating: Number(p.rating || 0),
+      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    }));
   }
 
   /**
@@ -236,40 +266,69 @@ export class AdminService {
       .where(eq(users.id, userId));
   }
 
-  /**
-   * Query all platform ceremony bookings joined with devotee and priest profiles
-   */
-  async getAllBookings(): Promise<any[]> {
-    const allBookings = await db.select().from(bookings);
-    const allUsers = await db.select().from(users);
-    const allPriests = await this.getAllPriests();
+  // Query platform ceremony bookings with SQL joins and pagination
+  async getAllBookings(page = 1, limit = 50): Promise<any[]> {
+    const offset = (page - 1) * limit;
 
-    const userMap = new Map(allUsers.map((u) => [u.id, u]));
-    const priestMap = new Map(allPriests.map((p) => [p.id, p]));
+    const results = await db
+      .select({
+        id: bookings.id,
+        bookingReference: bookings.bookingReference,
+        userId: bookings.userId,
+        priestId: bookings.priestId,
+        priestServiceId: bookings.priestServiceId,
+        pujaCatalogId: bookings.pujaCatalogId,
+        addressId: bookings.addressId,
+        serviceName: bookings.serviceName,
+        servicePrice: bookings.servicePrice,
+        totalPrice: bookings.totalPrice,
+        bookingDate: bookings.bookingDate,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+        scheduledDate: bookings.scheduledDate,
+        status: bookings.status,
+        paymentMethod: bookings.paymentMethod,
+        paymentStatus: bookings.paymentStatus,
+        specialInstructions: bookings.specialInstructions,
+        notes: bookings.notes,
+        completionCode: bookings.completionCode,
+        rejectionReason: bookings.rejectionReason,
+        cancellationReason: bookings.cancellationReason,
+        cancelledBy: bookings.cancelledBy,
+        cancelledAt: bookings.cancelledAt,
+        completedAt: bookings.completedAt,
+        rating: bookings.rating,
+        review: bookings.review,
+        createdAt: bookings.createdAt,
+        updatedAt: bookings.updatedAt,
+        userName: users.name,
+        userPhone: users.phoneNumber,
+        userEmail: users.email,
+      })
+      .from(bookings)
+      .leftJoin(users, eq(bookings.userId, users.id))
+      .leftJoin(priestProfiles, eq(bookings.priestId, priestProfiles.id))
+      .orderBy(desc(bookings.createdAt))
+      .limit(limit)
+      .offset(offset);
 
-    return allBookings.map((b) => {
-      const devotee = userMap.get(b.userId);
-      const priest = priestMap.get(b.priestId);
-
-      return {
-        ...b,
-        createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
-        updatedAt: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined,
-        cancelledAt: b.cancelledAt ? new Date(b.cancelledAt).toISOString() : undefined,
-        completedAt: b.completedAt ? new Date(b.completedAt).toISOString() : undefined,
-        userName: devotee?.name || 'Devotee',
-        userPhone: devotee?.phoneNumber || '',
-        user: devotee
-          ? {
-              id: devotee.id,
-              name: devotee.name,
-              phoneNumber: devotee.phoneNumber,
-              email: devotee.email,
-            }
-          : undefined,
-        priest: priest || undefined,
-      };
-    });
+    return results.map((b) => ({
+      ...b,
+      userName: b.userName || 'Devotee',
+      userPhone: b.userPhone || '',
+      createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined,
+      cancelledAt: b.cancelledAt ? new Date(b.cancelledAt).toISOString() : undefined,
+      completedAt: b.completedAt ? new Date(b.completedAt).toISOString() : undefined,
+      user: b.userId
+        ? {
+            id: b.userId,
+            name: b.userName || 'Devotee',
+            phoneNumber: b.userPhone || '',
+            email: b.userEmail || '',
+          }
+        : undefined,
+    }));
   }
 }
 

@@ -112,8 +112,7 @@ export const bookingApi = {
     data: SubmitRatingRequest
   ): Promise<{ success: boolean; message: string; data?: Rating }> => {
     try {
-      const activeUserId = userId || useAuthStore.getState().user?.id || '';
-      const res = await apiClient.post('/ratings', { ...data, userId: activeUserId });
+      const res = await apiClient.post(`/bookings/${data.bookingId}/rating`, data);
       return res as any;
     } catch (error) {
       logAppError('bookingApi.submitRating', error, { userId, data });

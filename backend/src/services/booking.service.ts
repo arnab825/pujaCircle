@@ -1,4 +1,5 @@
 import { eq, and, or, desc } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { bookings, priestProfiles, priestServices, pujaCatalog, addresses, users } from '../models/index.js';
 import { CreateBookingInput, RatingInput } from '../schemas/booking.schema.js';
@@ -164,21 +165,8 @@ export class BookingService {
       throw new AppError(404, 'Ceremony venue address not found.');
     }
 
-    // 2. Generate unique bookingReference (e.g. PC-2026-XXXX)
-    let bookingReference = `PC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    let exists = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(eq(bookings.bookingReference, bookingReference))
-      .limit(1);
-    while (exists.length > 0) {
-      bookingReference = `PC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      exists = await db
-        .select({ id: bookings.id })
-        .from(bookings)
-        .where(eq(bookings.bookingReference, bookingReference))
-        .limit(1);
-    }
+    // Generate collision-resistant unique booking reference e.g. PC-2026-X8K9M2
+    const bookingReference = `PC-${new Date().getFullYear()}-${nanoid(6).toUpperCase()}`;
 
     // 4. Lock authoritative price snapshot: servicePrice = priestService.price, totalPrice = servicePrice
     let servicePrice = data.servicePrice || 1001;
@@ -546,6 +534,11 @@ export class BookingService {
     // 3. Status validation: must be COMPLETED
     if (booking.status !== 'COMPLETED') {
       throw new AppError(400, 'Ratings and reviews can only be submitted for completed ceremonies.');
+    }
+
+    // Prevent duplicate reviews on the same ceremony booking
+    if (booking.rating !== null && booking.rating !== undefined) {
+      throw new AppError(400, 'A review has already been submitted for this ceremony booking.');
     }
 
     // 4. Record review rating on booking

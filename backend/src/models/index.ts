@@ -94,3 +94,4 @@ export * from './priest.model.js';
 export * from './address.model.js';
 export * from './catalog.model.js';
 export * from './booking.model.js';
+export * from './otp.model.js';
