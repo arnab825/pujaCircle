@@ -128,7 +128,7 @@ export const BookingsPage: React.FC = () => {
           </p>
         </div>
 
-        <Link to="/user/priests" className="shrink-0 w-full sm:w-auto">
+        <Link to="/priests" className="shrink-0 w-full sm:w-auto">
           <Button className="w-full sm:w-auto gap-2 text-xs sm:text-sm font-bold bg-red-700 hover:bg-red-800 text-white rounded-md shadow-md h-11 px-5 active:scale-[0.98] transition-transform cursor-pointer">
             <span>Schedule New Puja</span>
             <ArrowRight className="h-4 w-4" />
@@ -270,7 +270,7 @@ export const BookingsPage: React.FC = () => {
         <div className="flex flex-col gap-4 w-full">
           {filteredBookings.map((b) => {
             const canCancel = b.status === 'PENDING' || b.status === 'CONFIRMED';
-            const canRate = b.status === 'COMPLETED' && !b.ratingSubmitted;
+            const canRate = b.status === 'COMPLETED' && (b.rating === null || b.rating === undefined);
 
             return (
               <div

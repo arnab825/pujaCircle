@@ -21,7 +21,7 @@ import {
 // Action queues and decline dialog removed (managed under /priest/bookings).
 export const PriestDashboardPage: React.FC = () => {
   const { user } = useAuthStore();
-  const priestId = priestApi.resolveCurrentPriestId();
+  const priestId = user?.id || '';
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [activeServicesCount, setActiveServicesCount] = useState(0);

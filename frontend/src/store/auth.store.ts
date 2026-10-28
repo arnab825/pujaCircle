@@ -50,7 +50,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('pujacircle_token');
         set({ user: null, token: null, isAuthenticated: false, error: null });
       },
 
@@ -59,8 +58,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       setToken: (token: string | null) => {
-        if (token) localStorage.setItem('pujacircle_token', token);
-        else localStorage.removeItem('pujacircle_token');
         set({ token });
       },
 

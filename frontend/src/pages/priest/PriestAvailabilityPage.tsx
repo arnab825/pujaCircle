@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/auth.store';
 import { priestApi } from '@/api/priest.api';
 import { bookingApi } from '@/api/booking.api';
 import { Booking } from '@/types/booking.types';
@@ -36,7 +37,8 @@ import { toast } from 'sonner';
  * - Confirmed devotee bookings automatically subtracted from available windows.
  */
 export const PriestAvailabilityPage: React.FC = () => {
-  const priestId = priestApi.resolveCurrentPriestId();
+  const { user } = useAuthStore();
+  const priestId = user?.id || '';
   const todayStr = new Date().toISOString().split('T')[0];
 
   // Calendar State: 0 = current month, 1 = +1 month, 2 = +2 months (90 days total)

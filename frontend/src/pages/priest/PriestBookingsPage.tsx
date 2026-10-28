@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useAuthStore } from "@/store/auth.store";
 import { bookingApi } from "@/api/booking.api";
-import { priestApi } from "@/api/priest.api";
 import { Booking } from "@/types/booking.types";
 import { PriestBookingRow } from "@/components/priest/PriestBookingRow";
 import { PriestBookingDetailsDialog } from "@/components/priest/PriestBookingDetailsDialog";
@@ -22,7 +22,8 @@ type TabFilter = "PENDING" | "CONFIRMED" | "COMPLETED" | "HISTORY";
  * 100% Flexbox, zero CSS grids, zero gradients, pure solid white canvas, Haldi gold trims.
  */
 export const PriestBookingsPage: React.FC = () => {
-  const priestId = priestApi.resolveCurrentPriestId();
+  const { user } = useAuthStore();
+  const priestId = user?.id || '';
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [activeTab, setActiveTab] = useState<TabFilter>("PENDING");

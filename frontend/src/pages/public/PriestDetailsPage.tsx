@@ -202,7 +202,7 @@ export const PriestDetailsPage: React.FC = () => {
           The requested priest profile does not exist or is currently pending
           approval.
         </p>
-        <Link to="/user/priests">
+        <Link to="/priests">
           <Button
             size="sm"
             variant="outline"
@@ -223,7 +223,7 @@ export const PriestDetailsPage: React.FC = () => {
     <div className="container py-6 sm:py-8 space-y-6 max-w-6xl">
       {/* Back Link */}
       <Link
-        to="/user/priests"
+        to="/priests"
         className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-red-700 font-bold transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5 text-red-700" />

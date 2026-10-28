@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { useAuthStore } from "@/store/auth.store";
 import { priestApi } from "@/api/priest.api";
 import { Priest, PriestService } from "@/types/priest.types";
 import { updatePriestProfileSchema } from "@/schemas/priest.schema";
@@ -56,7 +57,8 @@ const POPULAR_LANGUAGES = [
  * 100% Flexbox, zero CSS grids, zero gradients, pure solid white canvas, Haldi gold trims.
  */
 export const PriestProfilePage: React.FC = () => {
-  const priestId = priestApi.resolveCurrentPriestId();
+  const { user } = useAuthStore();
+  const priestId = user?.id || '';
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);

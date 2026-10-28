@@ -47,7 +47,7 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
       ? priest.serviceAreas.slice(0, 3).join(', ')
       : priest.city;
 
-  const priestDetailUrl = `/user/priests/${priest.id}`;
+  const priestDetailUrl = `/priests/${priest.id}`;
 
   return (
     <div className="w-full bg-white border-2 border-amber-200 hover:border-amber-400 rounded-xl shadow-xs transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl overflow-hidden flex flex-col md:flex-row items-stretch justify-between p-5 sm:p-6 gap-5 group">

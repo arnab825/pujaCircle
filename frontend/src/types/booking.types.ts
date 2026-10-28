@@ -20,30 +20,31 @@ export interface Booking {
   priestServiceId?: string;
   pujaCatalogId?: string;
   ritualId?: string;
-  addressId: string;
+  addressId?: string;
   venueAddressSnapshot?: Address;
-  slotId: string;
-  availabilitySlotId?: string;
   serviceName: string;
-  servicePrice: number; // Authoritative price snapshot locked at request submission
-  dakshinaAmount?: number; // Backwards-compatibility alias for servicePrice
+  servicePrice: number;
+  totalPrice: number;
+  dakshinaAmount?: number;
   samagriList?: string[];
   bookingDate: string; // YYYY-MM-DD
-  startTime: string;
-  endTime: string;
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
   status: BookingStatus;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
-  specialInstructions?: string;
-  userNotes?: string;
-  responseDeadline?: string; // 5 hours after creation
-  rejectionReason?: string;
-  cancellationReason?: string;
-  cancelledBy?: 'USER' | 'PRIEST' | 'ADMIN';
-  cancelledAt?: string;
-  completedAt?: string;
-  ratingSubmitted?: boolean;
-  completionCode?: string; // 4-digit verification code provided to devotee upon confirmation
+  specialInstructions?: string | null;
+  notes?: string | null;
+  userNotes?: string | null;
+  completionCode?: string | null; // 4-digit verification code provided to devotee upon confirmation
+  responseDeadline?: string | null;
+  rejectionReason?: string | null;
+  cancellationReason?: string | null;
+  cancelledBy?: 'USER' | 'PRIEST' | 'ADMIN' | null;
+  cancelledAt?: string | null;
+  completedAt?: string | null;
+  rating?: number | null;
+  review?: string | null;
   createdAt: string;
   updatedAt?: string;
 
@@ -56,8 +57,6 @@ export interface Booking {
   user?: { id: string; name: string; phoneNumber: string; email?: string };
   userName?: string;
   userPhone?: string;
-  rating?: number;
-  review?: string;
 }
 
 export interface CreateBookingRequest {
@@ -66,12 +65,16 @@ export interface CreateBookingRequest {
   pujaCatalogId?: string;
   ritualId?: string;
   addressId: string;
-  slotId: string;
+  slotId?: string;
   availabilitySlotId?: string;
   bookingDate: string;
   startTime?: string;
   endTime?: string;
+  serviceName?: string;
+  servicePrice?: number;
+  totalPrice?: number;
   specialInstructions?: string;
+  notes?: string;
   userNotes?: string;
 }
 
@@ -100,4 +103,3 @@ export interface SubmitRatingRequest {
   rating?: number;
   review?: string;
 }
-

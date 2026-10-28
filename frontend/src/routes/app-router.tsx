@@ -115,8 +115,8 @@ export const appRouter = createBrowserRouter([
       // Devotee Priest Discovery (Strictly Authenticated Devotees Only)
       { path: 'priests', element: <UserRouteGuard>{LazyPage(PriestListingPage)}</UserRouteGuard> },
       { path: 'priests/:id', element: <UserRouteGuard>{LazyPage(PriestDetailsPage)}</UserRouteGuard> },
-      { path: 'user/priests', element: <UserRouteGuard>{LazyPage(PriestListingPage)}</UserRouteGuard> },
-      { path: 'user/priests/:id', element: <UserRouteGuard>{LazyPage(PriestDetailsPage)}</UserRouteGuard> },
+      { path: 'user/priests', element: <Navigate to="/priests" replace /> },
+      { path: 'user/priests/:id', element: <Navigate to="/priests" replace /> },
 
       // Canonical Devotee Features (USER Role Only)
       { path: 'user/home', element: <UserRouteGuard>{LazyPage(UserHomePage)}</UserRouteGuard> },

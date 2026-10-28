@@ -15,24 +15,19 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor
+// Request interceptor: attach bearer token from Zustand persisted storage
 apiClient.interceptors.request.use(
   (requestConfig) => {
     try {
-      let token: string | null = null;
       const stored = localStorage.getItem('pujacircle-auth-storage');
       if (stored) {
-        const parsed = JSON.parse(stored);
-        token = parsed?.state?.token || null;
-      }
-      if (!token) {
-        token = localStorage.getItem('pujacircle_token');
-      }
-      if (token && requestConfig.headers) {
-        requestConfig.headers.Authorization = `Bearer ${token}`;
+        const { state } = JSON.parse(stored);
+        if (state?.token && requestConfig.headers) {
+          requestConfig.headers.Authorization = `Bearer ${state.token}`;
+        }
       }
     } catch {
-      // Ignore parse failure
+      // Ignore parse failure; credentials sent via withCredentials
     }
     return requestConfig;
   },

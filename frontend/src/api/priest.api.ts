@@ -6,18 +6,12 @@ import {
 } from '@/types/priest.types';
 import { PincodeLookupResponse } from '@/types/address.types';
 import { apiClient } from './client';
-import { useAuthStore } from '@/store/auth.store';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 import { getPriestExceptions, calculateDayMuhuratSlots, CalculatedSlot } from '@/lib/availabilityUtils';
 
+// Frontend API service for Purohit profiles, rituals, services, and availability slots
 export const priestApi = {
-  // Helper to resolve current authenticated priest ID
-  resolveCurrentPriestId: (): string => {
-    const user = useAuthStore.getState().user;
-    return user?.id || '';
-  },
-
-  // Public Approved Priests
+  // Public Approved Priests listing
   getPriests: async (params?: PriestFilterParams): Promise<Priest[]> => {
     try {
       const res = await apiClient.get('/priests', { params });
@@ -39,14 +33,19 @@ export const priestApi = {
   },
 
   getMyPriestProfile: async (): Promise<Priest | undefined> => {
-    const priestId = priestApi.resolveCurrentPriestId();
-    if (!priestId) return undefined;
-    return priestApi.getPriestById(priestId);
+    try {
+      const res = await apiClient.get('/priests/me/profile');
+      return (res as any).data || res;
+    } catch (error) {
+      logAppError('priestApi.getMyPriestProfile', error);
+      return undefined;
+    }
   },
 
   updatePriestProfile: async (id: string, updates: Partial<Priest>) => {
     try {
-      const res = await apiClient.put(`/priests/${id}`, updates);
+      const endpoint = id ? `/priests/${id}` : '/priests/me/profile';
+      const res = await apiClient.put(endpoint, updates);
       return res as any;
     } catch (error) {
       logAppError('priestApi.updatePriestProfile', error, { id });
@@ -60,9 +59,8 @@ export const priestApi = {
   // Services & Pricing Catalog
   getPriestServices: async (priestId?: string): Promise<PriestService[]> => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      if (!activeId) return [];
-      const res = await apiClient.get(`/priests/${activeId}/services`);
+      const endpoint = priestId ? `/priests/${priestId}/services` : '/priests/me/services';
+      const res = await apiClient.get(endpoint);
       return (res as any).data || res;
     } catch (error) {
       logAppError('priestApi.getPriestServices', error, { priestId });
@@ -79,8 +77,8 @@ export const priestApi = {
     data: { serviceName?: string; price: number; pujaCatalogId?: string }
   ) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      const res = await apiClient.post(`/priests/${activeId}/services`, data);
+      const endpoint = priestId ? `/priests/${priestId}/services` : '/priests/me/services';
+      const res = await apiClient.post(endpoint, data);
       return res as any;
     } catch (error) {
       logAppError('priestApi.createPriestService', error, { priestId, data });
@@ -97,8 +95,8 @@ export const priestApi = {
     data: { serviceName?: string; price?: number; isActive?: boolean }
   ) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      const res = await apiClient.put(`/priests/${activeId}/services/${serviceId}`, data);
+      const endpoint = priestId ? `/priests/${priestId}/services/${serviceId}` : `/priests/me/services/${serviceId}`;
+      const res = await apiClient.put(endpoint, data);
       return res as any;
     } catch (error) {
       logAppError('priestApi.updatePriestService', error, { serviceId, priestId });
@@ -111,8 +109,8 @@ export const priestApi = {
 
   deletePriestService: async (serviceId: string, priestId?: string) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      const res = await apiClient.delete(`/priests/${activeId}/services/${serviceId}`);
+      const endpoint = priestId ? `/priests/${priestId}/services/${serviceId}` : `/priests/me/services/${serviceId}`;
+      const res = await apiClient.delete(endpoint);
       return res as any;
     } catch (error) {
       logAppError('priestApi.deletePriestService', error, { serviceId, priestId });
@@ -125,8 +123,8 @@ export const priestApi = {
 
   togglePriestService: async (serviceId: string, priestId?: string) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      const res = await apiClient.patch(`/priests/${activeId}/services/${serviceId}/toggle`);
+      const endpoint = priestId ? `/priests/${priestId}/services/${serviceId}/toggle` : `/priests/me/services/${serviceId}/toggle`;
+      const res = await apiClient.patch(endpoint);
       return res as any;
     } catch (error) {
       logAppError('priestApi.togglePriestService', error, { serviceId, priestId });
@@ -162,9 +160,8 @@ export const priestApi = {
   // Availability Exceptions (Full-Day Leaves & Partial Blackouts)
   getPriestExceptions: async (priestId?: string, query?: { date?: string; startDate?: string; endDate?: string }): Promise<any[]> => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      if (!activeId) return [];
-      const res = await apiClient.get(`/priests/${activeId}/exceptions`, { params: query });
+      const endpoint = priestId ? `/priests/${priestId}/exceptions` : '/priests/me/exceptions';
+      const res = await apiClient.get(endpoint, { params: query });
       return (res as any).data || res || [];
     } catch (error) {
       logAppError('priestApi.getPriestExceptions', error, { priestId, query });
@@ -180,11 +177,9 @@ export const priestApi = {
     payload: { date: string; reason?: string; priestId?: string }
   ) => {
     try {
-      const activeId = payload.priestId || priestApi.resolveCurrentPriestId();
       const res = await apiClient.post('/availability/day-off', {
         date: payload.date,
         reason: payload.reason || 'Full Day Off / Leave',
-        priestId: activeId,
       });
       return res as any;
     } catch (error) {
@@ -200,13 +195,11 @@ export const priestApi = {
     payload: { date: string; startTime: string; endTime: string; reason?: string; priestId?: string }
   ) => {
     try {
-      const activeId = payload.priestId || priestApi.resolveCurrentPriestId();
       const res = await apiClient.post('/availability/block-hours', {
         date: payload.date,
         startTime: payload.startTime,
         endTime: payload.endTime,
         reason: payload.reason || 'Blocked Hours',
-        priestId: activeId,
       });
       return res as any;
     } catch (error) {
@@ -220,8 +213,8 @@ export const priestApi = {
 
   deletePriestException: async (exceptionId: string, priestId?: string) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      const res = await apiClient.delete(`/priests/${activeId}/exceptions/${exceptionId}`);
+      const endpoint = priestId ? `/priests/${priestId}/exceptions/${exceptionId}` : `/priests/me/exceptions/${exceptionId}`;
+      const res = await apiClient.delete(endpoint);
       return res as any;
     } catch (error) {
       logAppError('priestApi.deletePriestException', error, { exceptionId, priestId });
@@ -235,9 +228,8 @@ export const priestApi = {
   // Default Working Hours
   getWorkingHours: async (priestId?: string) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      if (!activeId) return null;
-      const res = await apiClient.get(`/priests/${activeId}/working-hours`);
+      const endpoint = priestId ? `/priests/${priestId}/working-hours` : '/priests/me/working-hours';
+      const res = await apiClient.get(endpoint);
       return (res as any).data || res;
     } catch (error) {
       logAppError('priestApi.getWorkingHours', error, { priestId });
@@ -250,8 +242,8 @@ export const priestApi = {
     data: { defaultStartTime?: string; defaultEndTime?: string }
   ) => {
     try {
-      const activeId = priestId || priestApi.resolveCurrentPriestId();
-      const res = await apiClient.put(`/priests/${activeId}/working-hours`, data);
+      const endpoint = priestId ? `/priests/${priestId}/working-hours` : '/priests/me/working-hours';
+      const res = await apiClient.put(endpoint, data);
       return res as any;
     } catch (error) {
       logAppError('priestApi.updateWorkingHours', error, { priestId, data });
@@ -271,8 +263,6 @@ export const priestApi = {
       return [];
     }
   },
-
-
 
   lookupPincode: async (pincode: string): Promise<PincodeLookupResponse> => {
     try {

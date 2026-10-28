@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuthStore } from '@/store/auth.store';
 import { priestApi } from '@/api/priest.api';
 import { PriestService } from '@/types/priest.types';
 import { PriestServiceInput } from '@/schemas/priest.schema';
@@ -14,7 +15,8 @@ import { toast } from 'sonner';
  * 100% Flexbox, zero CSS grids, zero gradients, pure solid white canvas, Haldi gold trims.
  */
 export const PriestServicesPage: React.FC = () => {
-  const priestId = priestApi.resolveCurrentPriestId();
+  const { user } = useAuthStore();
+  const priestId = user?.id || '';
 
   const [services, setServices] = useState<PriestService[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);

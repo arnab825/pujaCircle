@@ -1,16 +1,15 @@
 import { Booking, CreateBookingRequest, CancelBookingRequest, SubmitRatingRequest, Rating } from '@/types/booking.types';
 import { apiClient } from './client';
-import { useAuthStore } from '@/store/auth.store';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
+// Frontend API service for ceremony reservations, statuses, and devotee ratings
 export const bookingApi = {
   createBooking: async (
     data: CreateBookingRequest,
-    userId?: string
+    _userId?: string
   ): Promise<{ success: boolean; message: string; data?: Booking }> => {
     try {
-      const activeUserId = userId || useAuthStore.getState().user?.id;
-      const res = await apiClient.post('/bookings', { ...data, userId: activeUserId });
+      const res = await apiClient.post('/bookings', data);
       return res as any;
     } catch (error) {
       logAppError('bookingApi.createBooking', error, { data });
@@ -23,8 +22,7 @@ export const bookingApi = {
 
   getBookings: async (userId?: string, priestId?: string): Promise<Booking[]> => {
     try {
-      const activeUserId = userId || (priestId ? undefined : useAuthStore.getState().user?.id);
-      const res = await apiClient.get('/bookings', { params: { userId: activeUserId, priestId } });
+      const res = await apiClient.get('/bookings', { params: { userId, priestId } });
       return (res as any).data || res;
     } catch (error) {
       logAppError('bookingApi.getBookings', error, { userId, priestId });
@@ -33,8 +31,7 @@ export const bookingApi = {
   },
 
   getPriestBookings: async (priestId?: string): Promise<Booking[]> => {
-    const activePriestId = priestId || useAuthStore.getState().user?.id;
-    return bookingApi.getBookings(undefined, activePriestId);
+    return bookingApi.getBookings(undefined, priestId);
   },
 
   getMyBookings: async (): Promise<Booking[]> => {
@@ -51,13 +48,12 @@ export const bookingApi = {
     }
   },
 
-  acceptBooking: async (bookingId: string, priestId?: string) => {
+  acceptBooking: async (bookingId: string, _priestId?: string) => {
     try {
-      const activePriestId = priestId || useAuthStore.getState().user?.id || '';
-      const res = await apiClient.post(`/bookings/${bookingId}/accept`, { priestId: activePriestId });
+      const res = await apiClient.post(`/bookings/${bookingId}/accept`);
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.acceptBooking', error, { bookingId, priestId });
+      logAppError('bookingApi.acceptBooking', error, { bookingId });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to accept booking.'),
@@ -65,13 +61,13 @@ export const bookingApi = {
     }
   },
 
-  rejectBooking: async (bookingId: string, priestId?: string, reason?: string) => {
+  rejectBooking: async (bookingId: string, priestIdOrReason?: string, maybeReason?: string) => {
     try {
-      const activePriestId = priestId || useAuthStore.getState().user?.id || '';
-      const res = await apiClient.post(`/bookings/${bookingId}/reject`, { priestId: activePriestId, reason });
+      const reason = maybeReason !== undefined ? maybeReason : priestIdOrReason;
+      const res = await apiClient.post(`/bookings/${bookingId}/reject`, { reason });
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.rejectBooking', error, { bookingId, priestId, reason });
+      logAppError('bookingApi.rejectBooking', error, { bookingId });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to decline booking.'),
@@ -79,13 +75,17 @@ export const bookingApi = {
     }
   },
 
-  cancelBooking: async (data: CancelBookingRequest & { userId?: string }) => {
+  cancelBooking: async (
+    bookingIdOrData: string | (CancelBookingRequest & { userId?: string }),
+    reason?: string
+  ) => {
     try {
-      const activeUserId = data.userId || useAuthStore.getState().user?.id || '';
-      const res = await apiClient.post(`/bookings/${data.bookingId}/cancel`, { userId: activeUserId, reason: data.reason });
+      const bookingId = typeof bookingIdOrData === 'string' ? bookingIdOrData : bookingIdOrData.bookingId;
+      const cancelReason = typeof bookingIdOrData === 'string' ? reason : bookingIdOrData.reason;
+      const res = await apiClient.post(`/bookings/${bookingId}/cancel`, { reason: cancelReason });
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.cancelBooking', error, { data });
+      logAppError('bookingApi.cancelBooking', error, { bookingIdOrData });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to cancel booking.'),
@@ -93,13 +93,17 @@ export const bookingApi = {
     }
   },
 
-  completeBooking: async (bookingId: string, priestId?: string, completionCode?: string) => {
+  completeBooking: async (
+    bookingId: string,
+    priestIdOrCode?: string,
+    maybeCode?: string
+  ) => {
     try {
-      const activePriestId = priestId || useAuthStore.getState().user?.id || '';
-      const res = await apiClient.post(`/bookings/${bookingId}/complete`, { priestId: activePriestId, completionCode });
+      const completionCode = maybeCode !== undefined ? maybeCode : priestIdOrCode;
+      const res = await apiClient.post(`/bookings/${bookingId}/complete`, { completionCode });
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.completeBooking', error, { bookingId, priestId, completionCode });
+      logAppError('bookingApi.completeBooking', error, { bookingId });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to mark ceremony as completed.'),
@@ -108,14 +112,16 @@ export const bookingApi = {
   },
 
   submitRating: async (
-    userId: string | undefined,
-    data: SubmitRatingRequest
+    bookingIdOrUserId: string | undefined,
+    dataOrUndefined?: SubmitRatingRequest
   ): Promise<{ success: boolean; message: string; data?: Rating }> => {
     try {
-      const res = await apiClient.post(`/bookings/${data.bookingId}/rating`, data);
+      const data = dataOrUndefined ?? (typeof bookingIdOrUserId === 'object' ? bookingIdOrUserId : undefined);
+      const bookingId = data?.bookingId || (typeof bookingIdOrUserId === 'string' ? bookingIdOrUserId : '');
+      const res = await apiClient.post(`/bookings/${bookingId}/rating`, data);
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.submitRating', error, { userId, data });
+      logAppError('bookingApi.submitRating', error, { bookingIdOrUserId, dataOrUndefined });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to submit rating.'),
