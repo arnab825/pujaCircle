@@ -2,6 +2,7 @@ import { count, eq, sql, desc, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, priestProfiles, bookings } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
+import { getPagination } from '../utils/pagination.js';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -59,11 +60,9 @@ export class AdminService {
     };
   }
 
-  /**
-   * Get all priests joined with user information
-   */
-  async getAllPriests(): Promise<any[]> {
-    const records = await db
+  // Get all priests joined with user information with optional pagination
+  async getAllPriests(pagination?: { page?: number; limit?: number }): Promise<any[]> {
+    let query = db
       .select({
         id: priestProfiles.id,
         userId: users.id,
@@ -89,6 +88,13 @@ export class AdminService {
       })
       .from(priestProfiles)
       .innerJoin(users, eq(priestProfiles.userId, users.id));
+
+    if (pagination?.page || pagination?.limit) {
+      const { limit, offset } = getPagination(pagination);
+      query = query.limit(limit).offset(offset) as any;
+    }
+
+    const records = await query;
 
     return records.map((p) => ({
       ...p,
@@ -215,11 +221,9 @@ export class AdminService {
       .where(eq(users.id, priest.userId));
   }
 
-  /**
-   * Get all devotee users joined with their booking counts
-   */
-  async getAllUsers(): Promise<any[]> {
-    const records = await db
+  // Get all devotee users joined with their booking counts and optional pagination
+  async getAllUsers(pagination?: { page?: number; limit?: number }): Promise<any[]> {
+    let query = db
       .select({
         id: users.id,
         name: users.name,
@@ -237,7 +241,12 @@ export class AdminService {
       .where(eq(users.role, 'USER'))
       .groupBy(users.id);
 
-    return records;
+    if (pagination?.page || pagination?.limit) {
+      const { limit, offset } = getPagination(pagination);
+      query = query.limit(limit).offset(offset) as any;
+    }
+
+    return await query;
   }
 
   /**
@@ -268,7 +277,7 @@ export class AdminService {
 
   // Query platform ceremony bookings with SQL joins and pagination
   async getAllBookings(page = 1, limit = 50): Promise<any[]> {
-    const offset = (page - 1) * limit;
+    const { limit: safeLimit, offset } = getPagination({ page, limit }, 50, 100);
 
     const results = await db
       .select({
@@ -309,7 +318,7 @@ export class AdminService {
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(priestProfiles, eq(bookings.priestId, priestProfiles.id))
       .orderBy(desc(bookings.createdAt))
-      .limit(limit)
+      .limit(safeLimit)
       .offset(offset);
 
     return results.map((b) => ({

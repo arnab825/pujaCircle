@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../views/response.view.js';
 import { bookingService } from '../services/booking.service.js';
+import { getPagination } from '../utils/pagination.js';
 
 // Controller managing ceremony reservations, lifecycle status transitions, and devotee reviews
 export class BookingController {
@@ -11,7 +12,8 @@ export class BookingController {
         ? req.query.userId
         : req.user?.id;
       const priestId = typeof req.query.priestId === 'string' ? req.query.priestId : undefined;
-      const bookings = await bookingService.getBookings({ userId: activeUserId, priestId });
+      const { page, limit } = getPagination(req.query);
+      const bookings = await bookingService.getBookings({ userId: activeUserId, priestId, page, limit });
       sendSuccess(res, 'Bookings retrieved.', bookings);
     } catch (error) {
       next(error);

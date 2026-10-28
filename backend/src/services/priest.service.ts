@@ -14,6 +14,7 @@ import { toISTDateString, toISTTimeString } from './availability.service.js';
 import { AppError } from '../utils/AppError.js';
 import { resolvePriestProfileId } from '../repositories/priest.repository.js';
 import { PriestViewModel, PriestServiceViewModel } from '../views/priest.view.js';
+import { getPagination } from '../utils/pagination.js';
 
 // Service managing verified Purohit directory, profile configurations, ritual catalog offerings, and working hours
 export class PriestService {
@@ -23,8 +24,8 @@ export class PriestService {
   }
 
   // Search and filter approved priests for devotee catalog listings
-  async searchPriests(_params?: PriestFilterParams): Promise<PriestViewModel[]> {
-    const records = await db
+  async searchPriests(_params?: PriestFilterParams & { page?: number; limit?: number }): Promise<PriestViewModel[]> {
+    let query = db
       .select({
         id: priestProfiles.id,
         userId: users.id,
@@ -56,6 +57,13 @@ export class PriestService {
         eq(priestProfiles.approvalStatus, 'APPROVED'),
         eq(users.accountStatus, 'ACTIVE')
       ));
+
+    if (_params?.page || _params?.limit) {
+      const { limit, offset } = getPagination(_params);
+      query = query.limit(limit).offset(offset) as any;
+    }
+
+    const records = await query;
 
     return records.map((p) => ({
       ...p,

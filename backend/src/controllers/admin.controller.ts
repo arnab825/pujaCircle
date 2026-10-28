@@ -1,11 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../views/response.view.js';
 import { adminService } from '../services/admin.service.js';
+import { bookingService } from '../services/booking.service.js';
+import { getPagination } from '../utils/pagination.js';
 
-/**
- * [CONTROLLER] Admin Controller
- * Responsibility: Platform oversight, priest verification/moderation, user moderation, analytics.
- */
+// Controller managing platform admin oversight, priest approvals, user moderation, and ceremony logs
 export class AdminController {
   // GET /api/v1/admin/dashboard/stats
   async getDashboardStats(_req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -18,9 +17,10 @@ export class AdminController {
   }
 
   // GET /api/v1/admin/priests
-  async getAllPriests(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAllPriests(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const priests = await adminService.getAllPriests();
+      const pagination = req.query.page || req.query.limit ? getPagination(req.query) : undefined;
+      const priests = await adminService.getAllPriests(pagination);
       sendSuccess(res, 'Priest records retrieved.', priests);
     } catch (error) {
       next(error);
@@ -88,9 +88,10 @@ export class AdminController {
   }
 
   // GET /api/v1/admin/users
-  async getAllUsers(_req: Request, res: Response, next: NextFunction): Promise<void> {
+  async getAllUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const usersList = await adminService.getAllUsers();
+      const pagination = req.query.page || req.query.limit ? getPagination(req.query) : undefined;
+      const usersList = await adminService.getAllUsers(pagination);
       sendSuccess(res, 'Devotee user accounts retrieved.', usersList);
     } catch (error) {
       next(error);
@@ -120,10 +121,19 @@ export class AdminController {
   // GET /api/v1/admin/bookings
   async getAllBookings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const page = Math.max(1, Number(req.query.page) || 1);
-      const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
+      const { page, limit } = getPagination(req.query, 50, 100);
       const bookingsList = await adminService.getAllBookings(page, limit);
       sendSuccess(res, 'All platform ceremony bookings retrieved.', bookingsList);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // POST /api/v1/admin/bookings/expire-stale
+  async expireStaleBookings(_req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const count = await bookingService.expireStalePendingBookings();
+      sendSuccess(res, `Expired ${count} stale pending ceremony bookings.`, { count });
     } catch (error) {
       next(error);
     }

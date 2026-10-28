@@ -14,32 +14,29 @@ import {
   resetPasswordSchema,
 } from '../schemas/auth.schema.js';
 
+import { authRateLimiter, otpRateLimiter } from '../middlewares/rateLimit.middleware.js';
+
 const router = Router();
 
-/**
- * [ROUTE] /api/v1/auth
- * Authentication endpoints supporting Devotee, Priest, and Admin credentials.
- */
-
-// Primary Authentication & Registration
-router.post('/login', validate(loginSchema), authController.login);
-router.post('/register/user', validate(registerUserSchema), authController.registerUser);
-router.post('/register/priest', validate(registerPriestSchema), authController.registerPriest);
+// Primary Authentication & Registration (protected by auth rate limiter)
+router.post('/login', authRateLimiter, validate(loginSchema), authController.login);
+router.post('/register/user', authRateLimiter, validate(registerUserSchema), authController.registerUser);
+router.post('/register/priest', authRateLimiter, validate(registerPriestSchema), authController.registerPriest);
 
 // Session State
 router.get('/me', requireAuth, authController.getMe);
 router.post('/logout', authController.logout);
 
-// Phone OTP Endpoints
-router.post('/otp/send-phone', validate(phoneOtpRequestSchema), authController.sendPhoneOtp);
-router.post('/otp/verify-phone', validate(verifyPhoneOtpSchema), authController.verifyPhoneOtp);
+// Phone OTP Endpoints (protected by strict OTP rate limiter)
+router.post('/otp/send-phone', otpRateLimiter, validate(phoneOtpRequestSchema), authController.sendPhoneOtp);
+router.post('/otp/verify-phone', otpRateLimiter, validate(verifyPhoneOtpSchema), authController.verifyPhoneOtp);
 
-// Email OTP Endpoints
-router.post('/otp/send-email', validate(emailOtpRequestSchema), authController.sendEmailOtp);
-router.post('/otp/verify-email', validate(verifyEmailOtpSchema), authController.verifyEmailOtp);
+// Email OTP Endpoints (protected by strict OTP rate limiter)
+router.post('/otp/send-email', otpRateLimiter, validate(emailOtpRequestSchema), authController.sendEmailOtp);
+router.post('/otp/verify-email', otpRateLimiter, validate(verifyEmailOtpSchema), authController.verifyEmailOtp);
 
-// Password Recovery Endpoints
-router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
-router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+// Password Recovery Endpoints (protected by auth rate limiter)
+router.post('/forgot-password', authRateLimiter, validate(forgotPasswordSchema), authController.forgotPassword);
+router.post('/reset-password', authRateLimiter, validate(resetPasswordSchema), authController.resetPassword);
 
 export const authRoutes = router;

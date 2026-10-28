@@ -153,32 +153,46 @@ export class AuthService {
     }
 
     const userId = authUser.user.id;
+    let createdUser: typeof users.$inferSelect | undefined;
 
-    const [createdUser] = await db
-      .insert(users)
-      .values({
-        id: userId,
-        name: input.fullName,
-        email: input.email,
-        phoneNumber: input.phoneNumber,
-        role: 'USER',
-      })
-      .returning();
+    try {
+      createdUser = await db.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(users)
+          .values({
+            id: userId,
+            name: input.fullName,
+            email: input.email,
+            phoneNumber: input.phoneNumber,
+            role: 'USER',
+          })
+          .returning();
 
-    if (input.address) {
-      await db.insert(addresses).values({
-        userId,
-        houseNo: input.address.houseNo,
-        houseBuilding: input.address.houseBuilding,
-        street: input.address.street,
-        locality: input.address.locality,
-        villageTown: input.address.villageTown,
-        city: input.address.city,
-        district: input.address.district,
-        state: input.address.state,
-        pincode: input.address.pincode,
-        isDefault: true,
+        if (input.address) {
+          await tx.insert(addresses).values({
+            userId,
+            label: input.address.label,
+            houseNo: input.address.houseNo,
+            houseBuilding: input.address.houseBuilding,
+            street: input.address.street,
+            locality: input.address.locality,
+            villageTown: input.address.villageTown,
+            city: input.address.city,
+            district: input.address.district,
+            state: input.address.state,
+            pincode: input.address.pincode,
+            isDefault: true,
+          });
+        }
+        return inserted;
       });
+    } catch (dbError: any) {
+      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
+      throw new AppError(500, dbError?.message || 'Failed to save devotee user profile in database.');
+    }
+
+    if (!createdUser) {
+      throw new AppError(500, 'Failed to initialize user account.');
     }
 
     const { data: sessionData } = await supabase.auth.signInWithPassword({
@@ -223,31 +237,45 @@ export class AuthService {
     }
 
     const userId = authUser.user.id;
+    let createdUser: typeof users.$inferSelect | undefined;
 
-    const [createdUser] = await db
-      .insert(users)
-      .values({
-        id: userId,
-        name: input.fullName,
-        email: targetEmail,
-        phoneNumber: input.phoneNumber,
-        role: 'PRIEST',
-      })
-      .returning();
+    try {
+      createdUser = await db.transaction(async (tx) => {
+        const [inserted] = await tx
+          .insert(users)
+          .values({
+            id: userId,
+            name: input.fullName,
+            email: targetEmail,
+            phoneNumber: input.phoneNumber,
+            role: 'PRIEST',
+          })
+          .returning();
 
-    await db.insert(priestProfiles).values({
-      userId,
-      approvalStatus: 'PENDING',
-      experienceYears: input.experienceYears || 0,
-      bio: input.bio || '',
-      languages: input.languages || ['Hindi'],
-      specializations: input.specializations || ['General Puja'],
-      serviceAreas: input.serviceAreas || [],
-      city: input.city || '',
-      state: input.state || '',
-      pincode: input.pincode || '',
-      profileImageUrl: '',
-    });
+        await tx.insert(priestProfiles).values({
+          userId,
+          approvalStatus: 'PENDING',
+          experienceYears: input.experienceYears || 0,
+          bio: input.bio || '',
+          languages: input.languages || ['Hindi'],
+          specializations: input.specializations || ['General Puja'],
+          serviceAreas: input.serviceAreas || [],
+          city: input.city || '',
+          state: input.state || '',
+          pincode: input.pincode || '',
+          profileImageUrl: '',
+        });
+
+        return inserted;
+      });
+    } catch (dbError: any) {
+      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
+      throw new AppError(500, dbError?.message || 'Failed to save priest profile application in database.');
+    }
+
+    if (!createdUser) {
+      throw new AppError(500, 'Failed to initialize priest account.');
+    }
 
     const { data: sessionData } = await supabase.auth.signInWithPassword({
       email: targetEmail,

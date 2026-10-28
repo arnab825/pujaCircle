@@ -6,10 +6,9 @@ import { env } from './config/env.js';
 import { routes } from './routes/index.js';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { sendError } from './views/response.view.js';
+import { generalRateLimiter } from './middlewares/rateLimit.middleware.js';
 
-/**
- * Express Application Factory & Configuration
- */
+// Express Application Factory & Configuration
 const app: Express = express();
 
 // Security headers — XSS protection, content-type sniffing, frameguard, etc.
@@ -48,8 +47,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser(env.COOKIE_SECRET));
 
-// API v1 Routing
-app.use('/api/v1', routes);
+// API v1 Routing with general rate limiter
+app.use('/api/v1', generalRateLimiter, routes);
 
 // 404 Not Found Handler
 app.use((_req: Request, res: Response) => {
