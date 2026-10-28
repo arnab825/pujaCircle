@@ -19,7 +19,7 @@ export const pujaCatalog = pgTable('puja_catalog', {
   coverImage: text('cover_image'),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
 
 export type PujaCatalog = typeof pujaCatalog.$inferSelect;

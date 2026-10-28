@@ -4,10 +4,7 @@ import { users } from './user.model.js';
 export const approvalStatusEnum = pgEnum('priest_approval_status', ['PENDING', 'APPROVED', 'REJECTED']);
 export const exceptionTypeEnum = pgEnum('exception_type', ['BLOCK', 'CUSTOM_HOURS']);
 
-/**
- * [MODEL] Priest Profiles Table
- * Detailed credentials, verification status, and metadata for registered Purohits.
- */
+// Model for registered Purohit credentials, verification status, and default timings
 export const priestProfiles = pgTable('priest_profiles', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
@@ -27,13 +24,10 @@ export const priestProfiles = pgTable('priest_profiles', {
   defaultStartTime: time('default_start_time'),
   defaultEndTime: time('default_end_time'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
 
-/**
- * [MODEL] Priest Services Table
- * Individual pujas and ritual offerings with pricing configured by each priest.
- */
+// Model for individual ritual offerings and custom prices configured by Purohits
 export const priestServices = pgTable('priest_services', {
   id: uuid('id').defaultRandom().primaryKey(),
   priestId: uuid('priest_id').notNull().references(() => priestProfiles.id, { onDelete: 'cascade' }),
@@ -45,22 +39,20 @@ export const priestServices = pgTable('priest_services', {
   price: integer('price').notNull(), // INR amount in rupees (₹)
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
 
-/**
- * [MODEL] Priest Availability Exceptions Table
- * Blocked intervals and custom hours overrides for priests.
- */
+// Model for blocked dates, full day off, and custom hours overrides for priests
 export const priestAvailabilityExceptions = pgTable('priest_availability_exceptions', {
   id: uuid('id').defaultRandom().primaryKey(),
   priestId: uuid('priest_id').notNull().references(() => priestProfiles.id, { onDelete: 'cascade' }),
   exceptionType: exceptionTypeEnum('exception_type').default('BLOCK').notNull(),
+  isFullDay: boolean('is_full_day').default(false).notNull(),
   startAt: timestamp('start_at', { withTimezone: true }).notNull(),
   endAt: timestamp('end_at', { withTimezone: true }).notNull(),
   reason: varchar('reason', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
 
 export type PriestProfile = typeof priestProfiles.$inferSelect;

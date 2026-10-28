@@ -1,27 +1,23 @@
 import { z } from 'zod';
 
-/**
- * Validation schema for marking a priest's entire working day off
- */
+// Date format: YYYY-MM-DD
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+// Time format: HH:mm (24-hour)
+const timeRegex = /^\d{2}:\d{2}$/;
+
+// Validation schema for priest full-day-off leave requests
 export const markDayOffSchema = z.object({
-  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be formatted as YYYY-MM-DD'),
+  date: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format'),
   reason: z.string().trim().max(255).optional(),
 });
 
-/**
- * Validation schema for blocking specific hours on a date
- */
-export const blockHoursSchema = z
-  .object({
-    date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be formatted as YYYY-MM-DD'),
-    startTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Start time must be in HH:mm 24hr format'),
-    endTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'End time must be in HH:mm 24hr format'),
-    reason: z.string().trim().max(255).optional(),
-  })
-  .refine((data) => data.startTime < data.endTime, {
-    message: 'End time must be later than start time',
-    path: ['endTime'],
-  });
+// Validation schema for priest partial blackout hours
+export const blockHoursSchema = z.object({
+  date: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format'),
+  startTime: z.string().regex(timeRegex, 'Start time must be in HH:mm format'),
+  endTime: z.string().regex(timeRegex, 'End time must be in HH:mm format'),
+  reason: z.string().trim().max(255).optional(),
+});
 
 export type MarkDayOffInput = z.infer<typeof markDayOffSchema>;
 export type BlockHoursInput = z.infer<typeof blockHoursSchema>;

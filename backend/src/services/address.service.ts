@@ -2,15 +2,11 @@ import { eq, desc, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { addresses, Address } from '../models/address.model.js';
 import { CreateAddressInput, UpdateAddressInput } from '../schemas/address.schema.js';
+import { AppError } from '../utils/AppError.js';
 
-/**
- * [SERVICE] Address Service
- * Handles devotee in-person ceremonial venue addresses.
- */
+// Service managing devotee ceremonial venue addresses
 export class AddressService {
-  /**
-   * Retrieve all saved addresses for a devotee
-   */
+  // Retrieve all saved addresses for a devotee
   async getAddresses(userId: string): Promise<Address[]> {
     return await db
       .select()
@@ -19,9 +15,7 @@ export class AddressService {
       .orderBy(desc(addresses.isDefault));
   }
 
-  /**
-   * Add a new ceremonial address for a devotee
-   */
+  // Add a new ceremonial address for a devotee
   async createAddress(userId: string, data: CreateAddressInput): Promise<Address> {
     if (data.isDefault) {
       await db
@@ -41,9 +35,7 @@ export class AddressService {
     return newAddress;
   }
 
-  /**
-   * Update an existing address
-   */
+  // Update an existing address
   async updateAddress(
     addressId: string,
     userId: string,
@@ -66,15 +58,13 @@ export class AddressService {
       .returning();
 
     if (!updated) {
-      throw { statusCode: 404, message: 'Address not found or unauthorized.' };
+      throw new AppError(404, 'Address not found or unauthorized.');
     }
 
     return updated;
   }
 
-  /**
-   * Delete an address by ID
-   */
+  // Delete an address by ID
   async deleteAddress(addressId: string, userId: string): Promise<void> {
     const [deleted] = await db
       .delete(addresses)
@@ -82,16 +72,14 @@ export class AddressService {
       .returning();
 
     if (!deleted) {
-      throw { statusCode: 404, message: 'Address not found or unauthorized.' };
+      throw new AppError(404, 'Address not found or unauthorized.');
     }
   }
 
-  /**
-   * Set an address as the default ceremonial venue
-   */
+  // Set an address as the default ceremonial venue
   async setDefaultAddress(addressId: string, userId: string): Promise<Address> {
     return await db.transaction(async (tx) => {
-      // 1. Unset default for all addresses of this user
+      // 1. Reset isDefault for all other addresses of this user
       await tx
         .update(addresses)
         .set({ isDefault: false, updatedAt: new Date() })
@@ -105,7 +93,7 @@ export class AddressService {
         .returning();
 
       if (!updated) {
-        throw { statusCode: 404, message: 'Address not found or unauthorized.' };
+        throw new AppError(404, 'Address not found or unauthorized.');
       }
 
       return updated;

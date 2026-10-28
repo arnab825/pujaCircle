@@ -50,7 +50,7 @@ export const bookings = pgTable('bookings', {
   rating: integer('rating'),
   review: text('review'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
 
 export type Booking = typeof bookings.$inferSelect;

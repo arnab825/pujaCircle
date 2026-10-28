@@ -1,4 +1,4 @@
-import { count, eq, sql, desc } from 'drizzle-orm';
+import { count, eq, sql, desc, and } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { users, priestProfiles, bookings } from '../models/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -36,7 +36,7 @@ export class AdminService {
       [revenueStats],
     ] = await Promise.all([
       db.select({ value: count() }).from(users).where(eq(users.role, 'USER')),
-      db.select({ value: count() }).from(users).where(sql`${users.role} = 'USER' AND ${users.accountStatus} = 'ACTIVE'`),
+      db.select({ value: count() }).from(users).where(and(eq(users.role, 'USER'), eq(users.accountStatus, 'ACTIVE'))),
       db.select({ value: count() }).from(priestProfiles),
       db.select({ value: count() }).from(priestProfiles).where(eq(priestProfiles.approvalStatus, 'APPROVED')),
       db.select({ value: count() }).from(priestProfiles).where(eq(priestProfiles.approvalStatus, 'PENDING')),

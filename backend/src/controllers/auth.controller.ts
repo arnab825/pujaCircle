@@ -1,32 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../services/auth.service.js';
-import { sendSuccess, sendError } from '../views/response.view.js';
+import { sendSuccess } from '../views/response.view.js';
 import { env } from '../config/env.js';
 
-/**
- * Cookie options helper for session security
- */
-const getAuthCookieOptions = () => ({
+// Static cookie configuration options for session security
+const AUTH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-});
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+} as const;
 
-/**
- * [CONTROLLER] Authentication Controller
- * Handles HTTP request dispatch, sets auth cookies, and calls response views.
- */
+// Controller managing user authentication, registration, session, and OTP verification
 export class AuthController {
-  /**
-   * POST /api/v1/auth/login
-   */
+  // POST /api/v1/auth/login
   async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.login(req.body);
 
       if (result.token) {
-        res.cookie('access_token', result.token, getAuthCookieOptions());
+        res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
       }
 
       sendSuccess(res, 'Signed in successfully.', result);
@@ -35,15 +28,13 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/register/user
-   */
+  // POST /api/v1/auth/register/user
   async registerUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.registerUser(req.body);
 
       if (result.token) {
-        res.cookie('access_token', result.token, getAuthCookieOptions());
+        res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
       }
 
       sendSuccess(res, 'Devotee account created successfully.', result, 201);
@@ -52,15 +43,13 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/register/priest
-   */
+  // POST /api/v1/auth/register/priest
   async registerPriest(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.registerPriest(req.body);
 
       if (result.token) {
-        res.cookie('access_token', result.token, getAuthCookieOptions());
+        res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
       }
 
       sendSuccess(
@@ -74,26 +63,17 @@ export class AuthController {
     }
   }
 
-  /**
-   * GET /api/v1/auth/me
-   */
+  // GET /api/v1/auth/me
   async getMe(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Unauthorized session', 401);
-        return;
-      }
-
-      const user = await authService.getMe(req.user.id);
+      const user = await authService.getMe(req.user!.id);
       sendSuccess(res, 'Session profile retrieved successfully.', { user });
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * POST /api/v1/auth/logout
-   */
+  // POST /api/v1/auth/logout
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const token = req.cookies?.access_token || req.headers.authorization?.split(' ')[1];
@@ -108,9 +88,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/otp/send-phone
-   */
+  // POST /api/v1/auth/otp/send-phone
   async sendPhoneOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.sendPhoneOtp(req.body.phoneNumber);
@@ -120,15 +98,13 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/otp/verify-phone
-   */
+  // POST /api/v1/auth/otp/verify-phone
   async verifyPhoneOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.verifyPhoneOtp(req.body);
 
       if (result.token) {
-        res.cookie('access_token', result.token, getAuthCookieOptions());
+        res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
       }
 
       sendSuccess(res, 'Phone verification successful.', result);
@@ -137,9 +113,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/otp/send-email
-   */
+  // POST /api/v1/auth/otp/send-email
   async sendEmailOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.sendEmailOtp(req.body.email);
@@ -149,9 +123,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/otp/verify-email
-   */
+  // POST /api/v1/auth/otp/verify-email
   async verifyEmailOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.verifyEmailOtp(req.body);
@@ -161,9 +133,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/forgot-password
-   */
+  // POST /api/v1/auth/forgot-password
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.forgotPassword(req.body);
@@ -173,9 +143,7 @@ export class AuthController {
     }
   }
 
-  /**
-   * POST /api/v1/auth/reset-password
-   */
+  // POST /api/v1/auth/reset-password
   async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await authService.resetPassword(req.body);

@@ -20,7 +20,7 @@ export const users = pgTable('users', {
   banReason: text('ban_reason'),
   avatarUrl: text('avatar_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
 
 export type User = typeof users.$inferSelect;

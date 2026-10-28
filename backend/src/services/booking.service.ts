@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import { eq, and, or, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
@@ -5,6 +6,8 @@ import { bookings, priestProfiles, priestServices, pujaCatalog, addresses, users
 import { CreateBookingInput, RatingInput } from '../schemas/booking.schema.js';
 import { AppError } from '../utils/AppError.js';
 import { availabilityService } from './availability.service.js';
+import { resolvePriestProfileId } from '../repositories/priest.repository.js';
+import { BookingViewModel } from '../views/booking.view.js';
 
 function addMinutesToTime(time: string, minutes: number): string {
   const [h = '9', m = '0'] = time.split(':');
@@ -19,25 +22,60 @@ export interface BookingFilterOptions {
   priestId?: string;
 }
 
-/**
- * [SERVICE] Booking Service
- * Handles ceremony reservation lifecycle (request, confirm, decline, cancel, complete) and ratings.
- */
+// Service managing ceremony reservations, status transitions, completion verification, and devotee reviews
 export class BookingService {
-  /**
-   * Query bookings with optional devotee and priest filters
-   */
-  async getBookings(filters: BookingFilterOptions): Promise<any[]> {
+  // Format raw database record and joins into consistent BookingViewModel
+  private formatBookingResponse(b: any): BookingViewModel {
+    return {
+      id: b.id,
+      bookingReference: b.bookingReference,
+      userId: b.userId,
+      priestId: b.priestId,
+      serviceName: b.serviceName,
+      servicePrice: b.servicePrice,
+      totalPrice: b.totalPrice,
+      bookingDate: b.bookingDate,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      status: b.status,
+      paymentStatus: b.paymentStatus,
+      specialInstructions: b.specialInstructions,
+      completionCode: b.completionCode,
+      rejectionReason: b.rejectionReason,
+      cancellationReason: b.cancellationReason,
+      rating: b.rating,
+      review: b.review,
+      scheduledDate: b.scheduledDate,
+      cancelledAt: b.cancelledAt,
+      completedAt: b.completedAt,
+      createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+      updatedAt: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined,
+      priest: b.priestProfile
+        ? {
+            id: b.priestProfile.id,
+            displayName: b.priestProfile.user?.name || 'Assigned Purohit',
+            fullName: b.priestProfile.user?.name || 'Assigned Purohit',
+            phoneNumber: b.priestProfile.user?.phoneNumber,
+            email: b.priestProfile.user?.email,
+            profileImageUrl: b.priestProfile.profileImageUrl,
+          }
+        : undefined,
+      ritual: b.catalog || undefined,
+      slot: {
+        startTime: b.startTime,
+        endTime: b.endTime,
+      },
+      venueAddressSnapshot: b.address || undefined,
+      userName: b.user?.name,
+      userPhone: b.user?.phoneNumber,
+    };
+  }
+
+  // Query bookings with optional devotee and priest filters
+  async getBookings(filters: BookingFilterOptions): Promise<BookingViewModel[]> {
     let resolvedPriestId = filters.priestId;
     if (filters.priestId) {
-      const [profile] = await db
-        .select({ id: priestProfiles.id })
-        .from(priestProfiles)
-        .where(or(eq(priestProfiles.id, filters.priestId), eq(priestProfiles.userId, filters.priestId)))
-        .limit(1);
-      if (profile) {
-        resolvedPriestId = profile.id;
-      }
+      resolvedPriestId = (await resolvePriestProfileId(filters.priestId)) || filters.priestId;
     }
 
     const conditions = [];
@@ -71,32 +109,11 @@ export class BookingService {
       },
     });
 
-    return rawBookings.map((b) => ({
-      ...b,
-      priest: b.priestProfile
-        ? {
-          ...b.priestProfile,
-          displayName: b.priestProfile.user?.name || 'Assigned Purohit',
-          fullName: b.priestProfile.user?.name || 'Assigned Purohit',
-          phoneNumber: b.priestProfile.user?.phoneNumber,
-          email: b.priestProfile.user?.email,
-        }
-        : undefined,
-      ritual: b.catalog || undefined,
-      slot: {
-        startTime: b.startTime,
-        endTime: b.endTime,
-      },
-      venueAddressSnapshot: b.address || undefined,
-      userName: b.user?.name,
-      userPhone: b.user?.phoneNumber,
-    }));
+    return rawBookings.map((b) => this.formatBookingResponse(b));
   }
 
-  /**
-   * Retrieve a single booking details by ID
-   */
-  async getBookingById(id: string): Promise<any> {
+  // Retrieve single booking details by UUID
+  async getBookingById(id: string): Promise<BookingViewModel> {
     const booking = await db.query.bookings.findFirst({
       where: eq(bookings.id, id),
       with: {
@@ -116,43 +133,15 @@ export class BookingService {
       throw new AppError(404, `Booking with ID ${id} not found.`);
     }
 
-    return {
-      ...booking,
-      priest: booking.priestProfile
-        ? {
-            ...booking.priestProfile,
-            displayName: booking.priestProfile.user?.name || 'Assigned Purohit',
-            fullName: booking.priestProfile.user?.name || 'Assigned Purohit',
-            phoneNumber: booking.priestProfile.user?.phoneNumber,
-            email: booking.priestProfile.user?.email,
-          }
-        : undefined,
-      ritual: booking.catalog || undefined,
-      slot: {
-        startTime: booking.startTime,
-        endTime: booking.endTime,
-      },
-      venueAddressSnapshot: booking.address || undefined,
-      userName: booking.user?.name,
-      userPhone: booking.user?.phoneNumber,
-    };
+    return this.formatBookingResponse(booking);
   }
 
-  /**
-   * Submit a new ceremony reservation request in PENDING state
-   */
-  async createBooking(userId: string, data: CreateBookingInput): Promise<any> {
-    // 1. Resolve priestProfileId if data.priestId is a userId (priestProfiles foreign key)
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, data.priestId), eq(priestProfiles.userId, data.priestId)))
-      .limit(1);
-
-    if (!profile) {
+  // Submit a new ceremony reservation request in PENDING state
+  async createBooking(userId: string, data: CreateBookingInput): Promise<BookingViewModel> {
+    const resolvedPriestId = await resolvePriestProfileId(data.priestId);
+    if (!resolvedPriestId) {
       throw new AppError(404, 'Priest profile not found.');
     }
-    const resolvedPriestId = profile.id;
 
     // Validate venue address
     const [addr] = await db
@@ -168,7 +157,7 @@ export class BookingService {
     // Generate collision-resistant unique booking reference e.g. PC-2026-X8K9M2
     const bookingReference = `PC-${new Date().getFullYear()}-${nanoid(6).toUpperCase()}`;
 
-    // 4. Lock authoritative price snapshot: servicePrice = priestService.price, totalPrice = servicePrice
+    // Lock authoritative price snapshot: servicePrice = priestService.price, totalPrice = servicePrice
     let servicePrice = data.servicePrice || 1001;
     let totalPrice = data.totalPrice || servicePrice;
     let serviceName = data.serviceName || 'Puja Ceremony';
@@ -191,7 +180,7 @@ export class BookingService {
       }
     }
 
-    // 3. If endTime missing: calculate endTime = startTime + pujaCatalog.durationMinutes
+    // If endTime missing: calculate endTime = startTime + pujaCatalog.durationMinutes
     const startTime = data.startTime || '09:00';
     let endTime = data.endTime;
 
@@ -214,7 +203,7 @@ export class BookingService {
       endTime = addMinutesToTime(startTime, durationMinutes);
     }
 
-    // 5. Verify no overlap via availabilityService.checkBookingOverlap, then insert with status = 'PENDING'
+    // Verify no overlap via availabilityService.checkBookingOverlap
     const hasOverlap = await availabilityService.checkBookingOverlap(
       resolvedPriestId,
       data.bookingDate,
@@ -257,20 +246,10 @@ export class BookingService {
     return this.getBookingById(newBooking.id);
   }
 
-  /**
-   * Priest accepts a pending ceremony booking (status -> CONFIRMED)
-   */
-  async acceptBooking(bookingId: string, priestId: string): Promise<any> {
-    // 1. Resolve priestProfileId if priestId is a userId
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
-      .limit(1);
+  // Priest accepts a pending ceremony booking (status -> CONFIRMED)
+  async acceptBooking(bookingId: string, priestId: string): Promise<BookingViewModel> {
+    const resolvedPriestId = (await resolvePriestProfileId(priestId)) || priestId;
 
-    const resolvedPriestId = profile ? profile.id : priestId;
-
-    // 2. Fetch booking
     const [booking] = await db
       .select()
       .from(bookings)
@@ -281,17 +260,14 @@ export class BookingService {
       throw new AppError(404, `Booking with ID ${bookingId} not found.`);
     }
 
-    // 3. Verify that the booking belongs to this priest
     if (booking.priestId !== resolvedPriestId) {
       throw new AppError(403, 'You are not authorized to accept this ceremony booking.');
     }
 
-    // 4. Validate current booking status
     if (booking.status !== 'PENDING') {
       throw new AppError(400, `Cannot accept booking. Current status is ${booking.status}.`);
     }
 
-    // 5. Check for any overlapping confirmed bookings
     const hasOverlap = await availabilityService.checkBookingOverlap(
       resolvedPriestId,
       booking.bookingDate,
@@ -302,10 +278,9 @@ export class BookingService {
       throw new AppError(409, 'Cannot accept booking: you already have a confirmed ceremony during this time slot.');
     }
 
-    // 6. Generate 4-digit completion code for devotee verification
-    const completionCode = Math.floor(1000 + Math.random() * 9000).toString();
+    // Cryptographically secure 4-digit completion code
+    const completionCode = randomInt(1000, 9999).toString();
 
-    // 7. Update status to CONFIRMED
     await db
       .update(bookings)
       .set({
@@ -318,20 +293,10 @@ export class BookingService {
     return this.getBookingById(bookingId);
   }
 
-  /**
-   * Priest declines a pending ceremony booking (status -> REJECTED)
-   */
-  async rejectBooking(bookingId: string, priestId: string, reason?: string): Promise<any> {
-    // 1. Resolve priestProfileId if priestId is a userId
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
-      .limit(1);
+  // Priest declines a pending ceremony booking (status -> REJECTED)
+  async rejectBooking(bookingId: string, priestId: string, reason?: string): Promise<BookingViewModel> {
+    const resolvedPriestId = (await resolvePriestProfileId(priestId)) || priestId;
 
-    const resolvedPriestId = profile ? profile.id : priestId;
-
-    // 2. Fetch booking
     const [booking] = await db
       .select()
       .from(bookings)
@@ -342,17 +307,14 @@ export class BookingService {
       throw new AppError(404, `Booking with ID ${bookingId} not found.`);
     }
 
-    // 3. Verify that the booking belongs to this priest
     if (booking.priestId !== resolvedPriestId) {
       throw new AppError(403, 'You are not authorized to decline this ceremony booking.');
     }
 
-    // 4. Validate current booking status
     if (booking.status !== 'PENDING') {
       throw new AppError(400, `Cannot reject booking. Current status is ${booking.status}.`);
     }
 
-    // 5. Update booking status to REJECTED with rejection reason
     await db
       .update(bookings)
       .set({
@@ -365,22 +327,8 @@ export class BookingService {
     return this.getBookingById(bookingId);
   }
 
-  /**
-   * Devotee or priest cancels a ceremony booking (status -> CANCELLED)
-   */
-  async cancelBooking(bookingId: string, userId: string, reason?: string): Promise<any> {
-    // 1. Fetch user account to determine role
-    const [user] = await db
-      .select({ id: users.id, role: users.role })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
-
-    if (!user) {
-      throw new AppError(404, 'User account not found.');
-    }
-
-    // 2. Fetch booking
+  // Devotee or Priest cancels a pending or confirmed booking (status -> CANCELLED)
+  async cancelBooking(bookingId: string, actorId: string, reason?: string): Promise<BookingViewModel> {
     const [booking] = await db
       .select()
       .from(bookings)
@@ -391,46 +339,25 @@ export class BookingService {
       throw new AppError(404, `Booking with ID ${bookingId} not found.`);
     }
 
-    // 3. Status checks
-    if (booking.status === 'COMPLETED') {
-      throw new AppError(400, 'Cannot cancel a completed ceremony.');
-    }
-    if (booking.status === 'CANCELLED') {
-      throw new AppError(400, 'This ceremony booking has already been cancelled.');
-    }
-    if (booking.status === 'REJECTED') {
-      throw new AppError(400, 'Cannot cancel a declined ceremony booking.');
-    }
+    const resolvedPriestId = (await resolvePriestProfileId(actorId)) || actorId;
+    const isDevotee = booking.userId === actorId;
+    const isPriest = booking.priestId === resolvedPriestId;
 
-    // 4. Resolve priest profile to check if user is the assigned priest
-    const [priestProfile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, userId), eq(priestProfiles.userId, userId)))
-      .limit(1);
-
-    const isDevotee = booking.userId === userId;
-    const isPriest = priestProfile && booking.priestId === priestProfile.id;
-    const isAdmin = user.role === 'ADMIN';
-
-    if (!isDevotee && !isPriest && !isAdmin) {
+    if (!isDevotee && !isPriest) {
       throw new AppError(403, 'You are not authorized to cancel this ceremony booking.');
     }
 
-    const cancelledBy: 'USER' | 'PRIEST' | 'ADMIN' = isAdmin
-      ? 'ADMIN'
-      : isPriest
-      ? 'PRIEST'
-      : 'USER';
+    if (!['PENDING', 'CONFIRMED'].includes(booking.status)) {
+      throw new AppError(400, `Cannot cancel booking. Current status is ${booking.status}. Only PENDING or CONFIRMED bookings may be cancelled.`);
+    }
 
-    // 5. Update booking to CANCELLED state and record metadata
     const now = new Date();
     await db
       .update(bookings)
       .set({
         status: 'CANCELLED',
-        cancellationReason: reason || (isPriest ? 'Cancelled by priest' : 'Cancelled by devotee'),
-        cancelledBy,
+        cancelledBy: isDevotee ? 'USER' : 'PRIEST',
+        cancellationReason: reason || (isDevotee ? 'Cancelled by devotee' : 'Cancelled by priest'),
         cancelledAt: now,
         updatedAt: now,
       })
@@ -439,24 +366,14 @@ export class BookingService {
     return this.getBookingById(bookingId);
   }
 
-  /**
-   * Priest marks ceremony completed after verifying 4-digit devotee completionCode (status -> COMPLETED)
-   */
+  // Priest marks ceremony completed after verifying 4-digit devotee completionCode
   async completeBooking(
     bookingId: string,
     priestId: string,
     completionCode?: string
-  ): Promise<any> {
-    // 1. Resolve priestProfileId if priestId is a userId
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
-      .limit(1);
+  ): Promise<BookingViewModel> {
+    const resolvedPriestId = (await resolvePriestProfileId(priestId)) || priestId;
 
-    const resolvedPriestId = profile ? profile.id : priestId;
-
-    // 2. Fetch booking
     const [booking] = await db
       .select()
       .from(bookings)
@@ -467,12 +384,10 @@ export class BookingService {
       throw new AppError(404, `Booking with ID ${bookingId} not found.`);
     }
 
-    // 3. Verify that the booking belongs to this priest
     if (booking.priestId !== resolvedPriestId) {
       throw new AppError(403, 'You are not authorized to complete this ceremony booking.');
     }
 
-    // 4. Validate current booking status
     if (booking.status === 'COMPLETED') {
       throw new AppError(400, 'This ceremony is already marked as completed.');
     }
@@ -483,7 +398,6 @@ export class BookingService {
       );
     }
 
-    // 5. Verify 4-digit devotee completion verification code
     if (!completionCode || !completionCode.trim()) {
       throw new AppError(400, '4-digit devotee completion verification code is required.');
     }
@@ -492,7 +406,6 @@ export class BookingService {
       throw new AppError(400, 'Invalid completion code. Please verify the 4-digit code provided by the devotee.');
     }
 
-    // 6. Update booking status to COMPLETED and payment status to PAID_OFFLINE
     const now = new Date();
     await db
       .update(bookings)
@@ -507,15 +420,12 @@ export class BookingService {
     return this.getBookingById(bookingId);
   }
 
-  /**
-   * Devotee submits star rating and sacred review feedback for a completed ceremony
-   */
+  // Devotee submits star rating and review feedback for a completed ceremony
   async submitRating(userId: string, data: RatingInput): Promise<any> {
     if (!data.bookingId) {
       throw new AppError(400, 'Booking ID is required to submit a rating.');
     }
 
-    // 1. Fetch booking
     const [booking] = await db
       .select()
       .from(bookings)
@@ -526,22 +436,18 @@ export class BookingService {
       throw new AppError(404, `Booking with ID ${data.bookingId} not found.`);
     }
 
-    // 2. Authorization: verify that active user is the devotee who booked
     if (booking.userId !== userId) {
       throw new AppError(403, 'You are not authorized to submit a review for this ceremony booking.');
     }
 
-    // 3. Status validation: must be COMPLETED
     if (booking.status !== 'COMPLETED') {
       throw new AppError(400, 'Ratings and reviews can only be submitted for completed ceremonies.');
     }
 
-    // Prevent duplicate reviews on the same ceremony booking
     if (booking.rating !== null && booking.rating !== undefined) {
       throw new AppError(400, 'A review has already been submitted for this ceremony booking.');
     }
 
-    // 4. Record review rating on booking
     const now = new Date();
     const finalRating = data.rating ?? booking.rating ?? 5;
     const finalReview = data.review !== undefined ? (data.review ? data.review.trim() : null) : booking.review;
@@ -554,7 +460,7 @@ export class BookingService {
       })
       .where(eq(bookings.id, data.bookingId));
 
-    // 5. Recompute priest average rating & reviewCount
+    // Recompute priest average rating & reviewCount
     const priestCompletedBookings = await db
       .select({ rating: bookings.rating })
       .from(bookings)
@@ -571,19 +477,25 @@ export class BookingService {
 
     const reviewCount = validRatings.length;
     const avgRating = reviewCount > 0
-      ? (validRatings.reduce((sum, r) => sum + r, 0) / reviewCount).toFixed(2)
-      : '0.00';
+      ? validRatings.reduce((acc, curr) => acc + curr, 0) / reviewCount
+      : 0;
 
     await db
       .update(priestProfiles)
       .set({
-        rating: avgRating,
+        rating: avgRating.toFixed(2),
         reviewCount,
         updatedAt: now,
       })
       .where(eq(priestProfiles.id, booking.priestId));
 
-    return this.getBookingById(data.bookingId);
+    return {
+      bookingId: data.bookingId,
+      rating: finalRating,
+      review: finalReview,
+      priestAverageRating: avgRating.toFixed(2),
+      priestReviewCount: reviewCount,
+    };
   }
 }
 

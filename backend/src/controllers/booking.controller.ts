@@ -1,15 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '../views/response.view.js';
+import { sendSuccess } from '../views/response.view.js';
 import { bookingService } from '../services/booking.service.js';
 
-/**
- * [CONTROLLER] Booking Controller
- * Responsibility: Ceremony reservations, lifecycle status transitions, and devotee reviews.
- */
+// Controller managing ceremony reservations, lifecycle status transitions, and devotee reviews
 export class BookingController {
-  /**
-   * GET /api/v1/bookings
-   */
+  // GET /api/v1/bookings
   async getBookings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const activeUserId = req.user?.role === 'ADMIN' && typeof req.query.userId === 'string'
@@ -23,9 +18,7 @@ export class BookingController {
     }
   }
 
-  /**
-   * GET /api/v1/bookings/:id
-   */
+  // GET /api/v1/bookings/:id
   async getBookingById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const booking = await bookingService.getBookingById(req.params.id);
@@ -35,53 +28,32 @@ export class BookingController {
     }
   }
 
-  /**
-   * POST /api/v1/bookings
-   */
+  // POST /api/v1/bookings
   async createBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Authentication required to create a booking.', 401);
-        return;
-      }
-      const activeUserId = req.user.id;
-      const booking = await bookingService.createBooking(activeUserId, req.body);
+      const booking = await bookingService.createBooking(req.user!.id, req.body);
       sendSuccess(res, 'Booking request submitted successfully.', booking, 201);
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * POST /api/v1/bookings/:id/accept
-   */
+  // POST /api/v1/bookings/:id/accept
   async acceptBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Authentication required to accept a booking.', 401);
-        return;
-      }
-      const activePriestId = req.user.id;
-      const result = await bookingService.acceptBooking(req.params.id, activePriestId);
+      const result = await bookingService.acceptBooking(req.params.id, req.user!.id);
       sendSuccess(res, `Booking ${req.params.id} accepted successfully.`, result);
     } catch (error) {
       next(error);
     }
   }
 
-  /**
-   * POST /api/v1/bookings/:id/reject
-   */
+  // POST /api/v1/bookings/:id/reject
   async rejectBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Authentication required to reject a booking.', 401);
-        return;
-      }
-      const activePriestId = req.user.id;
       const result = await bookingService.rejectBooking(
         req.params.id,
-        activePriestId,
+        req.user!.id,
         req.body?.reason
       );
       sendSuccess(res, `Booking ${req.params.id} declined.`, result);
@@ -90,19 +62,12 @@ export class BookingController {
     }
   }
 
-  /**
-   * POST /api/v1/bookings/:id/cancel
-   */
+  // POST /api/v1/bookings/:id/cancel
   async cancelBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Authentication required to cancel a booking.', 401);
-        return;
-      }
-      const activeUserId = req.user.id;
       const result = await bookingService.cancelBooking(
         req.params.id,
-        activeUserId,
+        req.user!.id,
         req.body?.reason
       );
       sendSuccess(res, `Booking ${req.params.id} cancelled successfully.`, result);
@@ -111,19 +76,12 @@ export class BookingController {
     }
   }
 
-  /**
-   * POST /api/v1/bookings/:id/complete
-   */
+  // POST /api/v1/bookings/:id/complete
   async completeBooking(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Authentication required to complete a booking.', 401);
-        return;
-      }
-      const activePriestId = req.user.id;
       const result = await bookingService.completeBooking(
         req.params.id,
-        activePriestId,
+        req.user!.id,
         req.body?.completionCode
       );
       sendSuccess(res, `Ceremony ${req.params.id} marked as completed.`, result);
@@ -132,18 +90,11 @@ export class BookingController {
     }
   }
 
-  /**
-   * POST /api/v1/ratings
-   */
+  // POST /api/v1/bookings/:id/rating
   async submitRating(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      if (!req.user) {
-        sendError(res, 'Authentication required to submit a rating.', 401);
-        return;
-      }
-      const activeUserId = req.user.id;
-      const bookingId = req.body?.bookingId || req.params?.id;
-      const result = await bookingService.submitRating(activeUserId, { ...req.body, bookingId });
+      const bookingId = req.params?.id || req.body?.bookingId;
+      const result = await bookingService.submitRating(req.user!.id, { ...req.body, bookingId });
       sendSuccess(res, 'Devotee rating submitted with blessings.', result, 201);
     } catch (error) {
       next(error);

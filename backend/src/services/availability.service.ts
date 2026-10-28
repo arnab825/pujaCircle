@@ -1,8 +1,9 @@
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { priestAvailabilityExceptions, priestProfiles } from '../models/priest.model.js';
 import { bookings } from '../models/booking.model.js';
 import { AppError } from '../utils/AppError.js';
+import { resolvePriestProfileId } from '../repositories/priest.repository.js';
 
 export interface FormattedAvailabilityException {
   id: string;
@@ -18,9 +19,7 @@ export interface FormattedAvailabilityException {
   createdAt: string;
 }
 
-/**
- * Represents daily availability status for the calendar grid
- */
+// Daily availability status for 90-day calendar grids
 export interface DayAvailability {
   date: string; // YYYY-MM-DD
   status: 'AVAILABLE' | 'FULL_DAY_OFF' | 'PARTIAL_BLOCK';
@@ -32,12 +31,12 @@ export interface DayAvailability {
   }>;
 }
 
-/** Helper: format Date object to YYYY-MM-DD in Asia/Kolkata */
+// Format Date object to YYYY-MM-DD in Asia/Kolkata IST
 export function toISTDateString(date: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(date);
 }
 
-/** Helper: format Date object to HH:mm in Asia/Kolkata */
+// Format Date object to HH:mm in Asia/Kolkata IST
 export function toISTTimeString(date: Date): string {
   return date.toLocaleTimeString('en-GB', {
     timeZone: 'Asia/Kolkata',
@@ -47,40 +46,35 @@ export function toISTTimeString(date: Date): string {
   });
 }
 
-/** Helper: parse local date and time string in Asia/Kolkata into Date object */
+// Parse local date and time string in Asia/Kolkata into Date object
 export function parseISTDateTime(date: string, time: string): Date {
   const normalizedTime = time.length === 5 ? `${time}:00` : time;
   return new Date(`${date}T${normalizedTime}+05:30`);
 }
 
-/**
- * Service Layer: Priest Availability & Scheduling
- */
+// Service layer for Purohit calendar availability, leaves, and blackout scheduling
 export class AvailabilityService {
-  /**
-   * Mark a priest's entire working day off using configured working hours.
-   * Throws an error if default working hours are not configured.
-   */
+  // Mark a priest full working day off using configured working hours
   async markFullDayOff(
     priestId: string,
     date: string,
     reason?: string
   ): Promise<FormattedAvailabilityException> {
+    const targetPriestId = await resolvePriestProfileId(priestId);
+    if (!targetPriestId) {
+      throw new AppError(404, `Priest profile not found for ID: ${priestId}`);
+    }
+
     const [profile] = await db
       .select({
-        id: priestProfiles.id,
         defaultStartTime: priestProfiles.defaultStartTime,
         defaultEndTime: priestProfiles.defaultEndTime,
       })
       .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
+      .where(eq(priestProfiles.id, targetPriestId))
       .limit(1);
 
-    if (!profile) {
-      throw new AppError(404, `Priest profile not found for ID: ${priestId}`);
-    }
-
-    if (!profile.defaultStartTime || !profile.defaultEndTime) {
+    if (!profile?.defaultStartTime || !profile?.defaultEndTime) {
       throw new AppError(
         400,
         'Default working hours are not configured for this priest profile. Please configure working hours first.'
@@ -94,17 +88,15 @@ export class AvailabilityService {
       throw new AppError(400, 'Configured working hours are invalid: start time must be earlier than end time.');
     }
 
-    // 1. Check confirmed booking overlap across working hours
-    const hasBookingOverlap = await this.checkBookingOverlap(profile.id, date, startTime, endTime);
+    const hasBookingOverlap = await this.checkBookingOverlap(targetPriestId, date, startTime, endTime);
     if (hasBookingOverlap) {
       throw new AppError(400, 'Cannot mark day off: you have confirmed ceremony bookings during your working hours on this date.');
     }
 
-    // 2. Check existing exception overlap
     const startAt = parseISTDateTime(date, startTime);
     const endAt = parseISTDateTime(date, endTime);
 
-    const hasExceptionOverlap = await this.checkExceptionOverlap(profile.id, startAt, endAt);
+    const hasExceptionOverlap = await this.checkExceptionOverlap(targetPriestId, startAt, endAt);
     if (hasExceptionOverlap) {
       throw new AppError(409, 'An availability block or day off already exists for this date.');
     }
@@ -112,8 +104,9 @@ export class AvailabilityService {
     const [record] = await db
       .insert(priestAvailabilityExceptions)
       .values({
-        priestId: profile.id,
+        priestId: targetPriestId,
         exceptionType: 'BLOCK',
+        isFullDay: true,
         startAt,
         endAt,
         reason: reason || 'Full Day Off / Leave',
@@ -135,9 +128,7 @@ export class AvailabilityService {
     };
   }
 
-  /**
-   * Block specific hours on a given day for a priest.
-   */
+  // Block specific hours on a given day for a priest
   async blockHours(
     priestId: string,
     date: string,
@@ -152,27 +143,20 @@ export class AvailabilityService {
       throw new AppError(400, 'End time must be later than start time.');
     }
 
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
-      .limit(1);
-
-    if (!profile) {
+    const targetPriestId = await resolvePriestProfileId(priestId);
+    if (!targetPriestId) {
       throw new AppError(404, `Priest profile not found for ID: ${priestId}`);
     }
 
-    // 1. Check confirmed booking overlap
-    const hasBookingOverlap = await this.checkBookingOverlap(profile.id, date, sTime, eTime);
+    const hasBookingOverlap = await this.checkBookingOverlap(targetPriestId, date, sTime, eTime);
     if (hasBookingOverlap) {
       throw new AppError(400, 'Cannot block hours: you have confirmed ceremony bookings during this time range.');
     }
 
-    // 2. Check existing exception overlap
     const startAt = parseISTDateTime(date, sTime);
     const endAt = parseISTDateTime(date, eTime);
 
-    const hasExceptionOverlap = await this.checkExceptionOverlap(profile.id, startAt, endAt);
+    const hasExceptionOverlap = await this.checkExceptionOverlap(targetPriestId, startAt, endAt);
     if (hasExceptionOverlap) {
       throw new AppError(409, 'An availability block already exists that overlaps with this time range.');
     }
@@ -180,8 +164,9 @@ export class AvailabilityService {
     const [record] = await db
       .insert(priestAvailabilityExceptions)
       .values({
-        priestId: profile.id,
+        priestId: targetPriestId,
         exceptionType: 'BLOCK',
+        isFullDay: false,
         startAt,
         endAt,
         reason: reason || 'Blocked Hours',
@@ -203,9 +188,7 @@ export class AvailabilityService {
     };
   }
 
-  /**
-   * Check if requested timestamp range overlaps with any existing availability exception.
-   */
+  // Check if requested timestamp range overlaps with any existing availability exception
   async checkExceptionOverlap(
     priestId: string,
     startAt: Date,
@@ -226,23 +209,14 @@ export class AvailabilityService {
     });
   }
 
-  /**
-   * Check if a requested time range overlaps with any confirmed booking.
-   * Overlap condition: requestedStart < bookingEnd AND requestedEnd > bookingStart.
-   */
+  // Check if a requested time range overlaps with any confirmed ceremony booking
   async checkBookingOverlap(
     priestId: string,
     date: string,
     startTime: string,
     endTime: string
   ): Promise<boolean> {
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
-      .limit(1);
-
-    const targetPriestId = profile ? profile.id : priestId;
+    const targetPriestId = (await resolvePriestProfileId(priestId)) || priestId;
 
     const confirmedBookings = await db
       .select({
@@ -263,21 +237,13 @@ export class AvailabilityService {
     );
   }
 
-  /**
-   * Calculate 3-month availability calendar (90 rolling days).
-   */
+  // Calculate 90-day availability calendar matrix
   async calculateMonthAvailability(
     priestId: string,
     startDate?: string,
     endDate?: string
   ): Promise<DayAvailability[]> {
-    const [profile] = await db
-      .select({ id: priestProfiles.id })
-      .from(priestProfiles)
-      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
-      .limit(1);
-
-    const targetPriestId = profile ? profile.id : priestId;
+    const targetPriestId = (await resolvePriestProfileId(priestId)) || priestId;
 
     const start = startDate ? new Date(startDate) : new Date();
     const end = endDate ? new Date(endDate) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
@@ -314,6 +280,7 @@ export class AvailabilityService {
       });
 
       const isFullDayOff = dayExceptions.some((e) => {
+        if (e.isFullDay) return true;
         const s = new Date(e.startAt);
         const en = new Date(e.endAt);
         const sTime = toISTTimeString(s);
