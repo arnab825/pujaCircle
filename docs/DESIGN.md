@@ -1,94 +1,109 @@
-# Design System & UX Specification
-## PujaCircle — Sankalp Advisor Update
+# Design System & UI/UX Specification
+## PujaCircle — Sacred Ceremony Design Language
 
-**Repo path:** `docs/02-design/DESIGN.md`
-**Version:** 2.0 (supersedes v1.0 palette/typography, extends with motion spec)
+**Document Path:** `docs/DESIGN.md`  
+**Version:** 3.0 (Full-Stack Production System)  
+**Status:** Active & Implemented  
 
 ---
 
-## 1. Design Philosophy
+## 1. Design Philosophy & Aesthetic Principles
 
-The existing v1.0 palette (Saffron/Maroon/Gold/Ivory) is thematically correct but reads as a generic "temple site" template — it's the same visual language as every competitor surveyed. v2.0 keeps the cultural signal but modernizes execution: deeper, less saturated tones for a premium feel, a serif+sans pairing for hierarchy (ritual content feels considered, UI chrome feels crisp), and purposeful motion that signals "the system is thinking" during the Advisor flow rather than static instant results — which is honest, since the mocked matching has a deliberate short delay to simulate real computation, and worth showing rather than hiding.
+PujaCircle’s design system balances ancient Vedic solemnity with the clarity, accessibility, and speed of modern web engineering:
+- **Cultural Authenticity Without Clutter**: Avoids gaudy ornamentalism in favor of warm, considered tones inspired by temple sandstone, chandan (sandalwood), haldi (turmeric), and kumkum (sacred vermilion).
+- **Dual-Type Hierarchy**: Editorial variable serif (**Fraunces**) conveys ceremony gravity, auspiciousness, and warmth; crisp variable sans (**Inter**) powers administrative tables, booking workflows, and time-slot selectors.
+- **Micro-Interactions Over Distraction**: Subtle, purposeful motion (150ms–300ms) signals state transitions, slot selection, and card elevation without delaying user tasks.
+- **Inclusive Accessibility**: Guaranteed WCAG 2.1 AA contrast ratios across all backgrounds and global reduced-motion preference compliance.
 
-## 2. Color Palette (v2.0)
+---
 
-Replace flat HSL swatches with a slightly desaturated, higher-contrast set. All values are CSS custom properties in `index.css`.
+## 2. Color Palette & Token Architecture
 
-| Token | Hex | HSL | Usage |
-|---|---|---|---|
-| `--brand-primary` (Deep Saffron) | `#D9642C` | `hsl(20, 68%, 48%)` | Primary CTAs, active states |
-| `--brand-primary-dark` | `#A84A1F` | `hsl(20, 65%, 38%)` | Hover/pressed states |
-| `--brand-secondary` (Regal Maroon) | `#5C1A2E` | `hsl(340, 55%, 22%)` | Headers, admin chrome, emphasis text |
-| `--brand-accent` (Muted Gold) | `#C9A24B` | `hsl(42, 50%, 55%)` | Badges, ratings, highlight borders |
-| `--brand-accent-soft` | `#EFE3C5` | `hsl(42, 50%, 88%)` | Subtle highlight backgrounds |
-| `--background` (Warm Ivory) | `#FAF6EF` | `hsl(40, 40%, 96%)` | App background |
-| `--surface` | `#FFFFFF` | — | Cards, modals |
-| `--surface-alt` | `#F2ECDF` | `hsl(40, 33%, 91%)` | Alternating rows, secondary panels |
-| `--foreground` (Charcoal) | `#231F20` | `hsl(220, 12%, 12%)` | Body text |
-| `--foreground-muted` | `#6B6560` | — | Secondary text, captions |
-| `--success` | `#3E7A4C` | — | Confirmed bookings, positive states |
-| `--warning` | `#B8862E` | — | Pending/expiring states |
-| `--danger` | `#A33B34` | — | Rejected/cancelled states |
-| `--advisor-accent` (NEW — distinguishes Advisor module) | `#5B4B8A` | `hsl(258, 30%, 40%)` | Advisor-specific UI only — deliberately distinct from booking-flow saffron/maroon so the module reads visually as a different kind of experience (reflective, guided) vs. transactional booking |
+Defined via CSS custom properties in `frontend/src/index.css` and bound into the Tailwind CSS v4 `@theme` layer:
 
-The `--advisor-accent` is the one deliberate departure: giving the Advisor its own quiet accent color (a muted indigo/violet) signals to the user "this is the thinking/guidance part," distinct from the transactional saffron of booking — a small but real UX decision, not decoration.
+| Token | HSL Value | Hex Equivalent | Usage & Role |
+| :--- | :--- | :--- | :--- |
+| `--brand-primary` | `20 68% 48%` | `#D9642C` | **Deep Saffron**: Primary action CTAs, active selection rings, active tabs |
+| `--brand-primary-dark` | `20 65% 38%` | `#A84A1F` | **Dark Saffron**: Button hover, active focus states |
+| `--brand-secondary` | `340 55% 22%` | `#5C1A2E` | **Regal Maroon**: Brand logos, top headers, admin sidebar accents |
+| `--brand-accent` | `42 50% 55%` | `#C9A24B` | **Muted Gold**: Badges, star ratings, sacred highlight borders |
+| `--brand-accent-soft` | `42 50% 88%` | `#EFE3C5` | **Soft Gold**: Highlight pills, notice callouts, active day indicator |
+| `--background` | `40 40% 96%` | `#FAF6EF` | **Chandan Ivory**: Organic warm paper-like background |
+| `--surface` | `0 0% 100%` | `#FFFFFF` | **Pure Card Surface**: Elevation cards, dialogs, dropdown sheets |
+| `--surface-alt` | `40 33% 91%` | `#F2ECDF` | **Muted Surface**: Table header rows, secondary panel backgrounds |
+| `--foreground` | `220 12% 12%` | `#231F20` | **Charcoal Body**: High contrast, readable typography |
+| `--foreground-muted` | `30 5% 40%` | `#6B6560` | **Muted Charcoal**: Subtitles, timing notes, helper descriptions |
 
-## 3. Typography
+---
 
-| Role | Font | Notes |
-|---|---|---|
-| Display / Headings | **Fraunces** (serif, variable) | Used for page titles, puja names, sankalp text display — gives ritual content warmth and gravity instead of looking like generic SaaS |
-| UI / Body | **Inter** (sans, variable) | All UI chrome, forms, buttons, tables — high legibility, familiar |
-| Devanagari/Sanskrit fragments (if displayed) | **Noto Serif Devanagari** | Only if any Sanskrit script is shown; ensures correct rendering |
+## 3. Standardized Booking Status Color Palette (DRY)
 
-**Type scale** (rem, 1rem = 16px base):
+All booking statuses across Devotee, Priest, and Admin interfaces follow a single unified configuration (`BOOKING_STATUS_CONFIG` in `frontend/src/lib/constants.ts`):
 
-| Token | Size | Weight | Usage |
-|---|---|---|---|
-| `--text-display` | 2.75rem | 600 (Fraunces) | Hero/page titles |
-| `--text-h1` | 2rem | 600 (Fraunces) | Section headers |
-| `--text-h2` | 1.5rem | 600 (Fraunces) | Card/subsection titles |
-| `--text-h3` | 1.125rem | 500 (Inter) | Component labels |
-| `--text-body` | 1rem | 400 (Inter) | Body copy |
-| `--text-small` | 0.875rem | 400 (Inter) | Captions, metadata |
-| `--text-micro` | 0.75rem | 500 (Inter, uppercase, tracked) | Badges, tags, status pills |
+| Booking Status | Label | Background Badge Style | Semantic Indicator |
+| :--- | :--- | :--- | :--- |
+| `CONFIRMED` | Confirmed | `bg-emerald-500/10 text-emerald-600 border-emerald-500/20` | Emerald Green |
+| `COMPLETED` | Completed | `bg-blue-500/10 text-blue-600 border-blue-500/20` | Royal Blue |
+| `PENDING` | Awaiting Confirmation | `bg-amber-500/10 text-amber-600 border-amber-500/20` | Auspicious Amber |
+| `CANCELLED` | Cancelled | `bg-destructive/10 text-destructive border-destructive/20` | Crimson Red |
+| `REJECTED` | Declined | `bg-destructive/10 text-destructive border-destructive/20` | Crimson Red |
+| `EXPIRED` | Expired | `bg-muted-foreground/10 text-muted-foreground border-border` | Muted Stone |
 
-Load both via `@fontsource/fraunces` and `@fontsource/inter` (npm, free, self-hosted — no external font CDN dependency, keeps the free-deployment constraint honest).
+---
 
-## 4. Spacing, Radius, Elevation
+## 4. Typography System
 
-- Spacing scale: 4px base unit — 4, 8, 12, 16, 24, 32, 48, 64.
-- Radius: `--radius-sm: 6px` (inputs, tags), `--radius-md: 12px` (cards), `--radius-lg: 20px` (modals, hero panels).
-- Elevation: two shadow tokens only — `--shadow-card` (subtle, resting state) and `--shadow-raised` (hover/active) — avoid a large shadow scale, it reads as dated.
+Typography is loaded via self-hosted font packages (`@fontsource/fraunces` and `@fontsource/inter`), eliminating third-party Google Fonts CDN latency and ensuring reliable offline/local operation:
 
-## 5. Motion & Micro-interaction Spec (Framer Motion)
+### 4.1 Fonts
+- **Serif Display & Headings (`--font-serif`)**: **Fraunces**  
+  Used for page titles, ritual names, Vedic mantras, and ceremony cards to convey gravitas and traditional warmth.
+- **Sans-Serif Body & Controls (`--font-sans`)**: **Inter**  
+  Used for all UI elements, form inputs, time pickers, address cards, tables, and buttons.
 
-All animations reference shared variants in `motion/variants.ts` (see TRD §6 for the implementation rule). Durations use two tokens only: `--motion-fast: 150ms` (hover/press) and `--motion-base: 300ms` (transitions/reveals), both `ease: [0.22, 1, 0.36, 1]` (standard ease-out).
+### 4.2 Type Scale
 
-| Interaction | Component | Behavior |
-|---|---|---|
-| Route transition | Advisor Intake → Result | Outgoing view fades + slides left 16px out; incoming fades + slides in from right 16px, via `AnimatePresence` |
-| "Thinking" state | Advisor matching delay | Animated pulsing dots or a subtly rotating mandala-line icon (SVG, brand-colored) — replaces blank spinner, communicates "reasoning," honest about the artificial delay rather than hiding it |
-| Match result reveal | `MatchResultCard` list | Staggered fade+rise, 60ms stagger between cards, so results feel "arrived at" rather than dumped |
-| Card hover | Puja/priest cards | Lift 4px (`translateY(-4px)`) + shadow escalation from `--shadow-card` to `--shadow-raised`, 150ms |
-| Button press | All primary buttons | Scale to 0.97 on `whileTap`, spring return |
-| Form field focus | Inputs | Border color transitions to `--brand-primary` with a soft outer glow (`box-shadow`), 150ms |
-| Modal open/close | Booking dialogs, RitualKit preview | Scale from 0.95 + fade in; reverse on close |
-| Rating stars | Rating submission | Sequential fill animation per star on select, not simultaneous |
-| Status badge change | Booking status updates | Cross-fade + slight color-morph rather than instant swap |
-| PDF export | Ritual Kit download button | Icon morphs from download → checkmark briefly on success, no toast needed for this specific action |
+| Scale Token | Font Size | Font Weight | Typical Usage |
+| :--- | :--- | :--- | :--- |
+| `--text-display` | `2.75rem (44px)` | 700 (Fraunces) | Landing page hero titles |
+| `--text-h1` | `2.00rem (32px)` | 700 (Fraunces) | Section headers & dashboard page titles |
+| `--text-h2` | `1.50rem (24px)` | 600 (Fraunces) | Ceremony cards & modal titles |
+| `--text-h3` | `1.125rem (18px)`| 600 (Inter) | Component headers & dialog sections |
+| `--text-body` | `1.00rem (16px)` | 400 (Inter) | Standard body copy & form labels |
+| `--text-small` | `0.875rem (14px)`| 400/500 (Inter)| Table cells, captions, and secondary notes |
+| `--text-micro` | `0.75rem (12px)` | 600 (Inter, Uppercase)| Badges, status tags, and time pill labels |
 
-**Reduced motion:** a single `useReducedMotion()` gate in a shared `MotionProvider` disables all transform/opacity animations app-wide, falling back to instant state changes, per NFR-4.
+---
 
-## 6. Component Notes
+## 5. Spacing, Elevation & Corner Radii
 
-- **Admin Catalog Console** should visually differ from Devotee-facing screens — denser tables, `--surface-alt` backgrounds, no large hero imagery — to reinforce that it's a management tool, not a marketing surface.
-- **Advisor module** uses `--advisor-accent` for its primary buttons/highlights instead of `--brand-primary`, per §2 — the only place in the app this token appears.
-- Status pills (PENDING/CONFIRMED/REJECTED/EXPIRED/CANCELLED/COMPLETED) each map to one of `--warning`/`--success`/`--danger`/`--foreground-muted` consistently across Devotee, Priest, and Admin views — no per-role recoloring.
+- **Base Spacing**: 4px standard grid (4, 8, 12, 16, 20, 24, 32, 48, 64px).
+- **Corner Radii Tokens**:
+  - Tags & Small Badges: `--radius-xs: 3px`, `--radius-sm: 4px`
+  - Inputs & Buttons: `--radius-md: 5px`, `--radius: 6px`
+  - Cards & Modals: `--radius-xl: 8px`
+- **Elevations (Shadows)**:
+  - `shadow-xs`: Subtle hairline elevation for cards on ivory background.
+  - `shadow-md`: Modal dialogs and active dropdown menus.
+  - Double hairline border styling (`border-2 border-amber-300` / `border-amber-400/40`) used for sacred ceremony cards.
 
-## 7. Accessibility
+---
 
-- Minimum contrast ratio 4.5:1 for body text against its background at every token pairing above (verify `--brand-accent` on `--background` specifically — it's the tightest pairing).
-- All motion respects `prefers-reduced-motion` (§5).
-- Focus states are visible (outline or glow) on every interactive element, not just `:hover`.
-- Advisor intake form must be fully operable via keyboard and screen-reader labeled, since it's a free-text + form hybrid.
+## 6. Motion & Micro-Interactions (Framer Motion)
+
+Defined centrally in `frontend/src/motion/variants.ts`:
+
+- **Durations**:
+  - `MOTION_FAST = 0.15s` (hover states, tap feedback)
+  - `MOTION_BASE = 0.30s` (fade transitions, modal entrance, drawer slide)
+- **Easing**: `EASE_STANDARD = [0.22, 1, 0.36, 1]` (natural deceleration curve)
+
+### 6.1 Key Variants
+- **`fadeInUp`**: Smooth vertical reveal for ritual cards and search results (`opacity: 0, y: 16` → `opacity: 1, y: 0`).
+- **`staggerContainer`**: Staggers list children with 60ms delay between elements.
+- **`modalTransition`**: Scaled fade for dialogs (`scale: 0.95` → `scale: 1.00`).
+- **`cardHover`**: Subtle lift (`translateY(-4px)`).
+- **`buttonPress`**: Instant tactile feedback (`scale: 0.97`).
+
+### 6.2 Accessibility & Reduced Motion
+The application wraps its entire component tree in `MotionProvider` (`frontend/src/components/common/MotionProvider.tsx`), querying `useReducedMotion()`. If a user enables reduced motion in their OS preferences, all animation durations collapse to zero instantly with clean fallback rendering.

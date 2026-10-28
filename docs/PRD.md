@@ -1,82 +1,116 @@
 # Product Requirements Document (PRD)
-## PujaCircle — Sankalp Advisor Update
+## PujaCircle — Sacred Ceremony & Purohit Connection Platform
 
-**Repo path:** `docs/01-product/PRD.md`
-**Version:** 2.0 (supersedes v1.0)
-**Status:** Active — Current Phase: Frontend + Mock Data Only
+**Document Path:** `docs/PRD.md`  
+**Version:** 3.0 (Full-Stack Production System)  
+**Status:** Active & Implemented  
 
 ---
 
-## 1. Change Summary (v1.0 → v2.0)
+## 1. Executive Summary
 
-| Area | v1.0 | v2.0 |
-|---|---|---|
-| Core value prop | Book a verified priest for a puja | Know **which** puja you need, then book a verified priest |
-| Backend | Express/Drizzle scaffold, Supabase target | **Deferred.** Current phase is frontend-only, single mock data file |
-| New feature | — | **Sankalp Advisor**: intent-based puja recommendation + personalized ritual kit |
-| Roles | Devotee, Priest, Admin | Unchanged — Devotee, Priest, **Admin** (scope expanded, see §5) |
-| Design | Functional shadcn/ui, no motion spec | Modern palette + typography system + **Framer Motion** micro-interaction spec |
+PujaCircle is a full-stack web platform built to connect devotees across Indian cities with authentic, verified Vedic Purohits (priests). Traditional ritual booking currently suffers from opaque pricing, middleman markups, inconsistent priest knowledge, and scheduling uncertainty. 
 
-This document does not replace the original PujaCircle booking scope — it adds the Advisor as a first-class module and formally freezes the current phase to frontend + mock data, per mentor direction.
+PujaCircle resolves these challenges by introducing:
+1. **Transparent Priest-Defined Pricing**: Every priest sets their own dakshina fee per ceremony.
+2. **Immutable Price-Locking Snapshots**: Fees are locked into booking records upon request creation, protecting devotees from retroactive price inflation.
+3. **Dynamic Exception-Based Muhurat Scheduling**: Priests configure standard working hours; availability is dynamically computed by subtracting leaves, partial blackouts, and confirmed bookings.
+4. **Friction-Free Offline Cash Dakshina**: Traditional in-person cash settlement eliminates payment gateway fees, transaction failures, and complex escrow contracts.
+5. **Non-Repudiable Ceremony Verification**: A secure 4-digit completion code ensures that ceremonies are verified as performed by the devotee before completion.
+6. **Vetted 5-Star Reviews**: Reviews are strictly restricted to devotees who completed a verified ceremony booking.
 
 ---
 
 ## 2. Problem Statement
 
-Across every existing player in this space (puja booking marketplaces surveyed: PujaServices, VedaMandir, OnlinePathPuja, UtsavApp, PujaDukaan, GharMandir, Yatradham, GoPuja, 99Pandit, OnlinePuja), the product assumes the devotee already knows which puja they need. In practice, most users arrive with a life situation ("bought a new house," "exams coming up," "recurring bad luck") and no clear idea which ritual, deity, date, or materials apply. Existing platforms solve *booking*, not *decision-making*, and none personalize the ritual itself (sankalp, samagri list) to the individual devotee.
+Across Indian urban households, organizing traditional Vedic rituals (such as Griha Pravesh, Satyanarayan Katha, Rudrabhishek, Vastu Shanti, and Vivah Sanskar) is fraught with friction:
+- **Discovery Bottleneck**: Devotees rely on word-of-mouth or neighborhood contacts, often struggling to find priests proficient in specific Vedic traditions or regional languages.
+- **Price Opacity**: Families face arbitrary last-minute fee demands and hidden samagri surcharges.
+- **Scheduling Conflicts**: Priests juggle bookings via phone calls and paper diaries, leading to double-booking and tardiness during auspicious Muhurats.
+- **Payment Gateway Friction**: High payment gateway processing fees (2-3%) and refund disputes are ill-suited for traditional ceremonial dakshina.
 
-> [!NOTE]
-> **Superseded in this update (Scope-Reduction Pass):** All astrology-dependent functionality (gotra, nakshatra, DOB collection, horoscope OCR upload, and computed tithi/panchang timing lookups) has been removed from scope. Ritual personalization is now strictly devotee-name-based, and puja timing notes are static authored tradition strings.
+---
 
-## 3. Goals
+## 3. Target User Personas
 
-- **G1:** Let a devotee describe a real-life situation in plain language and receive a reasoned, ranked puja recommendation.
-- **G2:** Generate a personalized ritual kit (samagri checklist, step sequence, sankalp text with the devotee's own name; ~~gotra/nakshatra superseded~~).
-- **G3:** Preserve the existing, already-built booking/priest/admin flow without regression.
-- **G4:** Ship a frontend-complete, mock-data-driven demo this phase; defer live backend/AI to Phase 2.
+### 3.1 Devotee (Grihastha / Household)
+- **Profile**: Urban residents seeking authentic Vedic ceremonies for lifecycle events, festivals, new property purchases, and spiritual occasions.
+- **Needs**: Clear ceremony guidelines, transparent pricing, verified priest credentials, convenient address management, and reliable Muhurat time slots.
+- **Key Pain Point**: Uncertainty regarding authenticity, ritual requirements, and fair dakshina.
 
-## 4. Non-Goals (this phase)
+### 3.2 Purohit (Vedic Priest)
+- **Profile**: Gurukul-trained or traditionally certified Vedic priests conducting ceremonies across urban localities.
+- **Needs**: Digital schedule control, ability to set custom ceremony pricing, flexibility to block personal time/leaves, and reliable booking confirmation.
+- **Key Pain Point**: Informal booking cancellations, travel schedule clashes, and lack of professional digital presence.
 
-- No real database, no real authentication, no real payments.
-- No live LLM or embedding API calls — advisor logic is rule-based against mock data.
-- No mobile app, no GPS/live tracking, no e-commerce samagri delivery (unchanged from v1.0 constraints).
-- Astrology calculations, gotra/nakshatra profiling, horoscope OCR, and astronomical tithi computations (removed in scope reduction).
+### 3.3 Platform Administrator
+- **Profile**: Operations and quality moderation team overseeing platform integrity.
+- **Needs**: Comprehensive oversight of registered priests, KYC/background vetting, user account moderation, platform KPI tracking, and sacred ceremony catalog curation.
+- **Key Pain Point**: Preventing unverified or fraudulent accounts from undermining community trust.
 
-## 5. User Roles
+---
 
-| Role | Summary | New responsibilities in v2.0 |
-|---|---|---|
-| **Devotee** | Books pujas, uses the Advisor | Can run the Advisor flow, download a personalized ritual kit PDF (horoscope OCR upload superseded) |
-| **Priest (Purohit)** | Offers services, accepts/rejects bookings | Unchanged from v1.0 |
-| **Admin** | Approves priests, manages users | **Expanded:** curates and moderates the Puja Catalog (add/edit/retire entries, edit tag mappings that drive Advisor matching), reviews Advisor recommendation logs for accuracy, manages featured/seasonal pujas |
+## 4. User Roles & Permissions Matrix
 
-Admin's expanded scope is the anchor for "must contain role of admin" — the catalog that powers the Advisor is admin-curated content, not devotee-editable, which is both realistic (quality control) and gives Admin a meaningfully larger role than pure user/priest approval.
+| Platform Capability | Devotee | Purohit | Admin |
+| :--- | :---: | :---: | :---: |
+| Sign up & Login (Email/Password + Brevo OTP) | ✅ | ✅ | ✅ (Seeded) |
+| Manage Profile & Avatar (Cloudinary) | ✅ | ✅ | ✅ |
+| Save Multiple Ceremony Venue Addresses (with PIN lookup) | ✅ | ❌ | ❌ |
+| Explore Sacred Puja Catalog & Ritual Guidelines | ✅ | ✅ | ✅ |
+| Search Priests (by City, Language, Puja, Rating) | ✅ | ❌ | ✅ |
+| Book Ceremony with Dynamic Muhurat Time Slot | ✅ | ❌ | ❌ |
+| Configure Ritual Offerings & Custom Cash Dakshina (₹) | ❌ | ✅ | ❌ |
+| Set Standard Daily Working Hours (e.g. 07:00 – 21:00) | ❌ | ✅ | ❌ |
+| Mark Full-Day Leaves & Partial Blackout Hours | ❌ | ✅ | ❌ |
+| Accept or Reject Incoming Ceremony Bookings | ❌ | ✅ | ❌ |
+| Complete Ceremony via 4-Digit Completion Code | ❌ | ✅ | ❌ |
+| Cancel Ceremony Booking (with Mandatory Reason) | ✅ | ✅ | ✅ |
+| Submit 1–5 Star Rating & Review (Completed Bookings Only) | ✅ | ❌ | ❌ |
+| Moderate Priest Applications (Approve / Reject / Ban) | ❌ | ❌ | ✅ |
+| Moderate Devotee Accounts (Suspend / Unsuspend) | ❌ | ❌ | ✅ |
+| Curate Sacred Puja Catalog (Create, Edit, Delete, Upload Cover) | ❌ | ❌ | ✅ |
+| Access Real-Time Platform KPI & Revenue Metrics | ❌ | ❌ | ✅ |
 
-## 6. Key Features (this phase, mock-data)
+---
 
-### P0 — Must ship
-1. **Sankalp Advisor flow**: free-text or guided-question intent capture → ranked puja matches with visible reasoning → detail view.
-2. **Personalized Ritual Kit**: samagri list, step sequence, sankalp paragraph templated with devotee profile name; exportable as PDF.
-3. ~~**Devotee ritual profile**: name, gotra, nakshatra, DOB~~ *(Superseded: simplified to devotee name only)*.
-4. **Admin Catalog Console**: CRUD on puja catalog entries and their intent tags, from a single mock data source.
-5. **Unmodified booking flow**: existing devotee/priest/admin booking pages continue to function against the (now consolidated) mock data file.
+## 5. Key Functional Modules
 
-### P1 — Nice to have this phase
-6. ~~Horoscope image upload with client-side OCR auto-fill of nakshatra/gotra fields~~ *(Superseded: removed in scope reduction)*.
-7. ~~Auspicious date badge computed from tithi lookup~~ *(Superseded: static authored tradition notes used instead)*.
+### 5.1 Authentication & Identity Verification
+- Secure registration with Supabase Auth integration and 7-day internal JWT session tokens.
+- Transactional 6-digit OTP delivery via Brevo (Sendinblue) HTTPS REST API for email verification and password recovery.
+- Role-based route protection isolating public marketing, devotee portal, priest workspace, and admin console.
 
-## 7. Success Metrics (demo/viva framing)
+### 5.2 Dynamic Calendar & Availability Scheduling
+- Priests define default daily working windows (default: 07:00 to 21:00 in Asia/Kolkata timezone).
+- Exception management: priests can schedule full-day leaves and partial blackout windows (e.g., lunch, personal vidhi).
+- 2-hour standard ceremony Muhurat slots are computed dynamically on the server:
+  $$\text{Available Slots} = [\text{Working Window}] - [\text{Leaves}] - [\text{Blackouts}] - [\text{Confirmed Bookings}]$$
 
-- Advisor produces a distinct, reasoned recommendation for at least 8 realistic test scenarios (see SRS §6 test scenarios).
-- Admin can add a new puja catalog entry and see it appear in Advisor results without a code change (data-driven, not hardcoded).
-- Zero regressions in existing booking/priest/admin flows — verified against the existing 11-suite mock test runner.
+### 5.3 Ceremony Booking Lifecycle
+- **Step 1 (Sankalp Creation)**: Devotee selects priest, ritual offering, date, slot, venue address, and adds special instructions.
+- **Step 2 (Price Locking)**: Server snapshot-locks ritual price and cash dakshina amount. Status is set to `PENDING`.
+- **Step 3 (Priest Decision)**: Priest accepts (`CONFIRMED`) or declines (`REJECTED` with reason).
+- **Step 4 (Completion & Settlement)**: Devotee provides random 4-digit completion code generated at confirmation. Priest enters code to transition to `COMPLETED`. Devotee renders cash dakshina directly to the priest.
+- **Step 5 (Verified Review)**: Devotee rates ceremony 1 to 5 stars with written feedback. Rating updates the priest's average score atomically.
 
-## 8. Phase 2 (explicitly out of scope now, documented for continuity)
+### 5.4 Sacred Puja Catalog & Content Engine
+- Admin-curated taxonomy of Vedic ceremonies categorized into *Life Event*, *Festival*, *Havan & Yagya*, *Dosha Nivaran*, and *Special Pujas*.
+- Authoritative details per ceremony: deity, significance, required samagri checklist, step sequence, duration in minutes, and timing traditions.
+- Direct Cloudinary media integration with strict image size guards (< 2MB).
 
-Real Supabase Postgres + pgvector-based semantic matching, real tithi/panchang astronomical calculation, live LLM call for sankalp phrasing, real OTP auth, real priest payment/dakshina logging. See TRD §7 for target architecture.
+---
 
-## 9. Assumptions & Dependencies
+## 6. Non-Functional Requirements & Design Constraints
 
-- Puja catalog content (30–50 entries) is originally written by the team, not scraped from competitor sites (copyright + differentiation).
-- Framer Motion is added as a new frontend dependency; no backend dependency changes this phase.
-- Mentor sign-off constraint ("frontend + single mock file") is treated as a hard constraint for grading, not a suggestion.
+- **Free-Tier Cloud Deployment**: Backend deploys on **Render** (free web service, zero cost), Frontend deploys on **Vercel** (free edge tier), Database runs on **Supabase** (managed PostgreSQL), and Emails route via **Brevo** (free 300 emails/day tier). No reliance on paid extensions (e.g., `pg_cron`).
+- **Performance**: Client-side production bundle strictly optimized (< 380 kB main bundle), sub-200ms average backend API latency, and fast database queries via connection pooling (`postgres.js`).
+- **Security & Privacy**: Strict CORS policy, Helmet security headers, Express rate-limiting guards against brute-force and OTP spam, and global error sanitization ensuring zero database internals or stack traces leak to users.
+- **Accessibility & UX**: Compliant with WCAG 2.1 AA contrast standards, mobile-responsive layouts, and full support for reduced-motion preferences via Framer Motion.
+
+---
+
+## 7. Future Roadmap (Phase 2)
+- Multi-city expansion with automated geographic proximity matching.
+- Live audio/video consultation option for virtual Sankalp rituals.
+- Devotee preparation checklist reminders dispatched via transactional WhatsApp/Email.
