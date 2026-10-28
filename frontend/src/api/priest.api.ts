@@ -7,7 +7,7 @@ import {
 import { PincodeLookupResponse } from '@/types/address.types';
 import { apiClient } from './client';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
-import { getPriestExceptions, calculateDayMuhuratSlots, CalculatedSlot } from '@/lib/availabilityUtils';
+import { calculateDayMuhuratSlots, CalculatedSlot } from '@/lib/availabilityUtils';
 
 // Frontend API service for Purohit profiles, rituals, services, and availability slots
 export const priestApi = {
@@ -139,7 +139,7 @@ export const priestApi = {
   getAvailableSlotsForDate: async (priestId: string, date: string, durationMinutes: number = 120): Promise<CalculatedSlot[]> => {
     try {
       const [exceptions, whData] = await Promise.all([
-        getPriestExceptions(priestId),
+        priestApi.getPriestExceptions(priestId),
         priestApi.getWorkingHours(priestId),
       ]);
       return calculateDayMuhuratSlots(

@@ -1,8 +1,8 @@
 /**
  * Utility functions for Exception-Based Priest Availability System.
  * 
- * Default Working Hours: 07:00 AM to 09:00 PM (Every day for 90 days).
- * Available Windows = [07:00 - 21:00] MINUS [Leaves] MINUS [Blackouts] MINUS [Bookings].
+ * Default Working Hours: 07:00 AM to 09:00 PM (Configurable per priest).
+ * Available Windows = [Working Window] MINUS [Leaves] MINUS [Blackouts] MINUS [Bookings].
  */
 
 export interface PriestException {
@@ -95,37 +95,8 @@ export function subtractTimeIntervals(
 }
 
 /**
- * Client-Side Persistence Helpers (localStorage)
- */
-const STORAGE_PREFIX = 'pujacircle_priest_exceptions_';
-
-export function getPriestExceptions(priestId: string): PriestException[] {
-  if (!priestId) return [];
-  try {
-    const raw = localStorage.getItem(`${STORAGE_PREFIX}${priestId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function savePriestException(exception: PriestException): void {
-  if (!exception.priestId) return;
-  const current = getPriestExceptions(exception.priestId);
-  const updated = [...current.filter((e) => e.id !== exception.id), exception];
-  localStorage.setItem(`${STORAGE_PREFIX}${exception.priestId}`, JSON.stringify(updated));
-}
-
-export function deletePriestException(priestId: string, exceptionId: string): void {
-  if (!priestId) return;
-  const current = getPriestExceptions(priestId);
-  const updated = current.filter((e) => e.id !== exceptionId);
-  localStorage.setItem(`${STORAGE_PREFIX}${priestId}`, JSON.stringify(updated));
-}
-
-/**
  * Dynamically computes available Muhurat slots for a given date:
- * Default: 07:00 to 21:00 (14 hours)
+ * Default: 07:00 to 21:00 (14 hours or configured priest working hours)
  * Minused by: Full Day Leaves, Partial Blackouts, and Confirmed Bookings.
  */
 export function calculateDayMuhuratSlots(
@@ -133,7 +104,7 @@ export function calculateDayMuhuratSlots(
   targetDate: string,
   exceptions: PriestException[],
   bookings: any[] = [],
-  slotDurationMinutes: number = 120, // 2-hour standard puja slots
+  slotDurationMinutes: number = 120, // standard ceremony slots
   defaultStartTime: string = '07:00',
   defaultEndTime: string = '21:00'
 ): CalculatedSlot[] {
@@ -204,45 +175,3 @@ export function calculateDayMuhuratSlots(
 
   return slots;
 }
-
-/**
- * Special Event / Wedding Advance Slots
- */
-export interface SpecialSlot {
-  id: string;
-  priestId: string;
-  ceremonyName: string; // e.g. "Grand Wedding (Vivah Sanskar)"
-  date: string;         // YYYY-MM-DD
-  startTime: string;    // HH:mm
-  endTime: string;      // HH:mm
-  note?: string;        // e.g. "Includes Mandap Puja & Saptapadi"
-  approxPrice?: number;
-  createdAt: string;
-}
-
-const SPECIAL_SLOTS_PREFIX = 'pujacircle_special_slots_';
-
-export function getSpecialSlots(priestId: string): SpecialSlot[] {
-  if (!priestId) return [];
-  try {
-    const raw = localStorage.getItem(`${SPECIAL_SLOTS_PREFIX}${priestId}`);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveSpecialSlot(slot: SpecialSlot): void {
-  if (!slot.priestId) return;
-  const current = getSpecialSlots(slot.priestId);
-  const updated = [...current.filter((s) => s.id !== slot.id), slot];
-  localStorage.setItem(`${SPECIAL_SLOTS_PREFIX}${slot.priestId}`, JSON.stringify(updated));
-}
-
-export function deleteSpecialSlot(priestId: string, slotId: string): void {
-  if (!priestId) return;
-  const current = getSpecialSlots(priestId);
-  const updated = current.filter((s) => s.id !== slotId);
-  localStorage.setItem(`${SPECIAL_SLOTS_PREFIX}${priestId}`, JSON.stringify(updated));
-}
-

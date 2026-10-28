@@ -18,7 +18,7 @@ async function runTests() {
 
   assert.throws(() => {
     markDayOffSchema.parse({ date: 'invalid-date' });
-  }, /Date must be formatted as YYYY-MM-DD/);
+  }, /Date must be in YYYY-MM-DD format/);
 
   console.log('Test 2: blockHoursSchema validations');
   const validBlock = blockHoursSchema.parse({

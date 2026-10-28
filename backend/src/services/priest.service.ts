@@ -24,7 +24,7 @@ export class PriestService {
   }
 
   // Search and filter approved priests for devotee catalog listings
-  async searchPriests(_params?: PriestFilterParams & { page?: number; limit?: number }): Promise<PriestViewModel[]> {
+  async searchPriests(params?: PriestFilterParams & { page?: number; limit?: number }): Promise<PriestViewModel[]> {
     let query = db
       .select({
         id: priestProfiles.id,
@@ -58,8 +58,8 @@ export class PriestService {
         eq(users.accountStatus, 'ACTIVE')
       ));
 
-    if (_params?.page || _params?.limit) {
-      const { limit, offset } = getPagination(_params);
+    if (params?.page || params?.limit) {
+      const { limit, offset } = getPagination(params);
       query = query.limit(limit).offset(offset) as any;
     }
 

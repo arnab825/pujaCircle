@@ -9,7 +9,7 @@ import { bookingRoutes } from './booking.routes.js';
 import { geoRoutes } from './geo.routes.js';
 import { ritualRoutes } from './ritual.routes.js';
 import { availabilityRoutes } from './availability.routes.js';
-import { mediaController } from '../controllers/media.controller.js';
+import { mediaRoutes } from './media.routes.js';
 import { sendSuccess } from '../views/response.view.js';
 
 const apiRouter = Router();
@@ -26,14 +26,6 @@ apiRouter.get('/health', (_req, res) => {
 });
 
 /**
- * Cloudinary Media Storage
- * Provides direct upload endpoint and signed parameters for Cloudinary storage.
- */
-apiRouter.get('/media/signature', mediaController.getUploadSignature);
-apiRouter.post('/media/upload', mediaController.uploadImage);
-apiRouter.delete('/media', mediaController.deleteMedia);
-
-/**
  * Module Subrouters
  */
 apiRouter.use('/auth', authRoutes);
@@ -46,5 +38,6 @@ apiRouter.use('/bookings', bookingRoutes);
 apiRouter.use('/geo', geoRoutes);
 apiRouter.use('/rituals', ritualRoutes);
 apiRouter.use('/availability', availabilityRoutes);
+apiRouter.use('/media', mediaRoutes);
 
 export const routes = apiRouter;
