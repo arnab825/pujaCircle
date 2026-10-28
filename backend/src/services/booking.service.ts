@@ -1,5 +1,5 @@
 import { randomInt } from 'crypto';
-import { eq, and, or, desc, inArray, sql } from 'drizzle-orm';
+import { eq, and, or, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '../db/index.js';
 import { bookings, priestProfiles, priestServices, pujaCatalog, addresses, users } from '../models/index.js';
@@ -503,40 +503,6 @@ export class BookingService {
       priestAverageRating: avgRating.toFixed(2),
       priestReviewCount: reviewCount,
     };
-  }
-
-  // Automatically transition stale pending reservations to EXPIRED status
-  async expireStalePendingBookings(): Promise<number> {
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const todayIST = new Date().toISOString().slice(0, 10);
-
-    const staleRecords = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.status, 'PENDING'),
-          or(
-            sql`${bookings.createdAt} < ${oneDayAgo}`,
-            sql`${bookings.bookingDate} < ${todayIST}`
-          )
-        )
-      );
-
-    if (staleRecords.length === 0) {
-      return 0;
-    }
-
-    const idsToExpire = staleRecords.map((r) => r.id);
-    await db
-      .update(bookings)
-      .set({
-        status: 'EXPIRED',
-        rejectionReason: 'Reservation request expired automatically after 24 hours without priest confirmation.',
-      })
-      .where(inArray(bookings.id, idsToExpire));
-
-    return idsToExpire.length;
   }
 }
 

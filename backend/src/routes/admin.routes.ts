@@ -20,7 +20,6 @@ router.get('/dashboard/stats', adminController.getDashboardStats);
 
 // Platform Bookings Monitoring
 router.get('/bookings', adminController.getAllBookings);
-router.post('/bookings/expire-stale', adminController.expireStaleBookings);
 
 // Priest Verification & Lifecycle Management
 router.get('/priests', adminController.getAllPriests);

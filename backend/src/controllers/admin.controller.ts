@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess } from '../views/response.view.js';
 import { adminService } from '../services/admin.service.js';
-import { bookingService } from '../services/booking.service.js';
 import { getPagination } from '../utils/pagination.js';
 
 // Controller managing platform admin oversight, priest approvals, user moderation, and ceremony logs
@@ -124,16 +123,6 @@ export class AdminController {
       const { page, limit } = getPagination(req.query, 50, 100);
       const bookingsList = await adminService.getAllBookings(page, limit);
       sendSuccess(res, 'All platform ceremony bookings retrieved.', bookingsList);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // POST /api/v1/admin/bookings/expire-stale
-  async expireStaleBookings(_req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const count = await bookingService.expireStalePendingBookings();
-      sendSuccess(res, `Expired ${count} stale pending ceremony bookings.`, { count });
     } catch (error) {
       next(error);
     }
