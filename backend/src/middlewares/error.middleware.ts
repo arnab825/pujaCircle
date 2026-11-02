@@ -4,8 +4,36 @@ import { sendError } from '../views/response.view.js';
 import { AppError } from '../utils/AppError.js';
 
 /**
+ * Checks whether an error message is safe to present to end-users without
+ * leaking stack traces, internal filesystem paths, or raw database query syntax.
+ */
+function isSafeClientMessage(message: unknown): boolean {
+  if (typeof message !== 'string') return false;
+  const lower = message.toLowerCase();
+  if (
+    lower.includes('syntax error') ||
+    lower.includes('pg_') ||
+    lower.includes('relation "') ||
+    lower.includes('column "') ||
+    lower.includes('select ') ||
+    lower.includes('insert into') ||
+    lower.includes('update ') ||
+    lower.includes('delete from') ||
+    lower.includes('d:\\') ||
+    lower.includes('c:\\') ||
+    lower.includes('/node_modules') ||
+    lower.includes('\\node_modules') ||
+    lower.includes('.ts:') ||
+    lower.includes('.js:')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * [MIDDLEWARE] Global Error Handler
- * Sanitizes errors — prevents stack traces, DB internals, or file paths from leaking to clients.
+ * Sanitizes errors — strictly prevents stack traces, DB internals, or file paths from leaking to clients.
  * Full technical details are logged server-side for debugging.
  */
 export const errorHandler = (
@@ -14,7 +42,7 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  // Always log full error server-side for observability
+  // Always log full error server-side for observability and debugging
   console.error('[SERVER ERROR DETAIL]:', err);
 
   // Zod validation errors — return clean field-level messages to the client
@@ -29,27 +57,20 @@ export const errorHandler = (
     return;
   }
 
-  // AppError — typed operational errors with a safe status code and message
+  // AppError — typed operational errors with safe status code
   if (err instanceof AppError && err.statusCode < 500) {
-    sendError(res, err.message, err.statusCode);
+    const safeMessage = isSafeClientMessage(err.message)
+      ? err.message
+      : 'The requested operation could not be completed.';
+    sendError(res, safeMessage, err.statusCode);
     return;
   }
 
-  // Legacy plain-object errors { statusCode, message } — supported during migration to AppError
+  // Legacy plain-object errors { statusCode, message }
   if (err.statusCode && typeof err.statusCode === 'number' && err.statusCode < 500) {
-    // Ensure raw SQL or internal paths are not passed through
-    const isSafeMessage = typeof err.message === 'string' &&
-      !err.message.includes('relation') &&
-      !err.message.includes('column') &&
-      !err.message.includes('syntax') &&
-      !err.message.includes('SELECT') &&
-      !err.message.includes('INSERT') &&
-      !err.message.includes('UPDATE') &&
-      !err.message.includes('DELETE') &&
-      !err.message.includes('\\') &&
-      !err.message.includes('/');
-
-    const safeMessage = isSafeMessage ? err.message : 'The requested operation could not be completed.';
+    const safeMessage = isSafeClientMessage(err.message)
+      ? err.message
+      : 'The requested operation could not be completed.';
     sendError(res, safeMessage, err.statusCode);
     return;
   }
@@ -57,4 +78,3 @@ export const errorHandler = (
   // Fallback for unexpected 500 errors — never expose raw DB internals or stack traces
   sendError(res, 'An unexpected server error occurred. Please try again.', 500);
 };
-

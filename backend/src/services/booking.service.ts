@@ -46,6 +46,7 @@ export class BookingService {
       completionCode: b.completionCode,
       rejectionReason: b.rejectionReason,
       cancellationReason: b.cancellationReason,
+      cancelledBy: b.cancelledBy,
       rating: b.rating,
       review: b.review,
       scheduledDate: b.scheduledDate,
@@ -69,8 +70,17 @@ export class BookingService {
         endTime: b.endTime,
       },
       venueAddressSnapshot: b.address || undefined,
+      address: b.address || undefined,
       userName: b.user?.name,
       userPhone: b.user?.phoneNumber,
+      user: b.user
+        ? {
+            id: b.user.id,
+            name: b.user.name,
+            phoneNumber: b.user.phoneNumber,
+            email: b.user.email,
+          }
+        : undefined,
     };
   }
 
@@ -210,6 +220,27 @@ export class BookingService {
       endTime = addMinutesToTime(startTime, durationMinutes);
     }
 
+    // Verify booking date and slot time have not passed in Asia/Kolkata (IST)
+    const now = new Date();
+    const currentISTDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+    const currentISTTime = now.toLocaleTimeString('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    if (data.bookingDate < currentISTDate) {
+      throw new AppError(400, 'Cannot book a ceremony for a past date. Please select tomorrow or an upcoming date.');
+    }
+
+    if (data.bookingDate === currentISTDate && startTime <= currentISTTime) {
+      throw new AppError(
+        400,
+        `The selected Muhurat time (${startTime}) has already passed for today. Please schedule for tomorrow from priest starting hours.`
+      );
+    }
+
     // Verify no overlap via availabilityService.checkBookingOverlap
     const hasOverlap = await availabilityService.checkBookingOverlap(
       resolvedPriestId,
@@ -219,6 +250,36 @@ export class BookingService {
     );
     if (hasOverlap) {
       throw new AppError(409, 'The priest already has a confirmed ceremony booking during this time slot.');
+    }
+
+    // Verify slot falls within priest available hours and no blackout/leave conflicts
+    const slotCheck = await availabilityService.isTimeSlotAvailable(
+      resolvedPriestId,
+      data.bookingDate,
+      startTime,
+      endTime
+    );
+    if (!slotCheck.available) {
+      throw new AppError(400, slotCheck.reason || 'The priest is not available during this time slot.');
+    }
+
+    // Prevent accidental duplicate bookings by the same devotee for the same priest and time slot
+    const [existingDuplicate] = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.userId, userId),
+          eq(bookings.priestId, resolvedPriestId),
+          eq(bookings.bookingDate, data.bookingDate),
+          eq(bookings.startTime, startTime),
+          or(eq(bookings.status, 'PENDING'), eq(bookings.status, 'CONFIRMED'))
+        )
+      )
+      .limit(1);
+
+    if (existingDuplicate) {
+      throw new AppError(409, 'You already have an active booking for this ceremony with this priest at this date and time.');
     }
 
     let scheduledDate = new Date(`${data.bookingDate}T${startTime.length === 5 ? startTime : '09:00'}:00`);
@@ -245,8 +306,8 @@ export class BookingService {
         status: 'PENDING',
         paymentMethod: 'OFFLINE_CASH',
         paymentStatus: 'PENDING',
-        specialInstructions: data.specialInstructions || null,
-        notes: data.notes || null,
+        specialInstructions: data.specialInstructions || data.notes || (data as any).userNotes || null,
+        notes: data.notes || data.specialInstructions || (data as any).userNotes || null,
       })
       .returning();
 
@@ -455,9 +516,13 @@ export class BookingService {
       throw new AppError(400, 'A review has already been submitted for this ceremony booking.');
     }
 
+    if (!data.rating || typeof data.rating !== 'number' || data.rating < 1 || data.rating > 5) {
+      throw new AppError(400, 'A valid rating between 1 and 5 stars is required.');
+    }
+
     const now = new Date();
-    const finalRating = data.rating ?? booking.rating ?? 5;
-    const finalReview = data.review !== undefined ? (data.review ? data.review.trim() : null) : booking.review;
+    const finalRating = data.rating;
+    const finalReview = data.review ? data.review.trim() : null;
     await db
       .update(bookings)
       .set({
@@ -467,34 +532,40 @@ export class BookingService {
       })
       .where(eq(bookings.id, data.bookingId));
 
-    // Recompute priest average rating & reviewCount
-    const priestCompletedBookings = await db
-      .select({ rating: bookings.rating })
-      .from(bookings)
-      .where(
-        and(
-          eq(bookings.priestId, booking.priestId),
-          eq(bookings.status, 'COMPLETED')
-        )
-      );
+    let avgRating = 0;
+    let reviewCount = 0;
 
-    const validRatings = priestCompletedBookings
-      .map((b) => b.rating)
-      .filter((r): r is number => typeof r === 'number' && r > 0);
+    if (booking.priestId) {
+      const priestTargetId = booking.priestId;
+      // Recompute priest average rating & reviewCount
+      const priestCompletedBookings = await db
+        .select({ rating: bookings.rating })
+        .from(bookings)
+        .where(
+          and(
+            eq(bookings.priestId, priestTargetId),
+            eq(bookings.status, 'COMPLETED')
+          )
+        );
 
-    const reviewCount = validRatings.length;
-    const avgRating = reviewCount > 0
-      ? validRatings.reduce((acc, curr) => acc + curr, 0) / reviewCount
-      : 0;
+      const validRatings = priestCompletedBookings
+        .map((b) => b.rating)
+        .filter((r): r is number => typeof r === 'number' && r > 0);
 
-    await db
-      .update(priestProfiles)
-      .set({
-        rating: avgRating.toFixed(2),
-        reviewCount,
-        updatedAt: now,
-      })
-      .where(eq(priestProfiles.id, booking.priestId));
+      reviewCount = validRatings.length;
+      avgRating = reviewCount > 0
+        ? validRatings.reduce((acc, curr) => acc + curr, 0) / reviewCount
+        : 0;
+
+      await db
+        .update(priestProfiles)
+        .set({
+          rating: avgRating.toFixed(2),
+          reviewCount,
+          updatedAt: now,
+        })
+        .where(eq(priestProfiles.id, priestTargetId));
+    }
 
     return {
       bookingId: data.bookingId,

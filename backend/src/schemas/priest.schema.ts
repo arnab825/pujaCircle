@@ -5,6 +5,9 @@ import { z } from 'zod';
  * Strict validation bounds for priest profiles, services, and availability exceptions.
  */
 export const updatePriestProfileSchema = z.object({
+  fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100).optional(),
+  displayName: z.string().trim().min(2, 'Display name must be at least 2 characters').max(100).optional(),
+  name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
   experienceYears: z.coerce.number().int().min(0).max(80).optional(),
   bio: z.string().trim().max(1000).optional(),
   languages: z.array(z.string().trim().max(50)).optional(),
@@ -12,8 +15,8 @@ export const updatePriestProfileSchema = z.object({
   serviceAreas: z.array(z.string().trim().max(100)).optional(),
   city: z.string().trim().max(100).optional(),
   state: z.string().trim().max(100).optional(),
-  pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional(),
-  profileImageUrl: z.string().url('Invalid image URL format').optional().or(z.literal('')),
+  pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional().or(z.literal('')),
+  profileImageUrl: z.string().optional().or(z.literal('')),
   defaultStartTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be in HH:mm 24hr format').optional(),
   defaultEndTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be in HH:mm 24hr format').optional(),
 });
@@ -32,6 +35,7 @@ export const updatePriestServiceSchema = createPriestServiceSchema.partial();
 
 
 export const priestFilterParamsSchema = z.object({
+  pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional().or(z.literal('')),
   city: z.string().optional(),
   catalogId: z.string().optional(),
   serviceName: z.string().optional(),

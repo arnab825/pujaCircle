@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth.store";
 import { priestApi } from "@/api/priest.api";
 import { addressApi } from "@/api/address.api";
 import { bookingApi } from "@/api/booking.api";
 import { Priest, PriestService } from "@/types/priest.types";
-import { CalculatedSlot } from "@/lib/availabilityUtils";
+import { CalculatedSlot, PriestException, getISTNow, getISTTomorrow, formatTimeAmPm } from "@/lib/availabilityUtils";
 import { Address } from "@/types/address.types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,9 +19,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { formatCurrency, formatTime, formatFullDate } from "@/lib/utils";
+import { formatCurrency, formatTime, formatFullDate, getInitials } from "@/lib/utils";
 import {
-  Sparkles,
   MapPin,
   Star,
   CheckCircle2,
@@ -31,6 +30,11 @@ import {
   Check,
   AlertCircle,
   Plus,
+  Sun,
+  Sunrise,
+  Moon,
+  ShieldCheck,
+  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,22 +42,31 @@ export const PriestDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
+  const bookingSectionRef = useRef<HTMLDivElement>(null);
 
   const [priest, setPriest] = useState<Priest | null>(null);
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Date & Dynamic Slot Picker
-  const todayStr = new Date().toISOString().split("T")[0];
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  // Date & Dynamic Slot Picker (Asia/Kolkata IST)
+  const { istDate, istMinutes } = getISTNow();
+  const tomorrowStr = getISTTomorrow();
+  const dayAfterTomorrow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+  const dayAfterTomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(dayAfterTomorrow);
+
+  // Standard day window concludes around 20:00 (no full ceremony can start before 21:00 cutoff)
+  const isTodayConcluded = istMinutes >= (20 * 60);
+  const initialDate = isTodayConcluded ? tomorrowStr : istDate;
+  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [availableSlots, setAvailableSlots] = useState<CalculatedSlot[]>([]);
+  const [dayExceptions, setDayExceptions] = useState<PriestException[]>([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(false);
+  const [timeFilter, setTimeFilter] = useState<'ALL' | 'MORNING' | 'AFTERNOON' | 'EVENING'>('ALL');
 
   // Booking Flow State
   const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<PriestService | null>(
-    null,
-  );
+  const [isAddressPickerOpen, setIsAddressPickerOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<PriestService | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<CalculatedSlot | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [userNotes, setUserNotes] = useState("");
@@ -99,12 +112,16 @@ export const PriestDetailsPage: React.FC = () => {
       setIsSlotsLoading(true);
       try {
         const ceremonyDuration = selectedService?.durationMinutes || 120;
-        const slots = await priestApi.getAvailableSlotsForDate(
-          id,
-          selectedDate,
-          ceremonyDuration,
-        );
+        const [slots, exceptions] = await Promise.all([
+          priestApi.getAvailableSlotsForDate(
+            id,
+            selectedDate,
+            ceremonyDuration,
+          ),
+          priestApi.getPriestExceptions(id),
+        ]);
         setAvailableSlots(slots);
+        setDayExceptions(exceptions || []);
       } catch {
         toast.error("Failed to load slots for this date.");
       } finally {
@@ -114,14 +131,12 @@ export const PriestDetailsPage: React.FC = () => {
     loadSlots();
   }, [id, selectedDate, selectedService?.durationMinutes]);
 
-  const handleStartBooking = (service?: PriestService, slot?: CalculatedSlot) => {
+  const handleStartBooking = () => {
     if (!isAuthenticated) {
       toast.info("Please sign in to schedule an appointment with this Priest.");
       navigate("/user/login");
       return;
     }
-    if (service) setSelectedService(service);
-    if (slot) setSelectedSlot(slot);
     setIsBookingOpen(true);
   };
 
@@ -133,7 +148,7 @@ export const PriestDetailsPage: React.FC = () => {
       !selectedAddressId ||
       !selectedService
     ) {
-      toast.error("Please select a service, address, and available time slot.");
+      toast.error("Please select a ceremony, address, and available time slot.");
       return;
     }
 
@@ -165,7 +180,9 @@ export const PriestDetailsPage: React.FC = () => {
             selectedSlot.slotDate || selectedSlot.date || selectedDate,
           startTime: selectedSlot.startTime,
           endTime: selectedSlot.endTime,
-          userNotes,
+          specialInstructions: userNotes.trim() || undefined,
+          notes: userNotes.trim() || undefined,
+          userNotes: userNotes.trim() || undefined,
         },
         user.id,
       );
@@ -215,12 +232,39 @@ export const PriestDetailsPage: React.FC = () => {
     );
   }
 
-  const activeBookableSlots = availableSlots.filter(
-    (s) => s.status === "AVAILABLE",
+  const blackoutForSelectedDate = dayExceptions.find(
+    (e) => e.date === selectedDate && (e.type === 'PARTIAL_BLACKOUT' || e.exceptionType === 'BLOCK') && e.type !== 'FULL_DAY_LEAVE'
   );
 
+  // Filter slots by Time of Day
+  const filteredSlots = availableSlots.filter((slot) => {
+    if (timeFilter === 'ALL') return true;
+    const hour = parseInt(slot.startTime.split(':')[0], 10);
+    if (timeFilter === 'MORNING') return hour < 12;
+    if (timeFilter === 'AFTERNOON') return hour >= 12 && hour < 17;
+    if (timeFilter === 'EVENING') return hour >= 17;
+    return true;
+  });
+
+  const morningCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) < 12).length;
+  const afternoonCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) >= 12 && parseInt(s.startTime.split(':')[0], 10) < 17).length;
+  const eveningCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) >= 17).length;
+
+  const selectedAddress = userAddresses.find((a) => a.id === selectedAddressId);
+  const isAddressOutside = Boolean(
+    priest?.city &&
+    selectedAddress &&
+    selectedAddress.city.trim().toLowerCase() !== priest.city.trim().toLowerCase()
+  );
+  const selectedAddressSummary = selectedAddress
+    ? [selectedAddress.houseNo || selectedAddress.houseBuilding, selectedAddress.villageTown || selectedAddress.locality].filter(Boolean).join(', ') || selectedAddress.city
+    : 'Select venue address';
+  const selectedAddressDetail = selectedAddress
+    ? `${selectedAddress.city}, ${selectedAddress.district || ''} - ${selectedAddress.pincode || selectedAddress.pinCode || ''}`
+    : 'Click to choose your home ceremony location';
+
   return (
-    <div className="container py-6 sm:py-8 space-y-6 max-w-6xl">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Back Link */}
       <Link
         to="/priests"
@@ -231,21 +275,24 @@ export const PriestDetailsPage: React.FC = () => {
       </Link>
 
       {/* Priest Header Profile Card */}
-      <div className="bg-white border border-amber-300/90 rounded-xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row gap-6 items-start relative">
+      <div className="bg-white border-2 border-amber-300 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row gap-6 items-start relative">
         <div className="relative shrink-0 mx-auto md:mx-0">
-          <img
-            src={
-              priest.profileImageUrl ||
-              "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200"
-            }
-            alt={priest.fullName}
-            className="h-28 w-28 sm:h-32 sm:w-32 rounded-md object-cover ring-2 ring-amber-400 ring-offset-2 shrink-0 bg-amber-50 shadow-sm"
-          />
+          {priest.profileImageUrl ? (
+            <img
+              src={priest.profileImageUrl}
+              alt={priest.fullName}
+              className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg object-cover ring-2 ring-amber-400 ring-offset-2 shrink-0 bg-amber-50 shadow-xs"
+            />
+          ) : (
+            <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg bg-[#780016] text-amber-100 flex items-center justify-center font-serif text-3xl sm:text-4xl font-bold ring-2 ring-amber-400 ring-offset-2 shadow-xs select-none">
+              {getInitials(priest.displayName || priest.fullName)}
+            </div>
+          )}
           <div
             className="absolute -bottom-1 -right-1 bg-red-700 text-white rounded-full p-1.5 shadow-sm border-2 border-white"
             title="Gurukul Lineage Verified"
           >
-            <CheckCircle2 className="h-4 w-4" />
+            <ShieldCheck className="h-4 w-4" />
           </div>
         </div>
 
@@ -262,14 +309,17 @@ export const PriestDetailsPage: React.FC = () => {
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600 mt-1.5">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600 mt-2">
                 <span className="inline-flex items-center gap-1 font-bold text-stone-900 bg-amber-100 px-2.5 py-0.5 rounded-sm border border-amber-300">
-                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                  {priest.rating ? priest.rating.toFixed(1) : "4.9"} (
-                  {priest.reviewCount || 48} Reviews)
+                  <Star className={`h-3.5 w-3.5 ${priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? 'fill-amber-500 text-amber-500' : 'text-stone-400'}`} />
+                  {priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? (
+                    `${Number(priest.rating).toFixed(1)} (${priest.reviewCount} ${priest.reviewCount === 1 ? 'Review' : 'Reviews'})`
+                  ) : (
+                    'No ratings yet'
+                  )}
                 </span>
                 <span className="inline-flex items-center gap-1 font-bold text-stone-900 bg-amber-400 px-2.5 py-0.5 rounded-sm">
-                  <Clock className="h-3 w-3 text-stone-950" />
+                  <Award className="h-3 w-3 text-stone-950" />
                   {priest.experienceYears}+ Yrs Shastric Exp
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-stone-700">
@@ -280,21 +330,21 @@ export const PriestDetailsPage: React.FC = () => {
             </div>
 
             <Button
-              onClick={() => handleStartBooking()}
-              className="gap-2 text-xs font-bold bg-red-700 hover:bg-red-800 text-white rounded-md shadow-md h-11 px-5 cursor-pointer shrink-0"
+              onClick={() => bookingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="gap-2 text-xs font-bold bg-[#780016] hover:bg-red-800 text-white rounded-md shadow-xs h-10 px-5 cursor-pointer shrink-0"
             >
               <Calendar className="h-4 w-4" />
-              <span>Schedule Ceremony</span>
+              <span>Book Ceremony</span>
             </Button>
           </div>
 
-          <p className="text-xs text-stone-600 leading-relaxed">{priest.bio}</p>
+          <p className="text-xs text-stone-600 leading-relaxed font-sans">{priest.bio || "Experienced Purohit offering authentic Vedic Vidhi rituals and sacred mantra chanting across Kolkata."}</p>
 
           <div className="flex flex-wrap items-center gap-4 text-xs pt-2 border-t border-amber-100">
             <div>
               <span className="text-stone-500 font-medium">Languages: </span>
               <strong className="text-stone-900">
-                {priest.languages?.join(", ") || "Hindi, Sanskrit"}
+                {priest.languages?.join(", ") || "Bengali, Sanskrit, Hindi"}
               </strong>
             </div>
             <span>•</span>
@@ -310,176 +360,533 @@ export const PriestDetailsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Services and Dynamic Slot Picker Layout (Flexbox Only, Zero Grids) */}
-      <div className="flex flex-col md:flex-row items-start gap-6 w-full">
-        {/* Left Column: Offered Services & Rates */}
-        <div className="w-full md:w-[calc(58%-12px)] space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-red-700" />
-              <span>Offered Ceremonies & Dakshina Rates</span>
-            </h2>
-            <span className="text-[11px] text-stone-500 font-semibold">
-              Cash after puja
-            </span>
-          </div>
+      {/* Main Booking Section: Left Cohesive Sanctum + Right Sticky Summary */}
+      <div ref={bookingSectionRef} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+        {/* Left Column (8 cols): Single Unified Flow Panel */}
+        <div className="lg:col-span-8 bg-white border-2 border-amber-300 rounded-2xl p-6 sm:p-7 shadow-xs space-y-7">
+          
+          {/* STEP 1: Choose Ritual Ceremony */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-amber-100">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs">
+                  1
+                </span>
+                <h2 className="text-base font-bold font-serif text-stone-900">
+                  Select Sacred Ceremony & Dakshina Rate
+                </h2>
+              </div>
+              <span className="text-[11px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                Direct Cash After Puja
+              </span>
+            </div>
 
-          <div className="space-y-3">
             {!priest.services || priest.services.length === 0 ? (
-              <div className="p-6 text-center text-xs text-stone-500 border-2 border-dashed border-amber-300 bg-amber-50/40 rounded-md">
-                This priest has not published specific service rates yet.
+              <div className="p-6 text-center text-xs text-stone-500 border border-dashed border-amber-300 bg-amber-50/40 rounded-lg">
+                This priest has not configured specific ritual packages yet.
               </div>
             ) : (
-              priest.services.map((srv) => (
-                <div
-                  key={srv.id}
-                  className={`p-4 rounded-md border-2 cursor-pointer transition-all shadow-xs bg-white flex items-center justify-between gap-4 ${
-                    selectedService?.id === srv.id
-                      ? "border-red-700 ring-2 ring-red-700/20 shadow-md bg-amber-50/30"
-                      : "border-amber-200 hover:border-amber-400"
-                  }`}
-                  onClick={() => setSelectedService(srv)}
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-base text-stone-900 font-serif">
-                        {srv.serviceName}
-                      </h3>
-                      {selectedService?.id === srv.id && (
-                        <span className="h-2 w-2 rounded-full bg-red-700" />
-                      )}
-                    </div>
-                    <p className="text-xs text-stone-600 leading-relaxed">
-                      Traditional Vedic Vidhi with complete samagri guidance and
-                      chanting
-                    </p>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-lg font-bold font-serif text-red-800 block">
-                      {formatCurrency(srv.price)}
-                    </span>
-                    <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 block mt-0.5">
-                      Direct Cash
-                    </span>
-                    <Button
-                      size="sm"
-                      className={`mt-2 h-8 text-xs px-3 rounded-md font-bold cursor-pointer ${
-                        selectedService?.id === srv.id
-                          ? "bg-red-700 hover:bg-red-800 text-white shadow-xs"
-                          : "border-2 border-amber-300 text-stone-800 hover:bg-amber-50"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {priest.services.map((srv) => {
+                  const isSelected = selectedService?.id === srv.id;
+                  return (
+                    <div
+                      key={srv.id}
+                      onClick={() => setSelectedService(srv)}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between gap-3 text-left ${
+                        isSelected
+                          ? "border-[#780016] ring-2 ring-red-700/20 bg-amber-50/40 shadow-xs"
+                          : "border-amber-200 hover:border-amber-400 bg-white"
                       }`}
-                      variant={
-                        selectedService?.id === srv.id ? "default" : "outline"
-                      }
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedService(srv);
-                        handleStartBooking(srv);
-                      }}
                     >
-                      {selectedService?.id === srv.id ? "Selected" : "Select"}
-                    </Button>
-                  </div>
-                </div>
-              ))
+                      <div className="space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-bold text-sm text-stone-900 font-serif leading-snug">
+                            {srv.serviceName}
+                          </h3>
+                          {isSelected && (
+                            <span className="h-5 w-5 rounded-full bg-[#780016] text-white flex items-center justify-center shrink-0">
+                              <Check className="h-3 w-3 stroke-3" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-stone-600 line-clamp-2">
+                          Traditional Shastric Vidhi with complete samagri guidance and auspicious mantras.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-amber-100 text-xs">
+                        <span className="text-stone-500 font-medium">Dakshina:</span>
+                        <strong className="text-base font-serif font-bold text-[#780016]">
+                          {formatCurrency(srv.price)}
+                        </strong>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-        </div>
 
-        {/* Right Column: Dynamic Availability Slots with Date Picker */}
-        <div className="w-full md:w-[calc(42%-12px)] space-y-4">
-          <h2 className="text-lg font-bold font-serif text-stone-900 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-red-700" />
-            <span>Auspicious Muhurat Slots</span>
-          </h2>
+          <div className="h-px bg-amber-100" />
 
-          <div className="bg-white border-2 border-amber-300 rounded-xl p-5 shadow-xs space-y-4">
-            <div className="pb-3 border-b border-amber-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-800 uppercase tracking-wider">
-                  Select Ceremony Date
+          {/* STEP 2: Choose Auspicious Date */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between pb-2 border-b border-amber-100">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs">
+                  2
                 </span>
-                <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-sm">
-                  Verified Calendar
-                </span>
+                <h2 className="text-base font-bold font-serif text-stone-900">
+                  Select Auspicious Ceremony Date
+                </h2>
               </div>
+              <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-sm">
+                Verified Calendar
+              </span>
+            </div>
 
-              <div className="flex items-center gap-2 pt-1">
-                <Calendar className="h-4 w-4 text-red-700 shrink-0" />
+            {/* Quick Date Pills & Date Input */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isTodayConcluded) {
+                    setSelectedDate(istDate);
+                    setSelectedSlot(null);
+                  } else {
+                    toast.warning("Today's booking time has concluded. Please book for tomorrow.");
+                  }
+                }}
+                disabled={isTodayConcluded}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                  selectedDate === istDate
+                    ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
+                    : isTodayConcluded
+                    ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-60"
+                    : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
+                }`}
+              >
+                <span>Today</span>
+                {isTodayConcluded && <span className="text-[10px] text-red-500">(Ended)</span>}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDate(tomorrowStr);
+                  setSelectedSlot(null);
+                }}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                  selectedDate === tomorrowStr
+                    ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
+                    : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
+                }`}
+              >
+                <span>Tomorrow ({tomorrowStr.slice(5)})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDate(dayAfterTomorrowStr);
+                  setSelectedSlot(null);
+                }}
+                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                  selectedDate === dayAfterTomorrowStr
+                    ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
+                    : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
+                }`}
+              >
+                <span>In 2 Days ({dayAfterTomorrowStr.slice(5)})</span>
+              </button>
+
+              <div className="flex items-center gap-1.5 ml-auto">
+                <Calendar className="h-4 w-4 text-[#780016] shrink-0" />
                 <Input
                   type="date"
                   value={selectedDate}
-                  min={todayStr}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="text-xs h-9 rounded-md border-amber-300 focus-visible:ring-red-700"
+                  min={istDate}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setSelectedDate(newDate);
+                    setSelectedSlot(null);
+                  }}
+                  className="text-xs h-9 w-38 rounded-lg border-amber-300 focus-visible:ring-red-700 font-mono"
                 />
               </div>
             </div>
 
-            <div className="space-y-2.5">
-              <div className="text-xs font-bold text-stone-700">
-                Slots for {formatFullDate(selectedDate)}:
-              </div>
-
-              {isSlotsLoading ? (
-                <div className="text-center py-6 text-xs text-stone-500 font-medium">
-                  Calculating auspicious Muhurat slots...
-                </div>
-              ) : activeBookableSlots.length === 0 ? (
-                <div className="text-center py-6 text-xs text-stone-500 space-y-2">
-                  <Clock className="h-8 w-8 mx-auto text-amber-600/40" />
-                  <p>
-                    No open slots on this date. Please pick another auspicious
-                    date.
+            {/* Today Exceeded Warning */}
+            {selectedDate === istDate && isTodayConcluded && (
+              <div className="p-3 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
+                <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-[#780016]">Today's booking cutoff has passed:</strong>
+                  <p className="text-[11px] text-stone-700 mt-0.5">
+                    Same-day ceremony bookings are closed for today. Please pick tomorrow ({formatFullDate(tomorrowStr)}) starting from {formatTimeAmPm(priest?.defaultStartTime || "07:00")} onwards.
                   </p>
                 </div>
-              ) : (
-                activeBookableSlots.map((slot) => (
-                  <div
-                    key={slot.id}
-                    className={`p-3.5 rounded-md border-2 flex items-center justify-between cursor-pointer transition-all bg-white ${
-                      selectedSlot?.id === slot.id
-                        ? "border-red-700 ring-2 ring-red-700/20 shadow-xs bg-amber-50/40"
-                        : "border-amber-200 hover:border-amber-400"
-                    }`}
-                    onClick={() => {
-                      setSelectedSlot(slot);
-                      handleStartBooking(undefined, slot);
-                    }}
-                  >
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-stone-900 font-mono">
-                        <Clock className="h-3.5 w-3.5 text-red-700" />
-                        <span>
-                          {formatTime(slot.startTime)} –{" "}
-                          {formatTime(slot.endTime)}
+              </div>
+            )}
+
+            {/* Priest Blocked Break Alert */}
+            {blackoutForSelectedDate && (
+              <div className="p-3 rounded-lg bg-amber-50/80 border border-amber-300 text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
+                <Clock className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-[#780016]">Purohit Blocked / Break Window:</strong>
+                  <p className="text-[11px] text-stone-700 mt-0.5">
+                    {formatTimeAmPm(blackoutForSelectedDate.startTime || '')} – {formatTimeAmPm(blackoutForSelectedDate.endTime || '')} ({blackoutForSelectedDate.reason || 'Blocked Break'}). All other open slots shown below are fully bookable.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="h-px bg-amber-100" />
+
+          {/* STEP 3: Choose Shubh Muhurat Slot */}
+          <div className="space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-100">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs">
+                  3
+                </span>
+                <h2 className="text-base font-bold font-serif text-stone-900">
+                  Choose Auspicious Muhurat Slot
+                </h2>
+              </div>
+              <span className="text-xs text-stone-500 font-medium">
+                {formatFullDate(selectedDate)}
+              </span>
+            </div>
+
+            {/* Time of Day Tabs */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setTimeFilter('ALL')}
+                className={`px-3 py-1.5 rounded-md font-bold transition-all border cursor-pointer ${
+                  timeFilter === 'ALL'
+                    ? "bg-[#780016] text-white border-[#780016]"
+                    : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
+                }`}
+              >
+                All Slots ({availableSlots.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeFilter('MORNING')}
+                className={`px-3 py-1.5 rounded-md font-bold transition-all border flex items-center gap-1 cursor-pointer ${
+                  timeFilter === 'MORNING'
+                    ? "bg-[#780016] text-white border-[#780016]"
+                    : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
+                }`}
+              >
+                <Sunrise className="w-3.5 h-3.5 text-amber-600" />
+                <span>Morning ({morningCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeFilter('AFTERNOON')}
+                className={`px-3 py-1.5 rounded-md font-bold transition-all border flex items-center gap-1 cursor-pointer ${
+                  timeFilter === 'AFTERNOON'
+                    ? "bg-[#780016] text-white border-[#780016]"
+                    : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span>Afternoon ({afternoonCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeFilter('EVENING')}
+                className={`px-3 py-1.5 rounded-md font-bold transition-all border flex items-center gap-1 cursor-pointer ${
+                  timeFilter === 'EVENING'
+                    ? "bg-[#780016] text-white border-[#780016]"
+                    : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Evening ({eveningCount})</span>
+              </button>
+            </div>
+
+            {/* Slots Grid */}
+            {isSlotsLoading ? (
+              <div className="text-center py-10 text-xs text-stone-500 font-medium">
+                Calculating auspicious Muhurat slots...
+              </div>
+            ) : filteredSlots.length === 0 ? (
+              <div className="p-8 text-center space-y-2 border border-dashed border-amber-300 rounded-lg bg-amber-50/30">
+                <Clock className="w-8 h-8 text-amber-600/50 mx-auto" />
+                <p className="text-xs font-bold text-stone-800">No slots available for this filter.</p>
+                <p className="text-[11px] text-stone-500">Try switching to 'All Slots' or pick another auspicious date.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {filteredSlots.map((slot) => {
+                  if (slot.isBlocked) {
+                    return (
+                      <div
+                        key={slot.id}
+                        className="p-3 rounded-lg border border-stone-200 bg-stone-50/70 text-stone-400 cursor-not-allowed select-none flex flex-col items-center justify-center text-center gap-1 opacity-70"
+                      >
+                        <span className="font-mono text-xs font-semibold line-through">
+                          {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                        </span>
+                        <span className="text-[9px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded">
+                          Blocked Break
                         </span>
                       </div>
-                      <p className="text-[11px] text-stone-500">
-                        Standard Shubh Muhurat
-                      </p>
-                    </div>
+                    );
+                  }
 
-                    <span className="text-[11px] font-bold text-red-700 hover:underline">
-                      Book Slot →
-                    </span>
-                  </div>
-                ))
-              )}
+                  if (slot.status !== 'AVAILABLE') return null;
+
+                  const isSlotSelected = selectedSlot?.id === slot.id;
+
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center gap-1 cursor-pointer ${
+                        isSlotSelected
+                          ? "border-[#780016] bg-amber-50/70 text-[#780016] font-bold shadow-xs ring-2 ring-red-700/20"
+                          : "border-amber-200 hover:border-amber-400 bg-white hover:bg-amber-50/30 text-stone-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 font-mono text-xs font-bold">
+                        <Clock className="w-3 h-3 text-[#780016]" />
+                        <span>{formatTime(slot.startTime)} – {formatTime(slot.endTime)}</span>
+                      </div>
+                      <span className="text-[10px] text-stone-500 font-medium">
+                        Shubh Muhurat
+                      </span>
+                      {isSlotSelected && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#780016]">
+                          <Check className="w-3 h-3 stroke-3" /> Selected
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column (4 cols): Sticky Sacred Booking Summary Card */}
+        <div className="lg:col-span-4 sticky top-6 space-y-4">
+          <div className="bg-white border-2 border-amber-400 rounded-2xl p-5 sm:p-6 shadow-md space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+              <h3 className="font-serif font-black text-base text-stone-950 flex items-center gap-1.5">
+                <span className="text-[#780016] text-lg">ॐ</span>
+                <span>Sacred Booking Summary</span>
+              </h3>
+              <span className="text-[10px] text-amber-900 bg-amber-100 border border-amber-300 font-bold px-2 py-0.5 rounded">
+                Direct Cash
+              </span>
             </div>
+
+            {/* Selected Ceremony Detail */}
+            <div className="space-y-1 text-xs">
+              <span className="text-stone-500 font-medium">Chosen Ritual:</span>
+              <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 flex items-center justify-between">
+                <strong className="font-serif text-stone-900 text-xs sm:text-sm">
+                  {selectedService?.serviceName || "Select a ceremony"}
+                </strong>
+                <span className="font-bold font-serif text-[#780016]">
+                  {selectedService ? formatCurrency(selectedService.price) : "—"}
+                </span>
+              </div>
+            </div>
+
+            {/* Selected Muhurat Detail */}
+            <div className="space-y-1 text-xs">
+              <span className="text-stone-500 font-medium">Scheduled Muhurat:</span>
+              <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 space-y-0.5">
+                <div className="font-bold text-stone-900">
+                  {formatFullDate(selectedDate)}
+                </div>
+                <div className="text-[11px] font-mono text-[#780016] font-bold">
+                  {selectedSlot
+                    ? `${formatTime(selectedSlot.startTime)} – ${formatTime(selectedSlot.endTime)}`
+                    : "Please pick a time slot"}
+                </div>
+              </div>
+            </div>
+
+            {/* Venue Address Selector (Clean Card with Modal Trigger - No Raw HTML Select) */}
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-stone-500 font-medium">Sanctum Venue (Address):</span>
+                <button
+                  type="button"
+                  onClick={() => setIsAddressPickerOpen(true)}
+                  className="text-[11px] text-[#780016] hover:underline font-bold cursor-pointer"
+                >
+                  {selectedAddress ? "Change" : "+ Select"}
+                </button>
+              </div>
+
+              <div
+                onClick={() => setIsAddressPickerOpen(true)}
+                className="p-3 rounded-xl border-2 border-amber-200 hover:border-amber-400 bg-amber-50/40 cursor-pointer transition-all space-y-1"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="font-bold text-stone-900 text-xs flex items-center gap-1.5 truncate">
+                    <MapPin className="h-3.5 w-3.5 text-[#780016] shrink-0" />
+                    <span className="truncate">{selectedAddressSummary}</span>
+                  </span>
+                  {isAddressOutside && (
+                    <span className="text-[9px] text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.2 rounded font-bold shrink-0">
+                      Outside {priest.city}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-stone-600 truncate pl-5">
+                  {selectedAddressDetail}
+                </p>
+              </div>
+            </div>
+
+            {/* Optional Notes */}
+            <div className="space-y-1 text-xs">
+              <span className="text-stone-500 font-medium">Special Instructions (Optional):</span>
+              <Input
+                value={userNotes}
+                onChange={(e) => setUserNotes(e.target.value)}
+                placeholder="Gotra, landmark, or specific requests"
+                className="h-8.5 text-xs border-amber-300 focus-visible:ring-red-700 font-sans"
+              />
+            </div>
+
+            {/* Booking CTA Button */}
+            <Button
+              disabled={isSubmitting || !selectedService || !selectedSlot || !selectedAddressId}
+              onClick={() => handleStartBooking()}
+              className={`w-full h-11 text-xs font-bold gap-2 rounded-lg shadow-sm cursor-pointer ${
+                !selectedService || !selectedSlot || !selectedAddressId
+                  ? "bg-stone-300 text-stone-600 cursor-not-allowed"
+                  : "bg-[#780016] hover:bg-red-800 text-white"
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>
+                {!selectedService
+                  ? "1. Select Ceremony"
+                  : !selectedSlot
+                  ? "2. Pick a Muhurat Slot"
+                  : !selectedAddressId
+                  ? "3. Choose Venue Address"
+                  : "Confirm Ceremony Request →"}
+              </span>
+            </Button>
+
+            <p className="text-[10px] text-center text-stone-500 leading-tight">
+              100% Direct Cash Dakshina after puja. No advance payment taken.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Booking Review & Submission Modal */}
+      {/* Clean Address Selector Modal (Replaces clunky HTML dropdown) */}
+      <Dialog open={isAddressPickerOpen} onOpenChange={setIsAddressPickerOpen}>
+        <DialogContent className="sm:max-w-md w-[94vw] p-5 bg-white border-2 border-amber-300 rounded-xl shadow-2xl">
+          <DialogHeader className="space-y-1 text-left">
+            <DialogTitle className="font-serif text-lg font-bold text-stone-900">
+              Choose Sanctum Venue Address
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-600">
+              Select the residence address where the Purohit will conduct the puja.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2.5 py-3 max-h-[55vh] overflow-y-auto">
+            {userAddresses.length === 0 ? (
+              <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 text-center text-xs space-y-2">
+                <p className="text-stone-700">No saved addresses found.</p>
+                <Link to="/user/addresses">
+                  <Button size="sm" className="bg-[#780016] text-white">
+                    + Add Address
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              userAddresses.map((addr) => {
+                const isSelected = selectedAddressId === addr.id;
+                const isOutside = priest?.city && addr.city.trim().toLowerCase() !== priest.city.trim().toLowerCase();
+                const line1 = [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality].filter(Boolean).join(', ') || addr.city;
+                const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
+
+                return (
+                  <div
+                    key={addr.id}
+                    onClick={() => {
+                      setSelectedAddressId(addr.id);
+                      setIsAddressPickerOpen(false);
+                    }}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                      isSelected
+                        ? "border-[#780016] bg-amber-50/60 shadow-xs"
+                        : "border-stone-200 hover:border-amber-400 bg-white"
+                    }`}
+                  >
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-stone-900">
+                        <MapPin className="h-3.5 w-3.5 text-[#780016] shrink-0" />
+                        <span className="truncate">{line1}</span>
+                        {isOutside && (
+                          <span className="text-[10px] text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.2 rounded font-semibold shrink-0">
+                            Outside {priest?.city}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-stone-500 truncate">{line2}</p>
+                    </div>
+
+                    {isSelected && (
+                      <div className="h-5 w-5 rounded-full bg-[#780016] text-white flex items-center justify-center shrink-0">
+                        <Check className="h-3 w-3 stroke-3" />
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <DialogFooter className="flex items-center justify-between border-t border-amber-100 pt-3">
+            <Link
+              to="/user/addresses"
+              className="text-xs font-bold text-[#780016] hover:underline flex items-center gap-1"
+            >
+              <Plus className="h-3.5 w-3.5" /> Manage / Add Address
+            </Link>
+            <Button
+              size="sm"
+              onClick={() => setIsAddressPickerOpen(false)}
+              className="bg-[#780016] text-white text-xs font-bold px-4"
+            >
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Booking Review & Final Submission Modal */}
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent
           onOpenAutoFocus={(e) => {
-            // Prevent auto-scrolling down into inner form inputs on modal open
             e.preventDefault();
           }}
-          className="sm:max-w-md w-[94vw] max-h-[85vh] flex flex-col p-4 sm:p-5 bg-white border-2 border-amber-300 rounded-lg shadow-2xl gap-3.5"
+          className="sm:max-w-md w-[94vw] max-h-[85vh] flex flex-col p-4 sm:p-5 bg-white border-2 border-amber-300 rounded-xl shadow-2xl gap-3.5"
         >
           <DialogHeader className="shrink-0 space-y-1 text-left">
             <DialogTitle className="font-serif text-lg sm:text-xl font-bold text-stone-900">
@@ -491,10 +898,10 @@ export const PriestDetailsPage: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Scrollable Body with Sleek Custom Scrollbar & Comfortable Padding */}
+          {/* Scrollable Body */}
           <div className="flex-1 overflow-y-auto pr-3 space-y-4 text-xs custom-scrollbar">
             {/* Price & Service Summary Box */}
-            <div className="p-3.5 rounded-md bg-amber-50 border border-amber-300 space-y-1.5 shadow-2xs">
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 space-y-1.5 shadow-2xs">
               <div className="flex items-center justify-between">
                 <span className="text-stone-600">Appointed Purohit:</span>
                 <strong className="text-stone-900 font-serif text-xs sm:text-sm">
@@ -523,7 +930,7 @@ export const PriestDetailsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Address Selection */}
+            {/* Address Selection in Modal */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-bold text-stone-900">
@@ -548,152 +955,86 @@ export const PriestDetailsPage: React.FC = () => {
                       size="sm"
                       className="text-xs h-7.5 bg-red-700 hover:bg-red-800 text-white rounded-md"
                     >
-                      Add Address Now
+                      + Add Address
                     </Button>
                   </Link>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {userAddresses.map((addr) => {
-                    const isServiceable =
-                      !priest?.city ||
-                      addr.city?.trim().toLowerCase() ===
-                        priest.city?.trim().toLowerCase();
-                    const isSelected = selectedAddressId === addr.id;
+                    const line1 = [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality].filter(Boolean).join(', ') || addr.city;
+                    const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
+                    const isOutside = priest.city && addr.city.trim().toLowerCase() !== priest.city.trim().toLowerCase();
 
                     return (
                       <div
                         key={addr.id}
-                        onClick={() => {
-                          if (isServiceable) setSelectedAddressId(addr.id);
-                        }}
-                        className={`p-2.5 rounded-md border-2 flex items-center justify-between transition-all ${
-                          !isServiceable
-                            ? "opacity-60 bg-stone-50 border-stone-200 cursor-not-allowed"
-                            : isSelected
-                              ? "border-red-700 ring-2 ring-red-700/20 shadow-2xs bg-white cursor-pointer"
-                              : "border-amber-200 hover:border-amber-300 bg-white cursor-pointer"
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex items-center justify-between ${
+                          selectedAddressId === addr.id
+                            ? "border-red-700 bg-amber-50/50"
+                            : "border-stone-200 hover:border-amber-300"
                         }`}
+                        onClick={() => setSelectedAddressId(addr.id)}
                       >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-stone-900 text-xs font-serif">
-                              {addr.houseNo || addr.houseBuilding},{" "}
-                              {addr.villageTown || addr.locality}
-                            </p>
-                            {!isServiceable && (
-                              <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded-xs">
-                                Outside {priest?.city}
+                        <div className="space-y-0.5">
+                          <div className="font-semibold text-stone-900 flex items-center gap-1.5">
+                            <span>{line1}</span>
+                            {isOutside && (
+                              <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.2 rounded border border-red-200">
+                                Outside {priest.city}
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-stone-600">
-                            {addr.city}, {addr.state} -{" "}
-                            <strong className="font-mono text-stone-900">
-                              {addr.pincode}
-                            </strong>
-                          </p>
+                          <p className="text-[11px] text-stone-500">{line2}</p>
                         </div>
-                        {isSelected && isServiceable && (
+                        {selectedAddressId === addr.id && (
                           <Check className="h-4 w-4 text-red-700 shrink-0" />
                         )}
                       </div>
                     );
                   })}
-
-                  {userAddresses.length > 0 &&
-                    !userAddresses.some(
-                      (a) =>
-                        !priest?.city ||
-                        a.city?.trim().toLowerCase() ===
-                          priest.city?.trim().toLowerCase(),
-                    ) && (
-                      <div className="p-3 rounded-md border border-amber-300 bg-amber-50 text-amber-950 text-xs space-y-1.5">
-                        <p className="font-semibold flex items-center gap-1.5 text-amber-900">
-                          <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                          No addresses in {priest?.city}
-                        </p>
-                        <p className="text-stone-700 text-[11px]">
-                          This priest only conducts ceremonies in{" "}
-                          <strong>{priest?.city}</strong>. Please add or select
-                          an address located in {priest?.city}.
-                        </p>
-                        <Link
-                          to="/user/addresses"
-                          className="inline-block mt-1"
-                        >
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 border-amber-300 hover:bg-amber-100/50"
-                          >
-                            <Plus className="h-3 w-3 mr-1" /> Add Address in{" "}
-                            {priest?.city}
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
                 </div>
               )}
             </div>
 
-            {/* User Notes with generous spacing & clean padding */}
-            <div className="space-y-2 pt-1">
-              <Label className="text-xs font-bold text-stone-900 block">
+            {/* Special Instructions Notes */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-stone-900">
                 Special Notes or Requests (Optional)
               </Label>
               <Textarea
-                placeholder="e.g. Please advise if Havan Kund or special samagri items are needed..."
-                rows={3}
+                placeholder="Gotra details, specific mantras, apartment floor/landmark, etc."
                 value={userNotes}
                 onChange={(e) => setUserNotes(e.target.value)}
-                className="text-xs rounded-md border-2 border-amber-300 hover:border-amber-400 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:outline-none transition-colors resize-none p-3 leading-relaxed w-full bg-white shadow-2xs"
+                className="text-xs min-h-15 border-amber-300 focus-visible:ring-red-700"
               />
-            </div>
-
-            {/* 5-Hour Response SLA Notice */}
-            <div className="flex items-start gap-2.5 p-3 rounded-md bg-red-50 border border-red-200 text-[11px] text-stone-700">
-              <AlertCircle className="h-3.5 w-3.5 text-red-700 shrink-0 mt-0.5" />
-              <span>
-                <strong>5-Hour Purohit Confirmation SLA:</strong> Priest will
-                confirm within <strong>5 hours</strong>. Payment is strictly in
-                cash upon ritual completion.
-              </span>
             </div>
           </div>
 
-          {/* Fixed Footer */}
-          <DialogFooter className="shrink-0 pt-3 border-t border-amber-100 flex items-center justify-end gap-2">
+          <DialogFooter className="shrink-0 flex items-center justify-end gap-2 pt-2 border-t border-amber-200">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsBookingOpen(false)}
-              className="text-xs h-9 px-4 rounded-md border-2 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
-              disabled={isSubmitting}
+              className="text-xs border-amber-300 hover:bg-amber-50 rounded-md"
             >
               Cancel
             </Button>
             <Button
               type="button"
               size="sm"
-              disabled={
-                isSubmitting ||
-                !selectedSlot ||
-                !selectedAddressId ||
-                !selectedService ||
-                !userAddresses.find(
-                  (a) =>
-                    a.id === selectedAddressId &&
-                    (!priest?.city ||
-                      a.city?.trim().toLowerCase() ===
-                        priest.city?.trim().toLowerCase()),
-                )
-              }
+              disabled={isSubmitting || !selectedAddressId || !selectedSlot}
               onClick={handleSubmitBooking}
-              className="text-xs font-bold bg-[#780016] hover:bg-[#600012] text-white h-9 px-4 rounded-md shadow-xs border border-amber-400 cursor-pointer disabled:opacity-50"
+              className="text-xs bg-[#780016] hover:bg-red-800 text-white rounded-md gap-1.5 font-bold shadow-xs cursor-pointer"
             >
-              {isSubmitting ? "Sending Request..." : "Confirm Ceremony Booking"}
+              {isSubmitting ? (
+                "Submitting Request..."
+              ) : (
+                <>
+                  <Check className="h-3.5 w-3.5" /> Confirm Ceremony Booking
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

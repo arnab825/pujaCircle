@@ -15,14 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   User,
   Phone,
   Mail,
@@ -39,7 +31,6 @@ import {
   BookOpen,
   Camera,
   Trash2,
-  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,9 +48,8 @@ export const ProfilePage: React.FC = () => {
   const [bookingCount, setBookingCount] = useState<number>(0);
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
-    return localStorage.getItem(`devotee_avatar_${devoteeId}`) || null;
+    return user?.avatarUrl || localStorage.getItem(`devotee_avatar_${devoteeId}`) || null;
   });
-  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -80,7 +70,14 @@ export const ProfilePage: React.FC = () => {
     if (user?.name) {
       setFullName(user.name);
     }
-  }, [user]);
+    const currentAvatar = user?.avatarUrl || localStorage.getItem(`devotee_avatar_${devoteeId}`);
+    if (currentAvatar) {
+      setAvatarUrl(currentAvatar);
+      if (user && !user.avatarUrl) {
+        setUser({ ...user, avatarUrl: currentAvatar });
+      }
+    }
+  }, [user, devoteeId]);
 
   useEffect(() => {
     async function loadDevoteeStats() {
@@ -126,26 +123,34 @@ export const ProfilePage: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const dataUrl = reader.result as string;
       setAvatarUrl(dataUrl);
       localStorage.setItem(`devotee_avatar_${devoteeId}`, dataUrl);
       if (user) {
         setUser({ ...user, avatarUrl: dataUrl });
       }
-      setIsAvatarModalOpen(false);
+      try {
+        await userApi.updateProfile(devoteeId, { avatarUrl: dataUrl });
+      } catch (err) {
+        console.warn("Devotee avatar sync notice:", err);
+      }
       toast.success("Sacred profile photo updated successfully!");
     };
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveAvatar = () => {
+  const handleRemoveAvatar = async () => {
     setAvatarUrl(null);
     localStorage.removeItem(`devotee_avatar_${devoteeId}`);
     if (user) {
       setUser({ ...user, avatarUrl: undefined });
     }
-    setIsAvatarModalOpen(false);
+    try {
+      await userApi.updateProfile(devoteeId, { avatarUrl: "" });
+    } catch (err) {
+      console.warn("Devotee avatar remove notice:", err);
+    }
     toast.success("Profile picture removed successfully.");
   };
 
@@ -231,7 +236,7 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="w-full text-stone-900 py-6 sm:py-10 px-4">
-      <div className="container max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Hidden File Input for Avatar */}
         <input
           type="file"
@@ -240,79 +245,6 @@ export const ProfilePage: React.FC = () => {
           accept="image/png, image/jpeg, image/webp"
           className="hidden"
         />
-
-        {/* Avatar Management Modal */}
-        <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-          <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-xl font-bold text-stone-950 flex items-center gap-2">
-                <span className="text-amber-600 font-serif font-black text-xl">
-                  ॐ
-                </span>
-                <span>Devotee Profile Picture</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-stone-600">
-                Upload a clear photo for your profile or reset to default
-                initials.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="flex flex-col items-center justify-center py-6 gap-4">
-              <div className="p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm">
-                <Avatar className="w-28 h-28 border-2 border-white">
-                  {avatarUrl ? (
-                    <AvatarImage
-                      src={avatarUrl}
-                      alt={fullName}
-                      className="object-cover"
-                    />
-                  ) : null}
-                  <AvatarFallback className="bg-[#780016] text-white font-serif text-3xl font-bold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-              <p className="text-xs text-stone-500 font-medium">
-                Supported formats: JPG, PNG, WEBP (Max 5MB)
-              </p>
-            </div>
-
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
-              {avatarUrl ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleRemoveAvatar}
-                  className="w-full sm:w-auto text-xs rounded-md"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove Photo
-                </Button>
-              ) : (
-                <div />
-              )}
-
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsAvatarModalOpen(false)}
-                  className="flex-1 sm:flex-none text-xs rounded-md"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-[#780016] hover:bg-red-800 text-white border border-amber-400 font-bold flex-1 sm:flex-none text-xs gap-1.5 rounded-md cursor-pointer"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload New Photo
-                </Button>
-              </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Top Header & Quick Links (100% Flexbox Responsive) */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 p-5 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
@@ -357,41 +289,55 @@ export const ProfilePage: React.FC = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto text-center sm:text-left">
               {/* Clickable Avatar to Change Photo */}
-              <div className="relative group shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAvatarModalOpen(true)}
-                  className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
-                  title="Click to change profile picture"
-                >
-                  <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-white">
-                    {avatarUrl ? (
-                      <AvatarImage
-                        src={avatarUrl}
-                        alt={fullName}
-                        className="object-cover"
-                      />
-                    ) : null}
-                    <AvatarFallback className="bg-[#780016] text-white font-serif text-2xl font-bold">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
+              <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
+                <div className="relative group shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
+                    title="Click to choose a new profile photo"
+                  >
+                    <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-white">
+                      {avatarUrl ? (
+                        <AvatarImage
+                          src={avatarUrl}
+                          alt={fullName}
+                          className="object-cover"
+                        />
+                      ) : null}
+                      <AvatarFallback className="bg-[#780016] text-white font-serif text-2xl font-bold">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  {/* Camera Overlay on Hover */}
-                  <div className="absolute inset-1 rounded-full bg-stone-950/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="w-5 h-5 mb-0.5" />
-                    <span className="text-[9px] font-bold tracking-wide uppercase">
-                      Edit
-                    </span>
+                    {/* Camera Overlay on Hover */}
+                    <div className="absolute inset-1 rounded-full bg-stone-950/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="w-5 h-5 mb-0.5" />
+                      <span className="text-[9px] font-bold tracking-wide uppercase">
+                        Change
+                      </span>
+                    </div>
+                  </button>
+
+                  <div
+                    className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
+                    title="Active Devotee"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
                   </div>
-                </button>
-
-                <div
-                  className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
-                  title="Active Devotee"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
                 </div>
+
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    className="text-[11px] text-stone-500 hover:text-red-700 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
+                    title="Remove custom profile photo"
+                  >
+                    <Trash2 className="w-3 h-3 text-red-600" />
+                    <span>Remove Photo</span>
+                  </button>
+                )}
               </div>
 
               {/* Devotee Info */}

@@ -2,8 +2,8 @@
 export interface BookingViewModel {
   id: string;
   bookingReference: string;
-  userId: string;
-  priestId: string;
+  userId?: string | null;
+  priestId?: string | null;
   serviceName: string;
   servicePrice: number;
   totalPrice: number;
@@ -16,6 +16,7 @@ export interface BookingViewModel {
   completionCode?: string | null;
   rejectionReason?: string | null;
   cancellationReason?: string | null;
+  cancelledBy?: 'USER' | 'PRIEST' | 'ADMIN' | null;
   rating?: number | null;
   review?: string | null;
   createdAt: string;
@@ -34,6 +35,13 @@ export interface BookingViewModel {
   slot: { startTime: string; endTime: string };
   ritual?: any;
   venueAddressSnapshot?: any;
+  address?: any;
+  user?: {
+    id?: string;
+    name?: string;
+    phoneNumber?: string;
+    email?: string;
+  };
   userName?: string;
   userPhone?: string;
 }

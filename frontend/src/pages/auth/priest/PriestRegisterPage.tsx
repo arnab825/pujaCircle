@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -41,6 +41,8 @@ import { toast } from "sonner";
  */
 export const PriestRegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefilledEmail = searchParams.get("email") || "";
 
   // Multi-step progress (1: Credentials, 2: OTPs, 3: Vedic Samhita/City, 4: Submitted)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -58,7 +60,7 @@ export const PriestRegisterPage: React.FC = () => {
     defaultValues: {
       fullName: "",
       phoneNumber: "",
-      email: "",
+      email: prefilledEmail,
       password: "",
     },
   });
@@ -94,11 +96,6 @@ export const PriestRegisterPage: React.FC = () => {
     "Sanskrit",
     "Hindi",
     "Bengali",
-  ]);
-  const [specializations, setSpecializations] = useState<string[]>([
-    "Griha Pravesh",
-    "Satyanarayan Katha",
-    "Rudrabhishek",
   ]);
   const [bio, setBio] = useState("");
 
@@ -208,12 +205,13 @@ export const PriestRegisterPage: React.FC = () => {
         phoneNumber: personal.phoneNumber,
         email: personal.email,
         password: personal.password,
+        experienceYears: Number(experienceYears) || 0,
         bio: bio.trim(),
         city: city.trim(),
         state: state.trim() || "West Bengal",
         pincode: pincode.trim(),
+        serviceAreas: pincode.trim() ? [pincode.trim()] : [],
         languages,
-        specializations,
       });
 
       if (res.success) {
@@ -751,45 +749,6 @@ export const PriestRegisterPage: React.FC = () => {
                           }`}
                         >
                           {lang}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Specializations Tags */}
-                <div className="space-y-1">
-                  <Label className="text-xs font-bold text-stone-800">
-                    Vedic Specializations
-                  </Label>
-                  <div className="flex flex-wrap gap-1.5 pt-0.5">
-                    {[
-                      "Griha Pravesh",
-                      "Satyanarayan Katha",
-                      "Rudrabhishek",
-                      "Vivah Sanskar",
-                      "Navagraha Havan",
-                      "Vastu Shanti",
-                    ].map((spec) => {
-                      const checked = specializations.includes(spec);
-                      return (
-                        <button
-                          key={spec}
-                          type="button"
-                          onClick={() => {
-                            setSpecializations(
-                              checked
-                                ? specializations.filter((s) => s !== spec)
-                                : [...specializations, spec],
-                            );
-                          }}
-                          className={`px-2.5 py-1 rounded-sm text-xs font-medium cursor-pointer transition-colors ${
-                            checked
-                              ? "bg-[#780016] text-white border border-amber-400"
-                              : "bg-white text-stone-700 border border-stone-300 hover:border-amber-400"
-                          }`}
-                        >
-                          {spec}
                         </button>
                       );
                     })}

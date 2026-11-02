@@ -51,7 +51,23 @@ export const Navbar: React.FC = () => {
 
   // Authenticated devotee state
   const isDevotee = isAuthenticated && user?.role === 'USER';
-  const userInitials = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+  const effectiveAvatarUrl = React.useMemo(() => {
+    if (user?.avatarUrl) return user.avatarUrl;
+    if (user?.id) {
+      return localStorage.getItem(`devotee_avatar_${user.id}`) || null;
+    }
+    return null;
+  }, [user?.avatarUrl, user?.id]);
+
+  const userInitials = user?.name
+    ? user.name
+        .split(' ')
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'DV';
 
   const handleLogout = () => {
     logout();
@@ -78,7 +94,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-amber-300/90 bg-white/95 backdrop-blur-xs text-stone-900 shadow-xs">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
         {/* Brand Logo & Tag */}
         <Link
           to={isDevotee ? '/user/home' : '/'}
@@ -141,9 +157,9 @@ export const Navbar: React.FC = () => {
                 aria-haspopup="true"
                 aria-expanded={profileDropdownOpen}
               >
-                <Avatar className="h-6 w-6 ring-1 ring-amber-400 bg-amber-50 shrink-0">
-                  <AvatarImage src={user.avatarUrl} alt={user.name} />
-                  <AvatarFallback className="text-[11px] font-serif font-bold text-red-800 bg-amber-100">
+                <Avatar className="h-7 w-7 ring-2 ring-amber-400 bg-amber-50 shrink-0">
+                  <AvatarImage src={effectiveAvatarUrl || undefined} alt={user.name} className="object-cover" />
+                  <AvatarFallback className="text-[10px] font-serif font-bold text-white bg-[#780016]">
                     {userInitials}
                   </AvatarFallback>
                 </Avatar>
@@ -321,9 +337,9 @@ export const Navbar: React.FC = () => {
                 {isDevotee && user ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 ring-1 ring-amber-400">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} />
-                        <AvatarFallback className="text-xs font-bold text-red-800 bg-amber-100">
+                      <Avatar className="h-9 w-9 ring-2 ring-amber-400 shrink-0">
+                        <AvatarImage src={user.avatarUrl} alt={user.name} className="object-cover" />
+                        <AvatarFallback className="text-xs font-serif font-bold text-white bg-[#780016]">
                           {userInitials}
                         </AvatarFallback>
                       </Avatar>

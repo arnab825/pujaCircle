@@ -48,8 +48,16 @@ export const PriestDashboardPage: React.FC = () => {
   const confirmedBookings = bookings.filter((b) => b.status === 'CONFIRMED');
   const completedBookings = bookings.filter((b) => b.status === 'COMPLETED');
 
-  const ratingValue = priestProfile?.rating ? `${priestProfile.rating} / 5.0` : '4.9 / 5.0';
-  const reviewCountText = priestProfile?.reviewCount ? `${priestProfile.reviewCount} verified devotee reviews` : 'Verified Gurukul Scholar';
+  const hasReviews = Boolean(
+    priestProfile?.reviewCount &&
+    priestProfile.reviewCount > 0 &&
+    priestProfile?.rating &&
+    Number(priestProfile.rating) > 0
+  );
+  const ratingValue = hasReviews ? `${Number(priestProfile!.rating).toFixed(1)} / 5.0` : 'No ratings yet';
+  const reviewCountText = hasReviews
+    ? `${priestProfile!.reviewCount} verified devotee review${priestProfile!.reviewCount === 1 ? '' : 's'}`
+    : 'No reviews submitted yet';
 
   return (
     <div className="space-y-8">
@@ -60,7 +68,7 @@ export const PriestDashboardPage: React.FC = () => {
             Priest Operations Overview
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-1">
-            Welcome back, {priestProfile?.displayName || user?.name || 'Pandit ji'}. Here is your ceremony schedule and profile performance summary.
+            Welcome back, {priestProfile?.displayName || user?.name || 'Pandit ji'}{priestProfile?.experienceYears ? ` (${priestProfile.experienceYears} Years Experience)` : ''}. Here is your ceremony schedule and profile performance summary.
           </p>
         </div>
 

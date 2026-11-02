@@ -2,14 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { availabilityService } from '../services/availability.service.js';
 import { sendSuccess, sendError } from '../views/response.view.js';
 
-/**
- * Controller: Priest Availability & Calendar
- * Request handlers for priest schedule management.
- */
 export class AvailabilityController {
   /**
    * POST /day-off
-   * Mark a full day off based on priest's configured working hours
+   * Mark a date as full day off (leave)
    */
   async markFullDayOff(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -23,7 +19,7 @@ export class AvailabilityController {
       }
 
       const result = await availabilityService.markFullDayOff(priestId, date, reason);
-      sendSuccess(res, 'Full day off marked successfully', result, 201);
+      sendSuccess(res, 'Day marked as off successfully', result, 201);
     } catch (error) {
       next(error);
     }
@@ -31,13 +27,13 @@ export class AvailabilityController {
 
   /**
    * POST /block-hours
-   * Block specific hours on a date
+   * Block specific hours or set custom working hours on a date
    */
   async blockHours(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Prioritize authenticated priest user id
       const priestId = req.user?.id || req.body.priestId;
-      const { date, startTime, endTime, reason } = req.body;
+      const { date, startTime, endTime, reason, exceptionType } = req.body;
 
       if (!priestId) {
         sendError(res, 'Authentication required or priestId must be provided', 401);
@@ -49,9 +45,10 @@ export class AvailabilityController {
         date,
         startTime,
         endTime,
-        reason
+        reason,
+        exceptionType
       );
-      sendSuccess(res, 'Hours blocked successfully', result, 201);
+      sendSuccess(res, 'Hours configured successfully', result, 201);
     } catch (error) {
       next(error);
     }
@@ -68,7 +65,7 @@ export class AvailabilityController {
       const endDate = req.query.endDate as string;
 
       if (!priestId) {
-        sendError(res, 'priestId is required to query calendar', 400);
+        sendError(res, 'priestId is required to view availability calendar', 400);
         return;
       }
 
@@ -77,8 +74,7 @@ export class AvailabilityController {
         startDate,
         endDate
       );
-
-      sendSuccess(res, 'Availability calendar fetched successfully', calendar, 200);
+      sendSuccess(res, 'Availability calendar fetched successfully', calendar);
     } catch (error) {
       next(error);
     }

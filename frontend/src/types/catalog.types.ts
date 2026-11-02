@@ -11,4 +11,6 @@ export interface PujaCatalogEntry {
   durationMinutes: number;
   coverImage: string;
   category: 'life-event' | 'dosha-nivaran' | 'festival' | 'business' | 'ancestral';
+  priestCount?: number;
+  startingPrice?: number | null;
 }

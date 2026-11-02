@@ -110,42 +110,44 @@ export class ErrorBoundary extends Component<Props, State> {
               </a>
             </div>
 
-            {/* Expandable Technical Debug Details */}
-            <div className="border-t border-border/80 pt-4 text-left">
-              <button
-                type="button"
-                onClick={this.toggleDetails}
-                className="flex items-center justify-between w-full text-xs text-muted-foreground hover:text-foreground font-medium transition-colors py-1"
-              >
-                <span>Technical diagnostics</span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`} />
-              </button>
+            {/* Expandable Technical Diagnostics (Guarded for Development Mode Only) */}
+            {Boolean(import.meta.env.DEV) && (
+              <div className="border-t border-border/80 pt-4 text-left">
+                <button
+                  type="button"
+                  onClick={this.toggleDetails}
+                  className="flex items-center justify-between w-full text-xs text-muted-foreground hover:text-foreground font-medium transition-colors py-1"
+                >
+                  <span>Technical diagnostics (Dev Only)</span>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`} />
+                </button>
 
-              {showDetails && (
-                <div className="mt-3 p-3 rounded-md bg-muted/60 border border-border/60 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono text-muted-foreground font-semibold">
-                      {error?.name || 'Error'}: {error?.message || 'Unknown Exception'}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={this.handleCopyError}
-                      className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
-                    >
-                      {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                      {copied ? 'Copied' : 'Copy'}
-                    </Button>
+                {showDetails && (
+                  <div className="mt-3 p-3 rounded-md bg-muted/60 border border-border/60 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-muted-foreground font-semibold">
+                        {error?.name || 'Error'}: {error?.message || 'Unknown Exception'}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={this.handleCopyError}
+                        className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+                      >
+                        {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                        {copied ? 'Copied' : 'Copy'}
+                      </Button>
+                    </div>
+
+                    {error?.stack && (
+                      <pre className="text-[10px] font-mono text-muted-foreground/80 overflow-x-auto max-h-36 p-2 rounded bg-background/50 border border-border/40 whitespace-pre-wrap leading-tight">
+                        {error.stack}
+                      </pre>
+                    )}
                   </div>
-
-                  {error?.stack && (
-                    <pre className="text-[10px] font-mono text-muted-foreground/80 overflow-x-auto max-h-36 p-2 rounded bg-background/50 border border-border/40 whitespace-pre-wrap leading-tight">
-                      {error.stack}
-                    </pre>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );

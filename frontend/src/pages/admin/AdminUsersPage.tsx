@@ -26,9 +26,7 @@ export const AdminUsersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Dialog targets
-  const [suspendTarget, setSuspendTarget] = useState<DevoteeRecord | null>(
-    null,
-  );
+  const [suspendTarget, setSuspendTarget] = useState<DevoteeRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DevoteeRecord | null>(null);
 
   const fetchUsers = async () => {
@@ -40,6 +38,7 @@ export const AdminUsersPage: React.FC = () => {
           name: u.name,
           email: u.email,
           phoneNumber: u.phoneNumber,
+          avatarUrl: u.avatarUrl,
           status:
             u.accountStatus === "BANNED" || u.status === "BANNED"
               ? "SUSPENDED"
@@ -81,9 +80,19 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
-    toast.success("User profile deleted permanently.");
-    setDeleteTarget(null);
+    try {
+      const res = await adminApi.deleteUser(deleteTarget.id);
+      if (res.success) {
+        toast.success(`User account for ${deleteTarget.name} deleted permanently.`);
+        fetchUsers();
+      } else {
+        toast.error(res.message || "Failed to delete user account.");
+      }
+    } catch {
+      toast.error("Failed to delete user account.");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const activeCount = users.filter((u) => u.status === "ACTIVE").length;
@@ -126,7 +135,7 @@ export const AdminUsersPage: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={fetchUsers}
-          className="h-10 px-4 gap-1.5 text-xs w-full sm:w-auto font-bold rounded-md border-stone-300 hover:border-amber-400"
+          className="h-10 px-4 gap-1.5 text-xs w-full sm:w-auto font-bold rounded-md border-stone-300 hover:border-amber-400 cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5 text-amber-600" />
           Refresh
@@ -187,19 +196,19 @@ export const AdminUsersPage: React.FC = () => {
           <TabsList className="inline-flex h-11 items-center justify-start rounded-md bg-white p-1 border-2 border-amber-300 min-w-max gap-1 shadow-xs">
             <TabsTrigger
               value="ALL"
-              className="text-xs px-4 py-2 rounded-sm font-bold data-[state=active]:bg-[#780016] data-[state=active]:text-white transition-all"
+              className="text-xs px-4 py-2 rounded-sm font-bold data-[state=active]:bg-[#780016] data-[state=active]:text-white transition-all cursor-pointer"
             >
               All ({users.length})
             </TabsTrigger>
             <TabsTrigger
               value="ACTIVE"
-              className="text-xs px-4 py-2 rounded-sm font-bold data-[state=active]:bg-[#780016] data-[state=active]:text-white transition-all"
+              className="text-xs px-4 py-2 rounded-sm font-bold data-[state=active]:bg-[#780016] data-[state=active]:text-white transition-all cursor-pointer"
             >
               Active ({activeCount})
             </TabsTrigger>
             <TabsTrigger
               value="SUSPENDED"
-              className="text-xs px-4 py-2 rounded-sm font-bold data-[state=active]:bg-[#780016] data-[state=active]:text-white transition-all"
+              className="text-xs px-4 py-2 rounded-sm font-bold data-[state=active]:bg-[#780016] data-[state=active]:text-white transition-all cursor-pointer"
             >
               Suspended ({suspendedCount})
             </TabsTrigger>
@@ -219,14 +228,12 @@ export const AdminUsersPage: React.FC = () => {
 
       {/* Table Container */}
       {filteredUsers.length > 0 ? (
-        <div className="rounded-xl border-2 border-amber-300 bg-white shadow-sm overflow-hidden">
-          <UserManagementTable
-            users={filteredUsers}
-            onOpenSuspend={(u) => setSuspendTarget(u)}
-            onReactivate={handleReactivate}
-            onOpenDelete={(u) => setDeleteTarget(u)}
-          />
-        </div>
+        <UserManagementTable
+          users={filteredUsers}
+          onOpenSuspend={(u) => setSuspendTarget(u)}
+          onReactivate={handleReactivate}
+          onOpenDelete={(u) => setDeleteTarget(u)}
+        />
       ) : (
         <EmptyState
           icon={Users}
@@ -239,7 +246,7 @@ export const AdminUsersPage: React.FC = () => {
         />
       )}
 
-      {/* Dialogs */}
+      {/* Suspend User Dialog */}
       <SuspendUserDialog
         isOpen={!!suspendTarget}
         onClose={() => setSuspendTarget(null)}
@@ -247,6 +254,7 @@ export const AdminUsersPage: React.FC = () => {
         user={suspendTarget}
       />
 
+      {/* Delete User Dialog */}
       <DeleteConfirmDialog
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

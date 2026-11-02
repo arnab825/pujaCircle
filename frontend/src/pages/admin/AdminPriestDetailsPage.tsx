@@ -12,6 +12,9 @@ import {
   Trash2,
   AlertTriangle,
   RotateCcw,
+  Calendar,
+  Clock,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,6 +44,7 @@ import { Label } from "@/components/ui/label";
 import { priestApi } from "@/api/priest.api";
 import { adminApi } from "@/api/admin.api";
 import { Priest, PriestApprovalStatus } from "@/types/priest.types";
+import { Booking } from "@/types/booking.types";
 
 /**
  * AdminPriestDetailsPage
@@ -52,6 +56,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [priest, setPriest] = useState<Priest | null>(null);
+  const [priestBookings, setPriestBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Modal dialog states
@@ -61,13 +66,26 @@ export const AdminPriestDetailsPage: React.FC = () => {
   const [reasonInput, setReasonInput] = useState("");
 
   useEffect(() => {
-    async function loadPriest() {
+    async function loadPriestDossier() {
       if (!id) return;
       setIsLoading(true);
       try {
-        const data = await priestApi.getPriestById(id);
-        if (data) {
-          setPriest(data);
+        const [priestData, allBookings] = await Promise.all([
+          priestApi.getPriestById(id),
+          adminApi.getAllBookings().catch(() => []),
+        ]);
+
+        if (priestData) {
+          setPriest(priestData);
+          if (Array.isArray(allBookings)) {
+            const matched = allBookings.filter(
+              (b) =>
+                b.priestId === priestData.id ||
+                b.priestId === priestData.userId ||
+                b.priestId === id
+            );
+            setPriestBookings(matched);
+          }
         }
       } catch {
         toast.error("Failed to load priest profile.");
@@ -75,13 +93,14 @@ export const AdminPriestDetailsPage: React.FC = () => {
         setIsLoading(false);
       }
     }
-    loadPriest();
+    loadPriestDossier();
   }, [id]);
 
   if (isLoading) {
     return (
-      <div className="w-full min-h-[60vh] flex items-center justify-center bg-white text-xs text-stone-500 font-medium">
-        Loading Priest dossier...
+      <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-white text-xs text-stone-500 font-medium gap-2">
+        <div className="w-8 h-8 rounded-full border-2 border-amber-600 border-t-transparent animate-spin" />
+        <span>Loading Purohit scholar dossier...</span>
       </div>
     );
   }
@@ -199,9 +218,18 @@ export const AdminPriestDetailsPage: React.FC = () => {
   };
 
   const handleConfirmDelete = async () => {
-    toast.success(`Priest ${priest.fullName} record deleted permanently.`);
-    setIsDeleteDialogOpen(false);
-    navigate("/admin/priests");
+    try {
+      const res = await adminApi.deletePriest(priest.id);
+      if (res.success) {
+        toast.success(`Priest ${priest.fullName} record deleted permanently.`);
+        setIsDeleteDialogOpen(false);
+        navigate("/admin/priests");
+      } else {
+        toast.error(res.message || "Failed to delete priest profile.");
+      }
+    } catch {
+      toast.error("Failed to delete priest profile.");
+    }
   };
 
   const getStatusBadge = (
@@ -228,7 +256,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
         {approvalStatus === "REJECTED" && (
           <Badge
             variant="destructive"
-            className="text-xs px-3 py-1 gap-1 font-bold"
+            className="text-xs px-3 py-1 gap-1 font-bold bg-rose-600"
           >
             <XCircle className="w-3.5 h-3.5" />
             Rejected
@@ -237,53 +265,74 @@ export const AdminPriestDetailsPage: React.FC = () => {
         {accountStatus === "BANNED" && (
           <Badge
             variant="destructive"
-            className="text-xs px-3 py-1 gap-1 font-bold"
+            className="text-xs px-3 py-1 gap-1 font-bold bg-stone-800 text-white"
           >
             <Ban className="w-3.5 h-3.5" />
-            Banned
+            Suspended / Banned
           </Badge>
         )}
       </div>
     );
   };
 
+  const avatarSrc =
+    priest.profileImageUrl ||
+    (priest as any).avatarUrl ||
+    (typeof window !== 'undefined'
+      ? localStorage.getItem(`priest_avatar_${priest.id}`) ||
+        localStorage.getItem(`priest_avatar_${(priest as any).userId}`)
+      : null);
+  const ratingValue = Number(priest.rating || 0);
+
   return (
-    <div className="container max-w-4xl py-8 space-y-6 pb-16 text-stone-900">
-      {/* Top Back Button */}
+    <div className="container max-w-5xl py-8 space-y-6 pb-16 text-stone-900">
+      {/* Top Back Navigation */}
       <Link
         to="/admin/priests"
-        className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-red-700 font-bold transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#780016] font-bold transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Manage Priests Directory
       </Link>
 
       {/* Main Scholar Header Profile Card */}
-      <div className="border-2 border-amber-300 bg-white shadow-sm rounded-xl overflow-hidden p-6 sm:p-7">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="border-2 border-amber-400 bg-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-7 relative">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            {priest.profileImageUrl ? (
-              <img
-                src={priest.profileImageUrl}
-                alt={priest.fullName}
-                className="w-18 h-18 rounded-md object-cover border-2 border-amber-400 shadow-sm"
-              />
-            ) : (
-              <div className="w-18 h-18 rounded-md bg-amber-100 text-amber-900 border-2 border-amber-400 flex items-center justify-center font-bold text-2xl font-serif">
-                {priest.fullName.charAt(0)}
+            <div className="relative shrink-0">
+              <div className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm">
+                {avatarSrc ? (
+                  <img
+                    src={avatarSrc}
+                    alt={priest.fullName}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-xs shrink-0 bg-amber-50"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#780016] text-amber-300 border-2 border-white flex items-center justify-center font-bold text-2xl font-serif shrink-0 shadow-xs">
+                    {priest.fullName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
               </div>
-            )}
+              {priest.approvalStatus === 'APPROVED' && (
+                <div
+                  className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
+                  title="Approved Vedic Scholar"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
+              )}
+            </div>
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-extrabold font-serif text-stone-950">
+                <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950">
                   {priest.fullName}
                 </h1>
                 {getStatusBadge(priest.approvalStatus, priest.accountStatus)}
               </div>
-              <p className="text-xs text-stone-600">
-                Display Title:{" "}
+              <p className="text-xs text-stone-600 font-medium">
+                Title / Honorific:{" "}
                 <span className="font-bold text-stone-900">
-                  {priest.displayName}
+                  {priest.displayName || priest.fullName}
                 </span>
               </p>
               <p className="text-[11px] text-stone-500 font-mono">
@@ -297,15 +346,22 @@ export const AdminPriestDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-1 text-xs">
-            {priest.rating && (
-              <div className="flex items-center gap-1 font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-sm border border-amber-300">
-                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                {priest.rating} ({priest.reviewCount || 0} reviews)
+          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-2 text-xs">
+            {ratingValue > 0 ? (
+              <div className="flex items-center gap-1.5 font-bold text-amber-950 bg-amber-100 px-3 py-1 rounded-md border border-amber-300">
+                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                <span>{ratingValue.toFixed(1)}</span>
+                <span className="text-[11px] font-normal text-stone-600">
+                  ({priest.reviewCount || 0} reviews)
+                </span>
               </div>
+            ) : (
+              <span className="text-[11px] font-bold text-amber-900 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                ⭐ New Scholar (No ratings)
+              </span>
             )}
-            <span className="text-xs text-stone-600 font-bold">
-              Experience: {priest.experienceYears} Years
+            <span className="text-xs text-stone-700 font-bold">
+              Vedic Experience: {priest.experienceYears} Years
             </span>
           </div>
         </div>
@@ -316,33 +372,77 @@ export const AdminPriestDetailsPage: React.FC = () => {
         priest.approvalStatus === "REJECTED" ||
         priest.approvalStatus === "PENDING") && (
         <div
-          className={`p-5 rounded-md border-2 flex items-start gap-3.5 ${priest.accountStatus === "BANNED" ? "border-red-300 bg-red-50/70" : "border-amber-300 bg-amber-50/70"}`}
+          className={`p-5 rounded-xl border-2 flex items-start gap-3.5 ${
+            priest.accountStatus === "BANNED"
+              ? "border-rose-300 bg-rose-50/80 text-rose-950"
+              : "border-amber-300 bg-amber-50/80 text-amber-950"
+          }`}
         >
           <AlertTriangle
-            className={`w-5 h-5 shrink-0 mt-0.5 ${priest.accountStatus === "BANNED" ? "text-red-700" : "text-amber-700"}`}
+            className={`w-5 h-5 shrink-0 mt-0.5 ${
+              priest.accountStatus === "BANNED" ? "text-rose-700" : "text-amber-700"
+            }`}
           />
           <div className="space-y-1 text-xs">
-            <p className="font-bold text-stone-900">
-              Administrative Status ({priest.approvalStatus} /{" "}
-              {priest.accountStatus})
+            <p className="font-bold">
+              Administrative Status ({priest.approvalStatus} / {priest.accountStatus})
             </p>
             <p className="text-stone-700">
               {priest.banReason ||
                 priest.rejectionReason ||
                 (priest.approvalStatus === "PENDING"
                   ? "Priest registration is currently awaiting verification council signoff."
-                  : "No special notes recorded.")}
+                  : "No special administrative notes recorded.")}
             </p>
           </div>
         </div>
       )}
 
-      {/* Details Flexbox Deck (100% Flexbox, Zero CSS Grids) */}
+      {/* Quick Stats Metrics Row */}
+      <div className="flex flex-wrap gap-4 w-full">
+        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+            Rituals Offered
+          </span>
+          <p className="text-2xl font-bold font-serif text-stone-900 mt-1">
+            {priest.services?.length || 0} Pujas
+          </p>
+        </div>
+
+        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+            Assigned Bookings
+          </span>
+          <p className="text-2xl font-bold font-serif text-stone-900 mt-1">
+            {priestBookings.length}
+          </p>
+        </div>
+
+        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+            Experience
+          </span>
+          <p className="text-2xl font-bold font-serif text-stone-900 mt-1">
+            {priest.experienceYears} Yrs
+          </p>
+        </div>
+
+        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+            Primary Hub
+          </span>
+          <p className="text-base font-bold font-serif text-stone-900 mt-2 truncate">
+            {priest.city || "Kolkata"}
+          </p>
+        </div>
+      </div>
+
+      {/* Details Flexbox Deck */}
       <div className="flex flex-col md:flex-row gap-6 w-full">
         {/* Contact & Verification Info */}
         <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white shadow-sm rounded-xl p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <Phone className="w-4 h-4 text-red-700" />
+          <div className="flex items-center gap-2 pb-2 border-b border-amber-200">
+            <Phone className="w-4 h-4 text-[#780016]" />
             <h3 className="text-base font-serif font-bold text-stone-950">
               Contact & Direct Verification
             </h3>
@@ -370,45 +470,191 @@ export const AdminPriestDetailsPage: React.FC = () => {
               <span className="text-stone-600 font-medium">
                 Service Localities:
               </span>
-              <span className="font-medium text-stone-900">
+              <span className="font-medium text-stone-900 max-w-[60%] text-right truncate">
                 {priest.serviceAreas?.join(", ") || priest.city}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Vedic Credentials */}
+        {/* Vedic Credentials & Lineage */}
         <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white shadow-sm rounded-xl p-6 space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <Award className="w-4 h-4 text-amber-600" />
+          <div className="flex items-center gap-2 pb-2 border-b border-amber-200">
+            <Award className="w-4 h-4 text-amber-700" />
             <h3 className="text-base font-serif font-bold text-stone-950">
               Vedic Bio & Lineage
             </h3>
           </div>
           <div className="space-y-3 text-xs">
             <p className="text-stone-700 leading-relaxed font-medium">
-              {priest.bio}
+              {priest.bio || "No detailed biographical notes provided."}
             </p>
             <div className="border-t border-stone-100 pt-2 space-y-1">
               <span className="text-stone-600 font-bold">
                 Spoken Languages:
               </span>
               <p className="font-bold text-stone-900">
-                {priest.languages?.join(", ")}
+                {priest.languages?.join(", ") || "Bengali, Sanskrit, Hindi"}
               </p>
             </div>
             <div className="border-t border-stone-100 pt-2 space-y-1">
               <span className="text-stone-600 font-bold">Specializations:</span>
               <p className="font-bold text-stone-900">
-                {priest.specializations?.join(", ")}
+                {priest.specializations?.join(", ") || "Vedic Rituals, Havan Vidhi"}
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Offered Ceremonies & Shastric Dakshina Rates Card */}
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-600" />
+            <div>
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Offered Ceremonies & Shastric Dakshina Rates ({priest.services?.length || 0})
+              </h3>
+              <p className="text-xs text-stone-500">
+                Active ritual offerings curated by this Purohit with transparent dakshina pricing.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {priest.services && priest.services.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {priest.services.map((service) => (
+              <div
+                key={service.id}
+                className="p-4 rounded-xl border border-stone-200 hover:border-amber-400 bg-stone-50/50 hover:bg-amber-50/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif font-bold text-stone-950 text-sm">
+                      {service.serviceName}
+                    </span>
+                    {service.category && (
+                      <Badge className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold capitalize">
+                        {service.category}
+                      </Badge>
+                    )}
+                    {service.isActive ? (
+                      <Badge className="text-[9px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
+                        Active
+                      </Badge>
+                    ) : (
+                      <Badge className="text-[9px] bg-stone-200 text-stone-700 border border-stone-300 font-bold">
+                        Paused
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-amber-700" />
+                      {service.durationMinutes ? `${service.durationMinutes} mins` : "60 mins"}
+                    </span>
+                    {service.samagriList && service.samagriList.length > 0 && (
+                      <span className="text-[11px] text-stone-500">
+                        • {service.samagriList.length} samagri items specified
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-base font-bold font-serif text-[#780016]">
+                    ₹{Number(service.price || 0).toLocaleString("en-IN")}
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-medium">
+                    Direct Cash Dakshina
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-lg border border-stone-200">
+            No active ceremonies configured by this priest yet.
+          </div>
+        )}
+      </div>
+
+      {/* Ceremony Appointments & Track Record */}
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-amber-600" />
+            <div>
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Assigned Ceremony Appointments ({priestBookings.length})
+              </h3>
+              <p className="text-xs text-stone-500">
+                Family appointments, scheduled dates, and completion status.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {priestBookings.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {priestBookings.map((b) => (
+              <div
+                key={b.id}
+                className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif font-bold text-stone-950 text-sm">
+                      {b.serviceName}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-bold ${
+                        b.status === "CONFIRMED"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                          : b.status === "COMPLETED"
+                            ? "bg-blue-50 text-blue-800 border-blue-300"
+                            : b.status === "CANCELLED"
+                              ? "bg-rose-50 text-rose-800 border-rose-300"
+                              : "bg-amber-50 text-amber-800 border-amber-300"
+                      }`}
+                    >
+                      {b.status}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-stone-600">
+                    <span>
+                      Muhurat: <strong className="text-stone-800">{b.bookingDate || (b as any).scheduledDate}</strong>{" "}
+                      ({b.startTime} - {b.endTime})
+                    </span>
+                    <span>
+                      Devotee: <strong className="text-stone-800">{b.userName || "Devotee"}</strong>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <div className="text-sm font-bold text-[#780016]">
+                    ₹{Number(b.totalPrice || 0).toLocaleString("en-IN")}
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-mono">
+                    Ref: {b.bookingReference}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-lg border border-stone-200">
+            No booking appointments recorded for this scholar yet.
+          </div>
+        )}
+      </div>
+
       {/* Administrative Decision Action Bar */}
-      <div className="border-2 border-amber-300 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-3">
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-3">
         <div>
           <h3 className="text-base font-serif font-bold text-stone-950">
             Administrative Actions & Lifecycle Control
@@ -419,7 +665,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-stone-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-200">
           <div className="flex flex-wrap items-center gap-2.5">
             {/* If PENDING: Approve / Reject */}
             {priest.approvalStatus === "PENDING" && (
@@ -451,7 +697,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
                 size="sm"
                 variant="destructive"
                 onClick={() => setIsBanDialogOpen(true)}
-                className="text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer"
+                className="text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700"
               >
                 <Ban className="w-4 h-4" />
                 Ban Priest Account
@@ -539,7 +785,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmReject}
-              className="text-xs rounded-md h-10 px-5 font-bold"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
             >
               Confirm Rejection
             </Button>
@@ -589,7 +835,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmBan}
-              className="text-xs rounded-md h-10 px-5 font-bold"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
             >
               Confirm Ban
             </Button>

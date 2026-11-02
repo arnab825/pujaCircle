@@ -1,6 +1,6 @@
-import { and, eq, ilike, or } from 'drizzle-orm';
+import { and, eq, ilike, or, gte, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog } from '../models/index.js';
+import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog, bookings } from '../models/index.js';
 import {
   UpdatePriestProfileInput,
   CreatePriestServiceInput,
@@ -25,6 +25,114 @@ export class PriestService {
 
   // Search and filter approved priests for devotee catalog listings
   async searchPriests(params?: PriestFilterParams & { page?: number; limit?: number }): Promise<PriestViewModel[]> {
+    const conditions = [];
+
+    // Filter by approval status (default: APPROVED)
+    if (params?.status && params.status !== 'ALL') {
+      conditions.push(eq(priestProfiles.approvalStatus, params.status));
+    } else if (!params?.status) {
+      conditions.push(eq(priestProfiles.approvalStatus, 'APPROVED'));
+    }
+
+    // Filter by account active status (default: ACTIVE)
+    if (params?.accountStatus && params.accountStatus !== 'ALL') {
+      conditions.push(eq(users.accountStatus, params.accountStatus));
+    } else if (!params?.accountStatus) {
+      conditions.push(eq(users.accountStatus, 'ACTIVE'));
+    }
+
+    // 1. PINCODE-based locality matching
+    if (params?.pincode && params.pincode.trim()) {
+      const cleanPin = params.pincode.trim().replace(/\D/g, '');
+      if (cleanPin.length === 6) {
+        conditions.push(
+          or(
+            eq(priestProfiles.pincode, cleanPin),
+            sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanPin + '%'}`
+          )!
+        );
+      }
+    }
+
+    // 2. City filter
+    if (params?.city && params.city.trim()) {
+      const cleanCity = params.city.trim();
+      conditions.push(ilike(priestProfiles.city, `%${cleanCity}%`));
+    }
+
+    // 3. Language filter
+    if (params?.language && params.language.trim() && params.language.toLowerCase() !== 'all') {
+      const cleanLang = params.language.trim();
+      conditions.push(sql`${priestProfiles.languages}::text ILIKE ${'%' + cleanLang + '%'}`);
+    }
+
+    // 4. Minimum Experience filter
+    if (params?.minExperience !== undefined && Number(params.minExperience) > 0) {
+      conditions.push(gte(priestProfiles.experienceYears, Number(params.minExperience)));
+    }
+
+    // 5. Ceremony / Catalog ID filter
+    if (params?.catalogId && params.catalogId.trim()) {
+      const catId = params.catalogId.trim();
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${priestServices}
+          WHERE ${priestServices.priestId} = ${priestProfiles.id}
+            AND (
+              ${priestServices.pujaCatalogId} = ${catId}::uuid
+              OR EXISTS (
+                SELECT 1 FROM ${pujaCatalog}
+                WHERE ${pujaCatalog.id} = ${catId}::uuid
+                  AND (
+                    ${priestServices.serviceName} ILIKE ('%' || ${pujaCatalog.name} || '%')
+                    OR ${pujaCatalog.name} ILIKE ('%' || ${priestServices.serviceName} || '%')
+                  )
+              )
+            )
+            AND ${priestServices.isActive} = true
+        )`
+      );
+    }
+
+    // 6. Service Name filter
+    if (params?.serviceName && params.serviceName.trim()) {
+      const sName = params.serviceName.trim();
+      conditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM ${priestServices}
+          WHERE ${priestServices.priestId} = ${priestProfiles.id}
+            AND (
+              ${priestServices.serviceName} ILIKE ${'%' + sName + '%'}
+              OR ${sName} ILIKE ('%' || ${priestServices.serviceName} || '%')
+            )
+            AND ${priestServices.isActive} = true
+        )`
+      );
+    }
+
+    // 7. General search query (priest name, bio, city, or service name)
+    if (params?.searchQuery && params.searchQuery.trim()) {
+      const rawTerm = params.searchQuery.trim();
+      const term = `%${rawTerm}%`;
+      conditions.push(
+        or(
+          ilike(users.name, term),
+          ilike(priestProfiles.bio, term),
+          ilike(priestProfiles.city, term),
+          sql`${priestProfiles.serviceAreas}::text ILIKE ${term}`,
+          sql`EXISTS (
+            SELECT 1 FROM ${priestServices}
+            WHERE ${priestServices.priestId} = ${priestProfiles.id}
+              AND (
+                ${priestServices.serviceName} ILIKE ${term}
+                OR ${rawTerm} ILIKE ('%' || ${priestServices.serviceName} || '%')
+              )
+              AND ${priestServices.isActive} = true
+          )`
+        )!
+      );
+    }
+
     let query = db
       .select({
         id: priestProfiles.id,
@@ -44,7 +152,8 @@ export class PriestService {
         city: priestProfiles.city,
         state: priestProfiles.state,
         pincode: priestProfiles.pincode,
-        profileImageUrl: priestProfiles.profileImageUrl,
+        profileImageUrl: sql<string | null>`NULLIF(${priestProfiles.profileImageUrl}, '')`,
+        avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
         defaultStartTime: priestProfiles.defaultStartTime,
@@ -53,10 +162,7 @@ export class PriestService {
       })
       .from(priestProfiles)
       .innerJoin(users, eq(priestProfiles.userId, users.id))
-      .where(and(
-        eq(priestProfiles.approvalStatus, 'APPROVED'),
-        eq(users.accountStatus, 'ACTIVE')
-      ));
+      .where(and(...conditions));
 
     if (params?.page || params?.limit) {
       const { limit, offset } = getPagination(params);
@@ -95,7 +201,8 @@ export class PriestService {
         city: priestProfiles.city,
         state: priestProfiles.state,
         pincode: priestProfiles.pincode,
-        profileImageUrl: priestProfiles.profileImageUrl,
+        profileImageUrl: sql<string | null>`NULLIF(${priestProfiles.profileImageUrl}, '')`,
+        avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
         defaultStartTime: priestProfiles.defaultStartTime,
@@ -155,21 +262,43 @@ export class PriestService {
   }
 
   // Update priest profile credentials, bio, and languages
-  async updatePriestProfile(id: string, updates: UpdatePriestProfileInput): Promise<PriestViewModel | null> {
+  async updatePriestProfile(id: string, updates: UpdatePriestProfileInput & { fullName?: string; displayName?: string; name?: string }): Promise<PriestViewModel | null> {
     const existing = await this.getPriestById(id);
+    if (!existing) {
+      throw new AppError(404, 'Priest profile not found.');
+    }
+
+    const { fullName, displayName, name, ...profileUpdates } = updates as any;
+    const newName = fullName || displayName || name;
+
+    // Persist priest display name to users table
+    if (newName && typeof newName === 'string' && newName.trim()) {
+      await db
+        .update(users)
+        .set({ name: newName.trim(), updatedAt: new Date() })
+        .where(eq(users.id, existing.userId));
+    }
+
     if (
-      existing &&
       updates.profileImageUrl &&
       existing.profileImageUrl &&
-      updates.profileImageUrl !== existing.profileImageUrl
+      updates.profileImageUrl !== existing.profileImageUrl &&
+      existing.profileImageUrl.startsWith('http')
     ) {
-      await cloudinaryService.deleteImageByUrl(existing.profileImageUrl);
+      await cloudinaryService.deleteImageByUrl(existing.profileImageUrl).catch(() => {});
+    }
+
+    if (updates.profileImageUrl) {
+      await db
+        .update(users)
+        .set({ avatarUrl: updates.profileImageUrl, updatedAt: new Date() })
+        .where(eq(users.id, existing.userId));
     }
 
     await db
       .update(priestProfiles)
       .set({
-        ...updates,
+        ...profileUpdates,
         updatedAt: new Date(),
       })
       .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
@@ -311,9 +440,20 @@ export class PriestService {
     const profileId = await resolvePriestProfileId(priestId);
     const targetPriestId = profileId || priestId;
 
+    // Disassociate existing bookings referencing this service to avoid FK constraint violation
     await db
+      .update(bookings)
+      .set({ priestServiceId: null })
+      .where(eq(bookings.priestServiceId, serviceId));
+
+    const [deleted] = await db
       .delete(priestServices)
-      .where(and(eq(priestServices.id, serviceId), eq(priestServices.priestId, targetPriestId)));
+      .where(and(eq(priestServices.id, serviceId), eq(priestServices.priestId, targetPriestId)))
+      .returning();
+
+    if (!deleted) {
+      throw new AppError(404, 'Service offering not found or you are not authorized to remove it.');
+    }
   }
 
   // Toggle service active/inactive status for bookings
@@ -365,7 +505,7 @@ export class PriestService {
         id: r.id,
         priestId: r.priestId,
         date: dateStr,
-        type: isFullLeave ? 'FULL_DAY_LEAVE' : 'PARTIAL_BLACKOUT',
+        type: isFullLeave ? 'FULL_DAY_LEAVE' : (r.exceptionType === 'CUSTOM_HOURS' ? 'CUSTOM_HOURS' : 'PARTIAL_BLACKOUT'),
         startTime: startH,
         endTime: endH,
         exceptionType: r.exceptionType,

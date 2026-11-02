@@ -217,7 +217,7 @@ export const AddressesPage: React.FC = () => {
 
   return (
     <div className="w-full text-stone-900 py-6 sm:py-10 px-4">
-      <div className="container max-w-3xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Header (100% Flexbox) */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
           <div className="space-y-1">

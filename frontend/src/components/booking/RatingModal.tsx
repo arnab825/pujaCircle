@@ -32,19 +32,19 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   bookingId,
   priestName = "Pandit Ji",
   serviceName = "Ceremony",
-  initialRating = 5,
+  initialRating = 0,
   initialReview = "",
   onSubmit,
   isLoading = false,
 }) => {
-  const [selectedRating, setSelectedRating] = useState<number>(initialRating || 5);
+  const [selectedRating, setSelectedRating] = useState<number>(initialRating || 0);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [review, setReview] = useState<string>(initialReview || "");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedRating(initialRating || 5);
+      setSelectedRating(initialRating || 0);
       setHoverRating(null);
       setReview(initialReview || "");
     }
@@ -57,11 +57,14 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingId) return;
+    if (!selectedRating || selectedRating < 1 || selectedRating > 5) {
+      return;
+    }
     setIsSubmitting(true);
     try {
       await onSubmit({
         bookingId,
-        rating: selectedRating || 5,
+        rating: selectedRating,
         review: review.trim(),
       });
       onClose();
@@ -91,8 +94,8 @@ export const RatingModal: React.FC<RatingModalProps> = ({
           <div className="flex flex-col items-center justify-center gap-2 py-2">
             <div className="flex items-center gap-1.5">
               {[1, 2, 3, 4, 5].map((star) => {
-                const isFilled =
-                  (hoverRating !== null ? hoverRating : selectedRating) >= star;
+                const currentScore = hoverRating !== null ? hoverRating : selectedRating;
+                const isFilled = currentScore > 0 && currentScore >= star;
                 return (
                   <button
                     key={star}
@@ -120,6 +123,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               {selectedRating === 3 && "Satisfactory (3/5)"}
               {selectedRating === 2 && "Needs Improvement (2/5)"}
               {selectedRating === 1 && "Disappointing (1/5)"}
+              {selectedRating === 0 && "Click a star to rate (1 to 5)"}
             </span>
           </div>
 
@@ -144,7 +148,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
               variant="outline"
               size="sm"
               onClick={onClose}
-              disabled={isLoading || isSubmitting}
+              disabled={isLoading || isSubmitting || !selectedRating || selectedRating < 1}
               className="text-xs h-9 px-4 rounded-md border-2 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
             >
               Cancel

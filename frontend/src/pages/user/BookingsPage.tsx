@@ -71,9 +71,13 @@ export const BookingsPage: React.FC = () => {
   const handleRatingSubmit = async (data: RatingInput) => {
     if (!bookingToRate) return;
     const activeUserId = user?.id || bookingToRate.userId;
+    if (!data.rating || data.rating < 1) {
+      toast.error('Please select a star rating.');
+      return;
+    }
     const res = await bookingApi.submitRating(activeUserId, {
       bookingId: bookingToRate.id,
-      rating: data.rating || 5,
+      rating: data.rating,
       review: data.review,
     });
     if (res.success) {
@@ -112,7 +116,7 @@ export const BookingsPage: React.FC = () => {
   };
 
   return (
-    <div className="container py-6 sm:py-8 space-y-6 max-w-5xl">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* 1. Page Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1.5">
@@ -283,7 +287,7 @@ export const BookingsPage: React.FC = () => {
                     <span className="font-bold text-lg font-serif text-stone-900 group-hover:text-red-700 transition-colors">
                       {b.serviceName || 'Vedic Ceremony'}
                     </span>
-                    <BookingStatusBadge status={b.status} />
+                    <BookingStatusBadge status={b.status} cancelledBy={b.cancelledBy} isDevoteeView={true} />
                     <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-sm bg-amber-100 border border-amber-300 text-stone-900">
                       {b.bookingReference || b.id.slice(0, 8)}
                     </span>
@@ -306,6 +310,16 @@ export const BookingsPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
+
+                  {b.status === 'CANCELLED' && b.cancellationReason && (
+                    <div className="p-2 rounded-md bg-amber-50/70 border border-amber-200 text-xs flex items-center gap-1.5 text-stone-800">
+                      <Ban className="w-3.5 h-3.5 text-[#780016] shrink-0" />
+                      <span>
+                        {b.cancelledBy === 'USER' ? 'Cancelled by You:' : 'Cancellation:'}{' '}
+                        <strong className="text-stone-900 font-medium">"{b.cancellationReason}"</strong>
+                      </span>
+                    </div>
+                  )}
 
                   {/* Priest and Dakshina Row */}
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 pt-2 border-t border-amber-100 text-xs">
@@ -417,7 +431,7 @@ export const BookingsPage: React.FC = () => {
         bookingId={bookingToRate?.id || ''}
         priestName={bookingToRate?.priest?.displayName || bookingToRate?.priest?.fullName}
         serviceName={bookingToRate?.serviceName}
-        initialRating={bookingToRate?.rating || 5}
+        initialRating={bookingToRate?.rating || 0}
         initialReview={bookingToRate?.review || ''}
         onSubmit={handleRatingSubmit}
       />

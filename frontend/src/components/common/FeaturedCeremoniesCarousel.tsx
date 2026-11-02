@@ -8,11 +8,12 @@ import {
   ArrowRight,
   BookOpen,
   Flame,
-  CheckCircle2,
   Clock,
+  Users,
 } from "lucide-react";
 import { PujaCatalogEntry } from "@/types/catalog.types";
 import { catalogApi } from "@/api/catalog.api";
+import { formatINR } from "@/lib/utils";
 
 const CATEGORIES = [
   { key: "ALL", label: "All Ceremonies" },
@@ -32,8 +33,8 @@ export const FeaturedCeremoniesCarousel: React.FC = () => {
 
   useEffect(() => {
     async function fetchCatalog() {
-      const data = await catalogApi.getCatalog();
-      setAllPujas(data || []);
+      const data = await catalogApi.getCatalog({ withPriestsOnly: true });
+      setAllPujas((data || []).filter((p) => p.priestCount === undefined || p.priestCount > 0));
     }
     fetchCatalog();
   }, []);
@@ -194,7 +195,7 @@ export const FeaturedCeremoniesCarousel: React.FC = () => {
                 <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
 
                 {/* Top Category Badge */}
-                <div className="absolute top-3 left-3 z-10">
+                <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-amber-300 border border-amber-400/40 shadow-sm">
                     <Sparkles className="w-3 h-3 text-amber-300" />
                     <span>{puja.category.replace("-", " ")}</span>
@@ -220,9 +221,11 @@ export const FeaturedCeremoniesCarousel: React.FC = () => {
               {/* Card Body Content */}
               <div className="p-5 flex flex-col justify-between flex-1 gap-4">
                 <div className="space-y-2">
-                  <h3 className="font-serif text-lg font-bold text-stone-900 group-hover:text-[#780016] transition-colors line-clamp-1">
-                    {puja.name}
-                  </h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-serif text-lg font-bold text-stone-900 group-hover:text-[#780016] transition-colors line-clamp-1">
+                      {puja.name}
+                    </h3>
+                  </div>
 
                   <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
                     {puja.description}
@@ -236,24 +239,32 @@ export const FeaturedCeremoniesCarousel: React.FC = () => {
                         <span>{puja.durationMinutes} mins</span>
                       </span>
                     ) : null}
+                    {puja.priestCount !== undefined && puja.priestCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-medium">
+                        <Users className="w-3 h-3 text-emerald-600" />
+                        <span>{puja.priestCount} {puja.priestCount === 1 ? 'Purohit' : 'Purohits'}</span>
+                      </span>
+                    ) : null}
                     <span className="inline-flex items-center gap-1 text-[11px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded font-medium">
                       <BookOpen className="w-3 h-3 text-amber-700" />
                       <span>{puja.samagriList.length} Items</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded font-medium">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                      <span>{puja.steps.length} Steps</span>
                     </span>
                   </div>
                 </div>
 
                 {/* Card Footer CTA */}
-                <div className="pt-3 border-t border-stone-100">
+                <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-3">
+                  {puja.startingPrice ? (
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-stone-500 font-semibold uppercase tracking-wider">Dakshina</span>
+                      <span className="text-sm font-bold font-serif text-[#780016]">{formatINR(puja.startingPrice)}</span>
+                    </div>
+                  ) : null}
                   <Link
                     to={`/priests?service=${encodeURIComponent(puja.name)}&catalogId=${puja.id}`}
-                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold text-[#780016] group-hover:text-white bg-amber-50/70 group-hover:bg-[#780016] rounded-xl transition-all duration-300 border border-amber-300/60 group-hover:border-[#780016] shadow-2xs group-hover:shadow-md cursor-pointer"
+                    className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-bold text-[#780016] group-hover:text-white bg-amber-50/70 group-hover:bg-[#780016] rounded-xl transition-all duration-300 border border-amber-300/60 group-hover:border-[#780016] shadow-2xs group-hover:shadow-md cursor-pointer"
                   >
-                    <span>Book Priest for Ceremony</span>
+                    <span>Find Priests</span>
                     <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 </div>

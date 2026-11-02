@@ -10,13 +10,14 @@ export interface UserViewModel {
   accountStatus: 'ACTIVE' | 'BANNED';
   avatarUrl?: string;
   createdAt?: string;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 /**
  * [VIEW] User Presentation Serializer
  * Sanitizes user database records before returning to frontend callers.
  */
-export const toUserView = (user: User | AuthUserContext): UserViewModel => {
+export const toUserView = (user: User | AuthUserContext, approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'): UserViewModel => {
   return {
     id: user.id,
     name: user.name,
@@ -26,5 +27,6 @@ export const toUserView = (user: User | AuthUserContext): UserViewModel => {
     accountStatus: user.accountStatus,
     avatarUrl: user.avatarUrl || undefined,
     ...('createdAt' in user && user.createdAt ? { createdAt: user.createdAt.toISOString() } : {}),
+    ...(approvalStatus ? { approvalStatus } : {}),
   };
 };

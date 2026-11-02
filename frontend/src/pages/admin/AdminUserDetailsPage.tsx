@@ -1,0 +1,570 @@
+import React, { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Ban,
+  ShieldCheck,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Clock,
+  Trash2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+
+import { adminApi } from "@/api/admin.api";
+import { formatDate } from "@/lib/utils";
+
+/**
+ * AdminUserDetailsPage
+ * Devotee scholar audit dossier and administrative lifecycle management.
+ * Dedicated full page at /admin/users/:id matching /admin/priests/:id.
+ * 100% Flexbox, zero CSS grids, zero gradients, pure solid white canvas, Haldi gold trims.
+ */
+export const AdminUserDetailsPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const [devotee, setDevotee] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Action Dialog states
+  const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [reasonInput, setReasonInput] = useState("");
+
+  const loadDevotee = async () => {
+    if (!id) return;
+    setIsLoading(true);
+    try {
+      const data = await adminApi.getUserById(id);
+      if (data) {
+        setDevotee(data);
+      } else {
+        toast.error("Devotee record not found.");
+      }
+    } catch {
+      toast.error("Failed to load devotee profile.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDevotee();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-[60vh] flex flex-col items-center justify-center bg-white text-xs text-stone-500 font-medium gap-2">
+        <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+        <span>Loading Devotee dossier...</span>
+      </div>
+    );
+  }
+
+  if (!devotee) {
+    return (
+      <div className="container max-w-3xl py-12 space-y-6 text-stone-900">
+        <Link
+          to="/admin/users"
+          className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#780016] font-bold transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Devotees Directory
+        </Link>
+        <div className="text-center p-10 space-y-4 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
+          <div className="w-14 h-14 rounded-md bg-amber-100 flex items-center justify-center mx-auto text-amber-700 border border-amber-300">
+            <AlertTriangle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold font-serif text-stone-900">
+              Devotee Record Not Found
+            </h2>
+            <p className="text-xs text-stone-600">
+              No devotee profile matches ID "{id}".
+            </p>
+          </div>
+          <Link to="/admin/users">
+            <Button
+              size="sm"
+              className="text-xs mt-2 bg-[#780016] hover:bg-red-800 text-white font-bold rounded-md border border-amber-400 h-10 px-5"
+            >
+              Return to Devotees Directory
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handleConfirmSuspend = async () => {
+    if (!reasonInput.trim()) {
+      toast.error("Please provide a suspension justification.");
+      return;
+    }
+    const res = await adminApi.suspendUser(devotee.id, reasonInput.trim());
+    if (res.success) {
+      toast.success(`Account for ${devotee.name} suspended.`);
+      setIsSuspendDialogOpen(false);
+      setReasonInput("");
+      loadDevotee();
+    } else {
+      toast.error(res.message || "Failed to suspend account.");
+    }
+  };
+
+  const handleReactivate = async () => {
+    const res = await adminApi.unsuspendUser(devotee.id);
+    if (res.success) {
+      toast.success(`Account for ${devotee.name} reactivated.`);
+      loadDevotee();
+    } else {
+      toast.error(res.message || "Failed to reactivate account.");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      const res = await adminApi.deleteUser(devotee.id);
+      if (res.success) {
+        toast.success(`Devotee account for ${devotee.name} permanently deleted.`);
+        setIsDeleteDialogOpen(false);
+        navigate("/admin/users");
+      } else {
+        toast.error(res.message || "Failed to delete devotee account.");
+      }
+    } catch {
+      toast.error("Failed to delete devotee account.");
+    }
+  };
+
+  const initials = devotee.name
+    ? devotee.name
+        .split(" ")
+        .filter(Boolean)
+        .map((w: string) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "DV";
+
+  const isBanned = devotee.accountStatus === "BANNED";
+
+  const effectiveAvatarUrl =
+    devotee.avatarUrl ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem(`devotee_avatar_${devotee.id}`)
+      : null);
+
+  return (
+    <div className="container max-w-5xl py-8 space-y-6 pb-16 text-stone-900">
+      {/* Top Back Navigation */}
+      <Link
+        to="/admin/users"
+        className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#780016] font-bold transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Devotee Accounts Directory
+      </Link>
+
+      {/* Main Devotee Header Card */}
+      <div className="border-2 border-amber-400 bg-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-7 relative">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="relative shrink-0">
+              <div className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm">
+                {effectiveAvatarUrl ? (
+                  <img
+                    src={effectiveAvatarUrl}
+                    alt={devotee.name}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-xs shrink-0"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-[#780016] text-white border-2 border-white flex items-center justify-center font-bold text-2xl font-serif shrink-0 shadow-xs">
+                    {initials}
+                  </div>
+                )}
+              </div>
+              {!isBanned && (
+                <div
+                  className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
+                  title="Active Devotee"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950">
+                  {devotee.name}
+                </h1>
+                {!isBanned ? (
+                  <Badge className="bg-emerald-600 text-white text-xs px-3 py-1 gap-1 font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Active Devotee
+                  </Badge>
+                ) : (
+                  <Badge className="bg-rose-600 text-white text-xs px-3 py-1 gap-1 font-bold">
+                    <Ban className="w-3.5 h-3.5" />
+                    Suspended Account
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-stone-600 font-medium">
+                Devotee ID: <span className="font-mono text-stone-800">{devotee.id}</span>
+              </p>
+              <p className="text-[11px] text-stone-500 font-mono">
+                Member Since:{" "}
+                {devotee.createdAt
+                  ? formatDate(devotee.createdAt)
+                  : "Recent"}
+              </p>
+            </div>
+          </div>
+
+          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-2 text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-amber-950 bg-amber-100 px-3 py-1 rounded-md border border-amber-300">
+              <Calendar className="w-4 h-4 text-amber-700" />
+              <span>{devotee.bookings?.length || 0} Ceremonies Booked</span>
+            </div>
+            <span className="text-xs text-stone-700 font-bold">
+              {devotee.addresses?.length || 0} Sanctum Venues Registered
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Suspension Alert Banner */}
+      {isBanned && (
+        <div className="p-5 rounded-xl border-2 border-rose-300 bg-rose-50/80 text-rose-950 flex items-start gap-3.5">
+          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 text-rose-700" />
+          <div className="space-y-1 text-xs">
+            <p className="font-bold">Account Suspended by Platform Administrator</p>
+            <p className="text-stone-700">
+              {devotee.banReason || "Administrative restriction active. Account cannot request new ceremonies."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Contact Cards Row */}
+      <div className="flex flex-col sm:flex-row gap-4 w-full">
+        <div className="flex-1 p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 text-amber-700" />
+            Verified Mobile
+          </span>
+          <p className="text-lg font-mono font-bold text-stone-900 mt-1">
+            {devotee.phoneNumber}
+          </p>
+        </div>
+
+        <div className="flex-1 p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+            <Mail className="w-3.5 h-3.5 text-amber-700" />
+            Email Address
+          </span>
+          <p className="text-lg font-medium text-stone-900 mt-1 truncate">
+            {devotee.email || "No email on record"}
+          </p>
+        </div>
+      </div>
+
+      {/* Registered Sanctum Venues Card */}
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-amber-700" />
+            <div>
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Registered Sanctum Venues ({devotee.addresses?.length || 0})
+              </h3>
+              <p className="text-xs text-stone-500">
+                Addresses registered by the devotee for in-home Vedic ceremony conduction.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {devotee.addresses && devotee.addresses.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {devotee.addresses.map((addr: any) => (
+              <div
+                key={addr.id}
+                className="p-4 rounded-xl border border-stone-200 hover:border-amber-400 bg-stone-50/50 hover:bg-amber-50/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif font-bold text-stone-950 text-sm">
+                      {addr.label || "Home Sanctum"}
+                    </span>
+                    {addr.isDefault && (
+                      <Badge className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold">
+                        Default Sanctum
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-stone-700 leading-relaxed">
+                    {[
+                      addr.houseNo,
+                      addr.houseBuilding,
+                      addr.street,
+                      addr.locality,
+                      addr.villageTown,
+                      addr.city,
+                      addr.district,
+                      addr.state,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}{" "}
+                    - <span className="font-mono font-bold text-stone-900">{addr.pincode}</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-lg border border-stone-200">
+            No delivery venues registered by this devotee yet.
+          </div>
+        )}
+      </div>
+
+      {/* Ceremony Bookings History Card */}
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-amber-700" />
+            <div>
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Ceremony Booking History ({devotee.bookings?.length || 0})
+              </h3>
+              <p className="text-xs text-stone-500">
+                Past and upcoming Vedic ceremonies scheduled through PujaCircle.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {devotee.bookings && devotee.bookings.length > 0 ? (
+          <div className="flex flex-col gap-3">
+            {devotee.bookings.map((booking: any) => (
+              <div
+                key={booking.id}
+                className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-serif font-bold text-stone-950 text-sm">
+                      {booking.serviceName}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] font-bold ${
+                        booking.status === "CONFIRMED"
+                          ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                          : booking.status === "COMPLETED"
+                            ? "bg-blue-50 text-blue-800 border-blue-300"
+                            : booking.status === "CANCELLED"
+                              ? "bg-rose-50 text-rose-800 border-rose-300"
+                              : "bg-amber-50 text-amber-800 border-amber-300"
+                      }`}
+                    >
+                      {booking.status}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-stone-600">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-amber-700" />
+                      {booking.scheduledDate}{" "}
+                      {booking.startTime && `(${booking.startTime} - ${booking.endTime})`}
+                    </span>
+                    <span>
+                      Purohit: <strong className="text-stone-800">{booking.priestName || "Assigned Scholar"}</strong>
+                    </span>
+                    {booking.completionCode && (
+                      <span className="font-mono text-stone-500">
+                        Code: <strong>{booking.completionCode}</strong>
+                      </span>
+                    )}
+                  </div>
+
+                  {booking.specialInstructions && (
+                    <div className="text-[11px] bg-amber-50/60 p-2 rounded border border-amber-200/80 text-amber-950 mt-1">
+                      <span className="font-bold">Sankalp / Gotra Notes: </span>
+                      {booking.specialInstructions}
+                    </div>
+                  )}
+                </div>
+
+                <div className="text-right">
+                  <div className="text-sm font-bold text-[#780016]">
+                    ₹{Number(booking.totalPrice || 0).toLocaleString("en-IN")}
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-mono">
+                    Ref: {booking.bookingReference}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-lg border border-stone-200">
+            No ceremony appointments recorded for this devotee yet.
+          </div>
+        )}
+      </div>
+
+      {/* Administrative Actions Deck */}
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-3">
+        <div>
+          <h3 className="text-base font-serif font-bold text-stone-950">
+            Administrative Actions & Moderation
+          </h3>
+          <p className="text-xs text-stone-600">
+            Suspend devotee account or remove record permanently.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-200">
+          <div className="flex items-center gap-2.5">
+            {!isBanned ? (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setIsSuspendDialogOpen(true)}
+                className="text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700"
+              >
+                <Ban className="w-4 h-4" />
+                Suspend Devotee Account
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                onClick={handleReactivate}
+                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 cursor-pointer"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                Reactivate Account
+              </Button>
+            )}
+          </div>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="text-xs text-red-700 hover:bg-red-50 gap-1.5 h-10 px-3 rounded-md font-bold cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Devotee Account
+          </Button>
+        </div>
+      </div>
+
+      {/* Suspend Confirmation Dialog */}
+      <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
+        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold font-serif text-red-700">
+              Suspend Devotee Account
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-600">
+              Revoke ceremony booking privileges for {devotee.name}. Please enter a reason.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <Label htmlFor="suspend-reason" className="text-xs font-bold text-stone-800">
+              Suspension Reason
+            </Label>
+            <Textarea
+              id="suspend-reason"
+              placeholder="e.g. Disciplinary breach / Unconfirmed bookings..."
+              value={reasonInput}
+              onChange={(e) => setReasonInput(e.target.value)}
+              className="text-xs min-h-24 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 flex flex-col-reverse sm:flex-row">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSuspendDialogOpen(false)}
+              className="text-xs rounded-md h-10 px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleConfirmSuspend}
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
+            >
+              Confirm Suspension
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Alert Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold font-serif text-red-700 flex items-center gap-2">
+              <Trash2 className="w-4 h-4" />
+              Permanently Delete Devotee Account?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-stone-600">
+              Are you sure you want to permanently delete the profile of{" "}
+              <span className="font-bold text-stone-900">{devotee.name}</span>? All booking
+              records will be disassociated to preserve financial audit history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <AlertDialogCancel className="text-xs rounded-md h-10 px-4">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-700 text-white hover:bg-red-800 text-xs rounded-md h-10 px-5 font-bold"
+            >
+              Delete Record
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default AdminUserDetailsPage;

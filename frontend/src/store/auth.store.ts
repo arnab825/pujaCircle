@@ -5,16 +5,17 @@ import { authApi } from '@/api/auth.api';
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
+  token?: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
 
   // Actions
   login: (credentials: LoginCredentials) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  checkSession: () => Promise<void>;
   setUser: (user: AuthUser | null) => void;
-  setToken: (token: string | null) => void;
+  setToken: (token?: string | null) => void;
   clearError: () => void;
 }
 
@@ -35,30 +36,49 @@ export const useAuthStore = create<AuthState>()(
 
           if (response.success && response.data?.user) {
             const user = response.data.user;
-            const token = response.data.token || null;
-            if (token) localStorage.setItem('pujacircle_token', token);
-            set({ user, token, isAuthenticated: true, isLoading: false, error: null });
+            set({ user, isAuthenticated: true, isLoading: false, error: null });
             return true;
           } else {
-            set({ error: response.message || 'Login failed', isLoading: false });
+            const message = response.message || 'Invalid email or password. Please check your credentials and try again.';
+            set({ error: message, isLoading: false });
             return false;
           }
-        } catch {
-          set({ error: 'An unexpected error occurred during sign-in. Please try again.', isLoading: false });
+        } catch (err: any) {
+          const message = err?.message || 'An unexpected error occurred during sign-in. Please try again.';
+          set({ error: message, isLoading: false });
           return false;
         }
       },
 
-      logout: () => {
-        set({ user: null, token: null, isAuthenticated: false, error: null });
+      logout: async () => {
+        try {
+          await authApi.logout();
+        } catch {
+          // Ignore network errors during logout
+        } finally {
+          set({ user: null, token: null, isAuthenticated: false, error: null });
+        }
+      },
+
+      checkSession: async () => {
+        try {
+          const res = await authApi.getMe();
+          if (res.success && res.data?.user) {
+            set({ user: res.data.user, isAuthenticated: true });
+          } else {
+            set({ user: null, isAuthenticated: false });
+          }
+        } catch {
+          set({ user: null, isAuthenticated: false });
+        }
       },
 
       setUser: (user: AuthUser | null) => {
         set({ user, isAuthenticated: user !== null });
       },
 
-      setToken: (token: string | null) => {
-        set({ token });
+      setToken: () => {
+        // No-op: Authentication is purely cookie-based (httpOnly: true)
       },
 
       clearError: () => set({ error: null }),
@@ -68,7 +88,6 @@ export const useAuthStore = create<AuthState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
     }

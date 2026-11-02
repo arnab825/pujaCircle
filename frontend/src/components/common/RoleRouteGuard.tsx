@@ -46,6 +46,20 @@ export const PriestRouteGuard: React.FC<{ children: React.ReactNode }> = ({ chil
     return <Navigate to="/admin/dashboard" replace />;
   }
 
+  const isPendingApprovalPage = location.pathname === '/priest/pending-approval';
+
+  // If priest is not APPROVED, block dashboard access and redirect to pending-approval
+  if (user.approvalStatus && user.approvalStatus !== 'APPROVED') {
+    if (!isPendingApprovalPage) {
+      return <Navigate to="/priest/pending-approval" replace />;
+    }
+  }
+
+  // If approved priest visits pending-approval page, redirect to dashboard
+  if (user.approvalStatus === 'APPROVED' && isPendingApprovalPage) {
+    return <Navigate to="/priest/dashboard" replace />;
+  }
+
   return <>{children}</>;
 };
 

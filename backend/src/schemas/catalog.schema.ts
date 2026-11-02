@@ -20,5 +20,14 @@ export const createCatalogEntrySchema = z.object({
 
 export const updateCatalogEntrySchema = createCatalogEntrySchema.partial();
 
+export const catalogQuerySchema = z.object({
+  category: z.string().trim().max(100).optional(),
+  query: z.string().trim().max(100).optional(),
+  withPriestsOnly: z.enum(['true', 'false']).optional(),
+  hasPriests: z.enum(['true', 'false']).optional(),
+  availableOnly: z.enum(['true', 'false']).optional(),
+});
+
 export type CreateCatalogEntryInput = z.infer<typeof createCatalogEntrySchema>;
 export type UpdateCatalogEntryInput = z.infer<typeof updateCatalogEntrySchema>;
+export type CatalogQueryInput = z.infer<typeof catalogQuerySchema>;

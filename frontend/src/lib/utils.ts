@@ -223,3 +223,14 @@ export function normalizeServiceName(name: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ');
 }
+
+
+/**
+ * Get 2-character initials from a person's name
+ */
+export function getInitials(name: string | undefined | null): string {
+  if (!name || !name.trim()) return 'PT';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return name.trim().slice(0, 2).toUpperCase();
+}

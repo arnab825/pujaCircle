@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, X, AlertCircle } from 'lucide-react';
+import { X, AlertCircle, Ban } from 'lucide-react';
 import { formatFullDate } from '@/lib/utils';
 
 interface BlockTimeModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: string; // YYYY-MM-DD
-  onSave: (startTime: string, endTime: string, reason: string) => void;
+  initialMode?: 'BLOCK' | 'CUSTOM_HOURS';
+  onSave: (startTime: string, endTime: string, reason: string, exceptionType: 'BLOCK' | 'CUSTOM_HOURS') => void;
 }
 
 const REASON_OPTIONS = [
+  'Travel / Out of Station',
   'Lunch & Rest',
   'Temple Ritual / Seva',
   'Personal / Family Work',
-  'Travel / Out of Station',
   'Medical / Health Rest',
   'Other',
 ];
@@ -23,11 +24,13 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
   isOpen,
   onClose,
   selectedDate,
+  initialMode = 'BLOCK',
   onSave,
 }) => {
+  const mode = initialMode;
   const [startTime, setStartTime] = useState('13:00');
   const [endTime, setEndTime] = useState('16:00');
-  const [selectedReasonOption, setSelectedReasonOption] = useState('Lunch & Rest');
+  const [selectedReasonOption, setSelectedReasonOption] = useState('Travel / Out of Station');
   const [customReason, setCustomReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -44,13 +47,14 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
       return;
     }
 
+    const defaultReason = selectedReasonOption;
     const finalReason =
       selectedReasonOption === 'Other'
-        ? customReason.trim() || 'Other / Personal'
-        : selectedReasonOption;
+        ? customReason.trim() || 'Blocked Break / Personal'
+        : defaultReason;
 
     setError(null);
-    onSave(startTime, endTime, finalReason);
+    onSave(startTime, endTime, finalReason, mode);
     onClose();
   };
 
@@ -60,12 +64,12 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-amber-100 bg-amber-50/50">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-md bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center shrink-0">
-              <Clock className="h-5 w-5 text-amber-700" />
+            <div className="h-10 w-10 rounded-md border flex items-center justify-center shrink-0 bg-red-50 text-red-800 border-red-200">
+              <Ban className="h-5 w-5 text-red-700" />
             </div>
             <div>
               <h2 className="font-serif font-bold text-base text-stone-900">
-                Block Busy Hours
+                Block Specific Hours (e.g. 1 PM – 4 PM)
               </h2>
               <p className="text-xs text-stone-600 font-medium">
                 {selectedDate ? formatFullDate(selectedDate) : 'Select a date'}
@@ -74,16 +78,18 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-stone-400 hover:text-stone-700 p-1.5 rounded-md hover:bg-stone-100 transition-colors"
+            className="text-stone-400 hover:text-stone-700 p-1.5 rounded-md hover:bg-stone-100 transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-md text-xs text-amber-900 leading-relaxed">
-            Devotees will not be able to book home rituals during this blocked window.
+        <form onSubmit={handleSubmit} className="p-6 pt-4 space-y-4">
+          <div className="p-3 rounded-md text-xs leading-relaxed border bg-amber-50/70 border-amber-300 text-stone-800">
+            <span>
+              <strong>Blocked Hours:</strong> Devotees will <strong>NOT</strong> be able to book rituals during this window (e.g. 1:00 PM – 4:00 PM), while all your other standard working hours remain open.
+            </span>
           </div>
 
           {error && (
@@ -118,9 +124,11 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
             </div>
           </div>
 
-          {/* Reason Selection with Fixed Options & 'Other' Manual Input */}
+          {/* Reason Selection */}
           <div className="space-y-2 pt-1">
-            <label className="text-xs font-bold text-stone-700">Reason for Blocking Time</label>
+            <label className="text-xs font-bold text-stone-700">
+              {mode === 'CUSTOM_HOURS' ? 'Label / Note for this schedule' : 'Reason for Blocking Break'}
+            </label>
             <select
               value={selectedReasonOption}
               onChange={(e) => setSelectedReasonOption(e.target.value)}
@@ -139,7 +147,7 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
                   type="text"
                   value={customReason}
                   onChange={(e) => setCustomReason(e.target.value)}
-                  placeholder="Enter your custom reason..."
+                  placeholder="Enter your custom note or reason..."
                   className="w-full border-2 border-amber-400 focus:border-amber-600 rounded-md p-2.5 text-sm text-stone-900 outline-none animate-in fade-in duration-100"
                   autoFocus
                   required
@@ -154,15 +162,15 @@ export const BlockTimeModal: React.FC<BlockTimeModalProps> = ({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="h-10 px-4 text-xs font-semibold border-stone-300"
+              className="h-10 px-4 text-xs font-semibold border-stone-300 cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="h-10 px-5 text-xs font-bold bg-[#780016] hover:bg-red-800 text-white shadow-xs"
+              className="h-10 px-5 text-xs font-bold bg-[#780016] hover:bg-red-800 text-white shadow-xs cursor-pointer"
             >
-              Block Time Range
+              {mode === 'CUSTOM_HOURS' ? 'Save Specific Hours' : 'Block Break Window'}
             </Button>
           </div>
         </form>
