@@ -1,33 +1,35 @@
-import { and, eq } from 'drizzle-orm';
+import { eq, and, or, gte, lte } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { priestAvailabilityExceptions, priestProfiles } from '../models/priest.model.js';
 import { bookings } from '../models/booking.model.js';
 import { AppError } from '../utils/AppError.js';
 import { resolvePriestProfileId } from '../repositories/priest.repository.js';
 
+// DTO representing an availability exception returned by the API
 export interface FormattedAvailabilityException {
   id: string;
   priestId: string;
-  date: string;
-  type: 'FULL_DAY_LEAVE' | 'PARTIAL_BLACKOUT';
-  startTime: string;
-  endTime: string;
-  exceptionType: string;
-  startAt: string;
-  endAt: string;
-  reason: string;
-  createdAt: string;
+  date: string; // YYYY-MM-DD
+  type: 'FULL_DAY_LEAVE' | 'PARTIAL_BLACKOUT' | 'CUSTOM_HOURS';
+  exceptionType: 'BLOCK' | 'CUSTOM_HOURS';
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+  startAt?: string;
+  endAt?: string;
+  reason?: string;
+  createdAt?: string;
 }
 
 // Daily availability status for 90-day calendar grids
 export interface DayAvailability {
   date: string; // YYYY-MM-DD
-  status: 'AVAILABLE' | 'FULL_DAY_OFF' | 'PARTIAL_BLOCK';
+  status: 'AVAILABLE' | 'FULL_DAY_OFF' | 'PARTIAL_BLOCK' | 'CUSTOM_HOURS';
   hasBooking: boolean;
   blockedSlots: Array<{
     startTime: string;
     endTime: string;
     reason?: string | null;
+    exceptionType?: 'BLOCK' | 'CUSTOM_HOURS';
   }>;
 }
 
@@ -74,32 +76,30 @@ export class AvailabilityService {
       .where(eq(priestProfiles.id, targetPriestId))
       .limit(1);
 
-    if (!profile?.defaultStartTime || !profile?.defaultEndTime) {
-      throw new AppError(
-        400,
-        'Default working hours are not configured for this priest profile. Please configure working hours first.'
-      );
-    }
-
-    const startTime = profile.defaultStartTime.slice(0, 5);
-    const endTime = profile.defaultEndTime.slice(0, 5);
-
-    if (startTime >= endTime) {
-      throw new AppError(400, 'Configured working hours are invalid: start time must be earlier than end time.');
-    }
+    const startTime = profile?.defaultStartTime ? profile.defaultStartTime.slice(0, 5) : '07:00';
+    const endTime = profile?.defaultEndTime ? profile.defaultEndTime.slice(0, 5) : '21:00';
 
     const hasBookingOverlap = await this.checkBookingOverlap(targetPriestId, date, startTime, endTime);
     if (hasBookingOverlap) {
-      throw new AppError(400, 'Cannot mark day off: you have confirmed ceremony bookings during your working hours on this date.');
+      throw new AppError(400, 'Cannot mark full day off: you have confirmed ceremony bookings on this date.');
     }
+
+    const dayStart = parseISTDateTime(date, '00:00');
+    const dayEnd = parseISTDateTime(date, '23:59');
+
+    // Remove existing exceptions on this date
+    await db
+      .delete(priestAvailabilityExceptions)
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.priestId, targetPriestId),
+          gte(priestAvailabilityExceptions.startAt, dayStart),
+          lte(priestAvailabilityExceptions.endAt, dayEnd)
+        )
+      );
 
     const startAt = parseISTDateTime(date, startTime);
     const endAt = parseISTDateTime(date, endTime);
-
-    const hasExceptionOverlap = await this.checkExceptionOverlap(targetPriestId, startAt, endAt);
-    if (hasExceptionOverlap) {
-      throw new AppError(409, 'An availability block or day off already exists for this date.');
-    }
 
     const [record] = await db
       .insert(priestAvailabilityExceptions)
@@ -118,9 +118,9 @@ export class AvailabilityService {
       priestId: record.priestId,
       date,
       type: 'FULL_DAY_LEAVE',
+      exceptionType: record.exceptionType,
       startTime,
       endTime,
-      exceptionType: record.exceptionType,
       startAt: record.startAt ? new Date(record.startAt).toISOString() : '',
       endAt: record.endAt ? new Date(record.endAt).toISOString() : '',
       reason: record.reason || '',
@@ -128,13 +128,36 @@ export class AvailabilityService {
     };
   }
 
-  // Block specific hours on a given day for a priest
+  // Cancel / remove full day off or any availability exception
+  async cancelDayOff(priestId: string, exceptionId: string): Promise<void> {
+    const targetPriestId = await resolvePriestProfileId(priestId);
+    if (!targetPriestId) {
+      throw new AppError(404, `Priest profile not found for ID: ${priestId}`);
+    }
+
+    const [deleted] = await db
+      .delete(priestAvailabilityExceptions)
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.id, exceptionId),
+          eq(priestAvailabilityExceptions.priestId, targetPriestId)
+        )
+      )
+      .returning();
+
+    if (!deleted) {
+      throw new AppError(404, `Availability exception ${exceptionId} not found for priest.`);
+    }
+  }
+
+  // Block specific hours or set custom working hours on a date
   async blockHours(
     priestId: string,
     date: string,
     startTime: string,
     endTime: string,
-    reason?: string
+    reason?: string,
+    exceptionType: 'BLOCK' | 'CUSTOM_HOURS' = 'BLOCK'
   ): Promise<FormattedAvailabilityException> {
     const sTime = startTime.slice(0, 5);
     const eTime = endTime.slice(0, 5);
@@ -149,27 +172,47 @@ export class AvailabilityService {
     }
 
     const hasBookingOverlap = await this.checkBookingOverlap(targetPriestId, date, sTime, eTime);
-    if (hasBookingOverlap) {
+    if (exceptionType === 'BLOCK' && hasBookingOverlap) {
       throw new AppError(400, 'Cannot block hours: you have confirmed ceremony bookings during this time range.');
     }
 
     const startAt = parseISTDateTime(date, sTime);
     const endAt = parseISTDateTime(date, eTime);
 
-    const hasExceptionOverlap = await this.checkExceptionOverlap(targetPriestId, startAt, endAt);
-    if (hasExceptionOverlap) {
-      throw new AppError(409, 'An availability block already exists that overlaps with this time range.');
+    if (exceptionType === 'CUSTOM_HOURS') {
+      const dayStart = parseISTDateTime(date, '00:00');
+      const dayEnd = parseISTDateTime(date, '23:59');
+
+      // When setting custom working hours, remove prior custom hours or conflicting blocks for this date
+      await db
+        .delete(priestAvailabilityExceptions)
+        .where(
+          and(
+            eq(priestAvailabilityExceptions.priestId, targetPriestId),
+            or(
+              eq(priestAvailabilityExceptions.exceptionType, 'CUSTOM_HOURS'),
+              eq(priestAvailabilityExceptions.isFullDay, true)
+            ),
+            gte(priestAvailabilityExceptions.startAt, dayStart),
+            lte(priestAvailabilityExceptions.endAt, dayEnd)
+          )
+        );
+    } else {
+      const hasExceptionOverlap = await this.checkExceptionOverlap(targetPriestId, startAt, endAt);
+      if (hasExceptionOverlap) {
+        throw new AppError(409, 'An availability block already exists that overlaps with this time range.');
+      }
     }
 
     const [record] = await db
       .insert(priestAvailabilityExceptions)
       .values({
         priestId: targetPriestId,
-        exceptionType: 'BLOCK',
+        exceptionType: exceptionType || 'BLOCK',
         isFullDay: false,
         startAt,
         endAt,
-        reason: reason || 'Blocked Hours',
+        reason: reason || (exceptionType === 'CUSTOM_HOURS' ? 'Specific Working Hours' : 'Blocked Hours'),
       })
       .returning();
 
@@ -177,7 +220,7 @@ export class AvailabilityService {
       id: record.id,
       priestId: record.priestId,
       date,
-      type: 'PARTIAL_BLACKOUT',
+      type: exceptionType === 'CUSTOM_HOURS' ? 'CUSTOM_HOURS' : 'PARTIAL_BLACKOUT',
       startTime: sTime,
       endTime: eTime,
       exceptionType: record.exceptionType,
@@ -232,9 +275,94 @@ export class AvailabilityService {
         )
       );
 
-    return confirmedBookings.some(
-      (b) => startTime < b.endTime && endTime > b.startTime
-    );
+    return confirmedBookings.some((b) => {
+      return startTime < b.endTime && endTime > b.startTime;
+    });
+  }
+
+  /**
+   * Check if a proposed ceremony slot (date, startTime, endTime) is valid & available
+   * against priest working hours, full day leaves, custom hours, and partial blackouts.
+   */
+  async isTimeSlotAvailable(
+    priestId: string,
+    date: string,
+    startTime: string,
+    endTime: string
+  ): Promise<{ available: boolean; reason?: string }> {
+    const targetPriestId = (await resolvePriestProfileId(priestId)) || priestId;
+
+    const [profile] = await db
+      .select({
+        defaultStartTime: priestProfiles.defaultStartTime,
+        defaultEndTime: priestProfiles.defaultEndTime,
+      })
+      .from(priestProfiles)
+      .where(eq(priestProfiles.id, targetPriestId))
+      .limit(1);
+
+    const exceptions = await db
+      .select()
+      .from(priestAvailabilityExceptions)
+      .where(eq(priestAvailabilityExceptions.priestId, targetPriestId));
+
+    const dayExceptions = exceptions.filter((e) => {
+      const eDate = toISTDateString(new Date(e.startAt));
+      return eDate === date;
+    });
+
+    // 1. Check Full Day Leave
+    const isFullDayOff = dayExceptions.some((e) => {
+      if (e.isFullDay) return true;
+      const s = toISTTimeString(new Date(e.startAt));
+      const en = toISTTimeString(new Date(e.endAt));
+      return (
+        e.reason?.includes('Full Day') ||
+        (s === '07:00' && en === '21:00') ||
+        (s === '00:00' && en === '23:59')
+      );
+    });
+    if (isFullDayOff) {
+      return { available: false, reason: 'The priest has marked this date as a full day off.' };
+    }
+
+    // 2. Check Custom / Specific Working Hours for this date
+    const customHoursEx = dayExceptions.find((e) => e.exceptionType === 'CUSTOM_HOURS');
+    if (customHoursEx) {
+      const customStart = toISTTimeString(new Date(customHoursEx.startAt));
+      const customEnd = toISTTimeString(new Date(customHoursEx.endAt));
+      if (startTime < customStart || endTime > customEnd) {
+        return {
+          available: false,
+          reason: `The priest is only available for ceremonies during configured specific hours (${customStart} – ${customEnd}) on this date.`,
+        };
+      }
+    } else {
+      // Check standard working hours
+      const defStart = profile?.defaultStartTime ? profile.defaultStartTime.slice(0, 5) : '07:00';
+      const defEnd = profile?.defaultEndTime ? profile.defaultEndTime.slice(0, 5) : '21:00';
+      if (startTime < defStart || endTime > defEnd) {
+        return {
+          available: false,
+          reason: `Requested time is outside the priest's standard working hours (${defStart} – ${defEnd}).`,
+        };
+      }
+    }
+
+    // 3. Check Partial Blackouts (BLOCK)
+    const blackoutEx = dayExceptions.filter((e) => e.exceptionType === 'BLOCK' && !e.isFullDay);
+    for (const bo of blackoutEx) {
+      const boStart = toISTTimeString(new Date(bo.startAt));
+      const boEnd = toISTTimeString(new Date(bo.endAt));
+      if (startTime < boEnd && endTime > boStart) {
+        return {
+          available: false,
+          reason: `The priest has blocked hours (${boStart} – ${boEnd}${bo.reason ? `: ${bo.reason}` : ''}) during this time.`,
+        };
+      }
+    }
+
+    return { available: true };
   }
 
   // Calculate 90-day availability calendar matrix
@@ -292,8 +420,12 @@ export class AvailabilityService {
         );
       });
 
-      const status: 'AVAILABLE' | 'FULL_DAY_OFF' | 'PARTIAL_BLOCK' = isFullDayOff
+      const hasCustomHours = dayExceptions.some((e) => e.exceptionType === 'CUSTOM_HOURS');
+
+      const status: 'AVAILABLE' | 'FULL_DAY_OFF' | 'PARTIAL_BLOCK' | 'CUSTOM_HOURS' = isFullDayOff
         ? 'FULL_DAY_OFF'
+        : hasCustomHours
+        ? 'CUSTOM_HOURS'
         : dayExceptions.length > 0
         ? 'PARTIAL_BLOCK'
         : 'AVAILABLE';
@@ -307,6 +439,7 @@ export class AvailabilityService {
           startTime: toISTTimeString(s),
           endTime: toISTTimeString(en),
           reason: e.reason,
+          exceptionType: e.exceptionType,
         };
       });
 

@@ -1,6 +1,5 @@
 import { Role, AccountStatus } from './auth.types';
 
-
 export interface UserProfile {
   id: string;
   name: string;
@@ -13,6 +12,7 @@ export interface UserProfile {
   primaryCity?: string;
   addressSummary?: string;
   bookingCount?: number;
+  avatarUrl?: string;
   createdAt?: string;
 }
 
@@ -23,4 +23,5 @@ export interface UpdateUserProfileRequest {
   accountStatus?: AccountStatus;
   status?: AccountStatus;
   banReason?: string;
+  avatarUrl?: string;
 }

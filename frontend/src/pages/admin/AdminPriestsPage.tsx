@@ -94,9 +94,19 @@ export const AdminPriestsPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
-    toast.success(`Priest ${deleteTarget.fullName} record removed.`);
-    setPriests((prev) => prev.filter((p) => p.id !== deleteTarget.id));
-    setDeleteTarget(null);
+    try {
+      const res = await adminApi.deletePriest(deleteTarget.id);
+      if (res.success) {
+        toast.success(`Priest record for ${deleteTarget.fullName} permanently deleted.`);
+        fetchPriests();
+      } else {
+        toast.error(res.message || "Failed to delete priest record.");
+      }
+    } catch {
+      toast.error("Failed to delete priest record.");
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   // Status counts

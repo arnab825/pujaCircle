@@ -19,10 +19,19 @@ interface CancelBookingDialogProps {
   isPriest?: boolean;
 }
 
-const COMMON_REASONS = [
+const DEVOTEE_COMMON_REASONS = [
+  'Booked mistakenly / accidental appointment',
+  'Need to change ceremony date or Muhurat time',
+  'Need to change ritual or samagri details',
+  'Family emergency or unexpected travel',
+  'Other personal reason',
+];
+
+const PRIEST_COMMON_REASONS = [
   'Schedule clash or personal emergency',
   'Devotee requested rescheduling',
   'Unforeseen travel or health issue',
+  'Location distance unreachable',
   'Other reason',
 ];
 
@@ -62,13 +71,13 @@ export const CancelBookingDialog: React.FC<CancelBookingDialogProps> = ({
           <DialogDescription className="text-xs">
             {isPriest
               ? 'Please provide a clear reason to notify the devotee. The reserved slot will be released.'
-              : 'Please select or provide a reason for cancelling this booking.'}
+              : 'If you booked this appointment mistakenly or need to cancel, please select a reason below. The Pandit Ji will be notified immediately.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-xs">
           <div className="flex flex-wrap gap-1.5">
-            {COMMON_REASONS.map((r) => (
+            {(isPriest ? PRIEST_COMMON_REASONS : DEVOTEE_COMMON_REASONS).map((r) => (
               <button
                 key={r}
                 type="button"

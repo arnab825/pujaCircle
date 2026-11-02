@@ -11,6 +11,7 @@ export interface AuthUser {
   accountStatus?: AccountStatus;
   banReason?: string;
   hasAddress?: boolean;
+  approvalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface LoginCredentials {
@@ -54,6 +55,7 @@ export interface RegisterPriestRequest {
   bio?: string;
   languages?: string[];
   specializations?: string[];
+  serviceAreas?: string[];
   city?: string;
   state?: string;
   pincode?: string;

@@ -6,12 +6,16 @@ import { cn } from '@/lib/utils';
 
 interface BookingStatusBadgeProps {
   status: BookingStatus;
+  cancelledBy?: 'USER' | 'PRIEST' | 'ADMIN' | null;
+  isDevoteeView?: boolean;
   className?: string;
   withPulse?: boolean;
 }
 
 export const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({
   status,
+  cancelledBy,
+  isDevoteeView = false,
   className,
   withPulse = true,
 }) => {
@@ -70,19 +74,29 @@ export const BookingStatusBadge: React.FC<BookingStatusBadgeProps> = ({
         </Badge>
       );
 
-    case 'CANCELLED':
+    case 'CANCELLED': {
+      let label = 'Cancelled';
+      if (cancelledBy === 'USER') {
+        label = isDevoteeView ? 'Cancelled by You' : 'Cancelled by Devotee';
+      } else if (cancelledBy === 'PRIEST') {
+        label = isDevoteeView ? 'Cancelled by Priest' : 'Cancelled by You';
+      } else if (cancelledBy === 'ADMIN') {
+        label = 'Cancelled by Admin';
+      }
+
       return (
         <Badge
           variant="outline"
           className={cn(
-            'gap-1 px-2.5 py-0.5 rounded-sm bg-red-50 text-red-800 border border-red-200 text-xs font-bold',
+            'gap-1.5 px-2.5 py-0.5 rounded-sm bg-stone-100 text-stone-800 border border-stone-300 text-xs font-bold shadow-2xs',
             className
           )}
         >
-          <XCircle className="h-3.5 w-3.5 text-red-700" />
-          <span>Cancelled</span>
+          <XCircle className="h-3.5 w-3.5 text-stone-600" />
+          <span>{label}</span>
         </Badge>
       );
+    }
 
     case 'REJECTED':
       return (

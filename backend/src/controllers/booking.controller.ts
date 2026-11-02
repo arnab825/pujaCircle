@@ -1,19 +1,37 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess } from '../views/response.view.js';
+import { sendSuccess, sendError } from '../views/response.view.js';
 import { bookingService } from '../services/booking.service.js';
 import { getPagination } from '../utils/pagination.js';
+import { resolvePriestProfileId } from '../repositories/priest.repository.js';
 
 // Controller managing ceremony reservations, lifecycle status transitions, and devotee reviews
 export class BookingController {
   // GET /api/v1/bookings
   async getBookings(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const activeUserId = req.user?.role === 'ADMIN' && typeof req.query.userId === 'string'
-        ? req.query.userId
-        : req.user?.id;
-      const priestId = typeof req.query.priestId === 'string' ? req.query.priestId : undefined;
+      const { role, id: authUserId } = req.user!;
+      let filterUserId: string | undefined;
+      let filterPriestId: string | undefined;
+
+      if (role === 'USER') {
+        // Devotees can only access their own bookings
+        filterUserId = authUserId;
+      } else if (role === 'PRIEST') {
+        // Priests can only access appointments booked with them
+        filterPriestId = authUserId;
+      } else if (role === 'ADMIN') {
+        // Admins can query any user or priest bookings
+        filterUserId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+        filterPriestId = typeof req.query.priestId === 'string' ? req.query.priestId : undefined;
+      }
+
       const { page, limit } = getPagination(req.query);
-      const bookings = await bookingService.getBookings({ userId: activeUserId, priestId, page, limit });
+      const bookings = await bookingService.getBookings({
+        userId: filterUserId,
+        priestId: filterPriestId,
+        page,
+        limit,
+      });
       sendSuccess(res, 'Bookings retrieved.', bookings);
     } catch (error) {
       next(error);
@@ -24,6 +42,20 @@ export class BookingController {
   async getBookingById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const booking = await bookingService.getBookingById(req.params.id);
+      
+      // Enforce role-based access to booking details
+      if (req.user?.role === 'USER' && booking.userId !== req.user.id) {
+        sendError(res, 'Access denied. You can only view your own bookings.', 403);
+        return;
+      }
+      if (req.user?.role === 'PRIEST') {
+        const myPriestId = await resolvePriestProfileId(req.user.id);
+        if (booking.priestId !== myPriestId && booking.priestId !== req.user.id) {
+          sendError(res, 'Access denied. You can only view your own appointments.', 403);
+          return;
+        }
+      }
+
       sendSuccess(res, `Booking ${req.params.id} retrieved.`, booking);
     } catch (error) {
       next(error);

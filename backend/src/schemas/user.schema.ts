@@ -11,7 +11,7 @@ export const updateUserProfileSchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100).optional(),
   phoneNumber: z.string().trim().regex(phoneRegex, 'Please enter a valid 10-digit Indian phone number').optional(),
   email: z.string().trim().email('Invalid email address').max(255).optional(),
-  avatarUrl: z.string().url('Invalid avatar URL').optional().or(z.literal('')),
+  avatarUrl: z.string().optional().nullable().or(z.literal('')),
 });
 
 export const changePasswordSchema = z.object({

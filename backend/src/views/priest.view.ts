@@ -17,7 +17,7 @@ export interface PriestViewModel {
   city: string;
   state: string;
   pincode?: string | null;
-  profileImageUrl: string;
+  profileImageUrl?: string | null;
   rating: number;
   reviewCount: number;
   defaultStartTime?: string | null;

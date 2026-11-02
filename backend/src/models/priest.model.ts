@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, text, integer, numeric, timestamp, pgEnum, jsonb, boolean, time } from 'drizzle-orm/pg-core';
 import { users } from './user.model.js';
+import { pujaCatalog } from './catalog.model.js';
 
 export const approvalStatusEnum = pgEnum('priest_approval_status', ['PENDING', 'APPROVED', 'REJECTED']);
 export const exceptionTypeEnum = pgEnum('exception_type', ['BLOCK', 'CUSTOM_HOURS']);
@@ -21,8 +22,8 @@ export const priestProfiles = pgTable('priest_profiles', {
   profileImageUrl: text('profile_image_url').default('').notNull(),
   rating: numeric('rating', { precision: 3, scale: 2 }).default('0.00').notNull(),
   reviewCount: integer('review_count').default(0).notNull(),
-  defaultStartTime: time('default_start_time'),
-  defaultEndTime: time('default_end_time'),
+  defaultStartTime: time('default_start_time').default('07:00:00'),
+  defaultEndTime: time('default_end_time').default('21:00:00'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
 });
@@ -32,7 +33,7 @@ export const priestServices = pgTable('priest_services', {
   id: uuid('id').defaultRandom().primaryKey(),
   priestId: uuid('priest_id').notNull().references(() => priestProfiles.id, { onDelete: 'cascade' }),
   serviceName: varchar('service_name', { length: 255 }).notNull(),
-  pujaCatalogId: uuid('puja_catalog_id'),
+  pujaCatalogId: uuid('puja_catalog_id').references(() => pujaCatalog.id, { onDelete: 'cascade' }),
   isCustom: boolean('is_custom').default(false).notNull(),
   category: varchar('category', { length: 100 }).default('General').notNull(),
   samagriList: jsonb('samagri_list').$type<string[]>().default([]).notNull(),

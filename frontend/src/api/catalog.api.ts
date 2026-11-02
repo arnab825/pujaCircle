@@ -3,12 +3,21 @@ import { PujaCatalogEntry } from '@/types/catalog.types';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 export const catalogApi = {
-  getCatalog: async (category?: string, query?: string): Promise<PujaCatalogEntry[]> => {
+  getCatalog: async (
+    categoryOrParams?: string | { category?: string; query?: string; withPriestsOnly?: boolean; hasPriests?: boolean },
+    query?: string
+  ): Promise<PujaCatalogEntry[]> => {
     try {
-      const res = await apiClient.get('/catalog', { params: { category, query } });
+      let params: Record<string, any> = {};
+      if (typeof categoryOrParams === 'string') {
+        params = { category: categoryOrParams, query };
+      } else if (categoryOrParams && typeof categoryOrParams === 'object') {
+        params = categoryOrParams;
+      }
+      const res = await apiClient.get('/catalog', { params });
       return (res as any).data || res;
     } catch (error) {
-      logAppError('catalogApi.getCatalog', error, { category, query });
+      logAppError('catalogApi.getCatalog', error, { categoryOrParams, query });
       return [];
     }
   },

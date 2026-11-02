@@ -1,9 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '@/lib/config';
+import { useAuthStore } from '@/store/auth.store';
 
 /**
- * Axios HTTP Client Template
- * Preconfigured for future Backend API connection with HTTP-only cookies and JSON headers.
+ * Axios HTTP Client
+ * Secure cookie-based authentication with HTTP-only cookies and JSON headers.
+ * All credentials (cookies) are managed automatically by the browser via withCredentials: true.
  */
 export const apiClient: AxiosInstance = axios.create({
   baseURL: config.apiBaseUrl,
@@ -15,31 +17,39 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor: attach bearer token from Zustand persisted storage
-apiClient.interceptors.request.use(
-  (requestConfig) => {
-    try {
-      const stored = localStorage.getItem('pujacircle-auth-storage');
-      if (stored) {
-        const { state } = JSON.parse(stored);
-        if (state?.token && requestConfig.headers) {
-          requestConfig.headers.Authorization = `Bearer ${state.token}`;
-        }
-      }
-    } catch {
-      // Ignore parse failure; credentials sent via withCredentials
-    }
-    return requestConfig;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor with strict error sanitization
+// Response interceptor with strict error sanitization and 401 session eviction
 apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    // 0. Handle 401 Unauthorized: Session expired or account revoked
+    // NOTE: Do not trigger session eviction/logout if the 401 was a failed credential response on login/register endpoints!
+    const requestUrl = error.config?.url || '';
+    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+
+    if (error.response?.status === 401 && !isAuthEndpoint) {
+      try {
+        useAuthStore.getState().logout();
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          if (
+            !currentPath.includes('/login') &&
+            !currentPath.includes('/register') &&
+            currentPath !== '/'
+          ) {
+            if (currentPath.startsWith('/priest')) {
+              window.location.href = '/priest/login';
+            } else if (currentPath.startsWith('/admin')) {
+              window.location.href = '/admin/login';
+            } else if (currentPath.startsWith('/user')) {
+              window.location.href = '/user/login';
+            }
+          }
+        }
+      } catch {
+        // Ignore browser environment errors
+      }
+    }
+
     // 1. Sanitized server-returned operational message
     if (error.response?.data?.message && typeof error.response.data.message === 'string') {
       return Promise.reject(new Error(error.response.data.message));

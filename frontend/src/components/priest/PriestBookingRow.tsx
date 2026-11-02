@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { CountdownTimer } from '@/components/common/CountdownTimer';
 import { formatINR, formatDate } from '@/lib/utils';
-import { Calendar, Clock, MapPin, Check, Ban, Eye, CheckCircle2, Phone } from 'lucide-react';
+import { Calendar, Clock, MapPin, Check, Ban, Eye, CheckCircle2, Phone, AlertCircle, User, FileText } from 'lucide-react';
 
 interface PriestBookingRowProps {
   booking: Booking;
@@ -29,6 +29,9 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
   onComplete,
   isProcessing = false,
 }) => {
+  const devoteeName = booking.user?.name || booking.userName || 'Devotee';
+  const devoteePhone = booking.user?.phoneNumber || booking.userPhone;
+
   return (
     <div className="p-5 sm:p-6 rounded-lg border-2 border-amber-200 hover:border-amber-400 bg-white shadow-xs hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 puja-card-lift">
       {/* Left Details */}
@@ -37,7 +40,7 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
           <span className="font-extrabold text-base text-stone-950 font-serif">
             {booking.serviceName || 'Sacred Puja Ceremony'}
           </span>
-          <BookingStatusBadge status={booking.status} />
+          <BookingStatusBadge status={booking.status} cancelledBy={booking.cancelledBy} />
           <Badge variant="outline" className="font-mono text-xs font-bold border-amber-300 bg-white text-stone-800">
             {booking.bookingReference || booking.id.slice(0, 8)}
           </Badge>
@@ -63,17 +66,22 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 pt-1 text-xs">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-1 text-xs">
+          <div className="flex items-center gap-1.5 font-bold text-stone-900 bg-amber-100/90 border border-amber-300 px-2.5 py-0.5 rounded-sm">
+            <User className="w-3.5 h-3.5 text-[#780016]" />
+            <span className="text-stone-700 font-semibold">Devotee:</span>
+            <span className="text-[#780016] font-extrabold">{devoteeName}</span>
+          </div>
           <span className="text-stone-600">
             Dakshina: <strong className="text-red-800 font-serif font-bold text-sm">{formatINR(booking.servicePrice || booking.dakshinaAmount || 2100)}</strong> (Cash on Completion)
           </span>
-          {booking.user?.phoneNumber && (
+          {devoteePhone && (
             <div className="flex items-center gap-1.5 text-stone-700">
               <span>Contact:</span>
-              <strong className="text-stone-900 font-mono font-bold">{booking.user.phoneNumber}</strong>
+              <strong className="text-stone-900 font-mono font-bold">{devoteePhone}</strong>
               {booking.status === 'CONFIRMED' && (
                 <a
-                  href={`tel:${booking.user.phoneNumber}`}
+                  href={`tel:${devoteePhone}`}
                   className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5 ml-1"
                 >
                   <Phone className="w-3 h-3" /> Call
@@ -82,6 +90,32 @@ export const PriestBookingRow: React.FC<PriestBookingRowProps> = ({
             </div>
           )}
         </div>
+
+        {(booking.specialInstructions || booking.notes || booking.userNotes) && (
+          <div className="p-2.5 rounded-md bg-amber-50/90 border border-amber-300 text-xs flex items-start gap-2 shadow-2xs">
+            <FileText className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-amber-950">Devotee Requirements / Gotra:</span>
+              <p className="text-[11px] text-stone-800 font-medium leading-relaxed">
+                "{booking.specialInstructions || booking.notes || booking.userNotes}"
+              </p>
+            </div>
+          </div>
+        )}
+
+        {booking.status === 'CANCELLED' && (
+          <div className="p-2.5 rounded-md bg-amber-50 border border-amber-300 text-xs flex items-start gap-2 shadow-2xs">
+            <AlertCircle className="w-4 h-4 text-[#780016] shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-[#780016]">
+                {booking.cancelledBy === 'USER' ? `Devotee Cancelled Appointment: ${devoteeName}` : 'Appointment Cancelled:'}
+              </span>
+              <p className="text-[11px] text-stone-800 leading-normal">
+                Reason: <strong className="text-stone-950 font-medium">"{booking.cancellationReason || 'Cancelled by devotee'}"</strong>
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Actions */}

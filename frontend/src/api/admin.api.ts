@@ -98,6 +98,19 @@ export const adminApi = {
     }
   },
 
+  deletePriest: async (priestId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await apiClient.delete(`/admin/priests/${priestId}`);
+      return res as any;
+    } catch (error) {
+      logAppError('adminApi.deletePriest', error, { priestId });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to delete priest record.'),
+      };
+    }
+  },
+
   // Devotee / User Management
   getAllUsers: async (): Promise<any[]> => {
     try {
@@ -106,6 +119,16 @@ export const adminApi = {
     } catch (error) {
       logAppError('adminApi.getAllUsers', error);
       return [];
+    }
+  },
+
+  getUserById: async (userId: string): Promise<any> => {
+    try {
+      const res = await apiClient.get(`/admin/users/${userId}`);
+      return (res as any).data || res;
+    } catch (error) {
+      logAppError('adminApi.getUserById', error, { userId });
+      return null;
     }
   },
 
@@ -131,6 +154,33 @@ export const adminApi = {
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to unsuspend user.'),
+      };
+    }
+  },
+
+  deleteUser: async (userId: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await apiClient.delete(`/admin/users/${userId}`);
+      return res as any;
+    } catch (error) {
+      logAppError('adminApi.deleteUser', error, { userId });
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to delete user account.'),
+      };
+    }
+  },
+
+  // Admin Profile Settings
+  updateAdminProfile: async (data: { name?: string; avatarUrl?: string | null }): Promise<{ success: boolean; message: string; data?: any }> => {
+    try {
+      const res = await apiClient.put('/admin/profile', data);
+      return res as any;
+    } catch (error) {
+      logAppError('adminApi.updateAdminProfile', error, data);
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to update administrator profile.'),
       };
     }
   },

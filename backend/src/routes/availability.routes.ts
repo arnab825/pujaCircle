@@ -2,7 +2,11 @@ import { Router } from 'express';
 import { availabilityController } from '../controllers/availability.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
-import { markDayOffSchema, blockHoursSchema } from '../schemas/availability.schema.js';
+import {
+  markDayOffSchema,
+  blockHoursSchema,
+  calendarQuerySchema,
+} from '../schemas/availability.schema.js';
 
 const router = Router();
 
@@ -27,6 +31,10 @@ router.post(
 );
 
 // GET /calendar: Get 3-month availability grid
-router.get('/calendar', availabilityController.getCalendar);
+router.get(
+  '/calendar',
+  validate(calendarQuerySchema, 'query'),
+  availabilityController.getCalendar
+);
 
 export const availabilityRoutes = router;

@@ -2,14 +2,15 @@
  * Utility functions for Exception-Based Priest Availability System.
  * 
  * Default Working Hours: 07:00 AM to 09:00 PM (Configurable per priest).
- * Available Windows = [Working Window] MINUS [Leaves] MINUS [Blackouts] MINUS [Bookings].
+ * Available Windows = [Working Window (or Custom Specific Hours)] MINUS [Leaves] MINUS [Blackouts] MINUS [Bookings].
  */
 
 export interface PriestException {
   id: string;
   priestId: string;
   date: string; // YYYY-MM-DD
-  type: 'FULL_DAY_LEAVE' | 'PARTIAL_BLACKOUT';
+  type: 'FULL_DAY_LEAVE' | 'PARTIAL_BLACKOUT' | 'CUSTOM_HOURS';
+  exceptionType?: 'BLOCK' | 'CUSTOM_HOURS';
   startTime?: string; // HH:mm
   endTime?: string;   // HH:mm
   reason?: string;
@@ -24,6 +25,8 @@ export interface CalculatedSlot {
   startTime: string; // HH:mm
   endTime: string;   // HH:mm
   status: 'AVAILABLE' | 'BOOKED';
+  isBlocked?: boolean;
+  blockedReason?: string;
 }
 
 interface TimeInterval {
@@ -45,6 +48,31 @@ export function minutesToTime(mins: number): string {
   const h = Math.floor(mins / 60).toString().padStart(2, '0');
   const m = (mins % 60).toString().padStart(2, '0');
   return `${h}:${m}`;
+}
+
+/** Get current date (YYYY-MM-DD) and minutes from midnight in Asia/Kolkata (IST) */
+export function getISTNow(): { istDate: string; istMinutes: number; istTime: string } {
+  const now = new Date();
+  const istDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
+  const timeStr = now.toLocaleTimeString('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const [h, m] = timeStr.split(':').map(Number);
+  return {
+    istDate,
+    istMinutes: (h || 0) * 60 + (m || 0),
+    istTime: timeStr,
+  };
+}
+
+/** Get tomorrow's date string (YYYY-MM-DD) in Asia/Kolkata (IST) */
+export function getISTTomorrow(): string {
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(tomorrow);
 }
 
 /** Format time to 12-hour AM/PM string */
@@ -95,9 +123,11 @@ export function subtractTimeIntervals(
 }
 
 /**
- * Dynamically computes available Muhurat slots for a given date:
- * Default: 07:00 to 21:00 (14 hours or configured priest working hours)
- * Minused by: Full Day Leaves, Partial Blackouts, and Confirmed Bookings.
+ * Dynamically computes Muhurat slots for a given date:
+ * Base Window: Standard working hours (e.g. 07:00 to 21:00 or configured).
+ * Overlapping partial blackouts (e.g. 1 PM - 4 PM) are flagged as isBlocked: true (BOOKED).
+ * Overlapping active bookings are flagged as BOOKED.
+ * All other slots are returned as AVAILABLE.
  */
 export function calculateDayMuhuratSlots(
   priestId: string,
@@ -108,6 +138,11 @@ export function calculateDayMuhuratSlots(
   defaultStartTime: string = '07:00',
   defaultEndTime: string = '21:00'
 ): CalculatedSlot[] {
+  const { istDate, istMinutes } = getISTNow();
+  if (targetDate < istDate) {
+    return [];
+  }
+
   // Check full day leave
   const dayExceptions = exceptions.filter((e) => e.date === targetDate);
   const hasFullLeave = dayExceptions.some((e) => e.type === 'FULL_DAY_LEAVE');
@@ -118,60 +153,84 @@ export function calculateDayMuhuratSlots(
   // Base working window: configurable daily working window (default: 07:00 to 21:00)
   const startMin = timeToMinutes(defaultStartTime) || (7 * 60);
   const endMin = timeToMinutes(defaultEndTime) || (21 * 60);
-  const baseWindow: TimeInterval[] = [{ start: startMin, end: endMin }];
 
-  // Collect busy intervals
-  const busyList: TimeInterval[] = [];
-
-  // 1. Partial blackouts
-  dayExceptions
-    .filter((e) => e.type === 'PARTIAL_BLACKOUT' && e.startTime && e.endTime)
-    .forEach((e) => {
-      busyList.push({
-        start: timeToMinutes(e.startTime!),
-        end: timeToMinutes(e.endTime!),
-      });
-    });
+  // 1. Partial blackouts / blocked hours
+  const blackoutExceptions = dayExceptions.filter(
+    (e) => (e.type === 'PARTIAL_BLACKOUT' || e.exceptionType === 'BLOCK') && e.startTime && e.endTime
+  );
 
   // 2. Confirmed bookings for this date
-  bookings
-    .filter(
-      (b) =>
-        b.bookingDate === targetDate &&
-        b.status !== 'CANCELLED' &&
-        b.status !== 'REJECTED' &&
-        b.startTime &&
-        b.endTime
-    )
-    .forEach((b) => {
-      busyList.push({
-        start: timeToMinutes(b.startTime),
-        end: timeToMinutes(b.endTime),
-      });
-    });
+  const activeBookings = bookings.filter(
+    (b) =>
+      b.bookingDate === targetDate &&
+      b.status !== 'CANCELLED' &&
+      b.status !== 'REJECTED' &&
+      b.startTime &&
+      b.endTime
+  );
 
-  // Subtract busy windows
-  const freeWindows = subtractTimeIntervals(baseWindow, busyList);
-
-  // Divide into standard Muhurat slots
   const slots: CalculatedSlot[] = [];
-  freeWindows.forEach((window) => {
-    let currentStart = window.start;
-    while (currentStart + slotDurationMinutes <= window.end) {
-      const startStr = minutesToTime(currentStart);
-      const endStr = minutesToTime(currentStart + slotDurationMinutes);
-      slots.push({
-        id: `dyn-${targetDate}-${startStr}-${endStr}`,
-        priestId,
-        slotDate: targetDate,
-        date: targetDate,
-        startTime: startStr,
-        endTime: endStr,
-        status: 'AVAILABLE',
+  let currentStart = startMin;
+  while (currentStart + slotDurationMinutes <= endMin) {
+    const currentEnd = currentStart + slotDurationMinutes;
+    const startStr = minutesToTime(currentStart);
+    const endStr = minutesToTime(currentEnd);
+    const isTargetToday = targetDate === istDate;
+    const isPastSlot = isTargetToday && currentStart <= istMinutes;
+
+    if (!isPastSlot) {
+      // Check if this slot overlaps with any blocked hours (e.g. 1 PM - 4 PM)
+      const matchingBlackout = blackoutExceptions.find((bo) => {
+        const boStart = timeToMinutes(bo.startTime!);
+        const boEnd = timeToMinutes(bo.endTime!);
+        return currentStart < boEnd && currentEnd > boStart;
       });
-      currentStart += slotDurationMinutes;
+
+      // Check if this slot overlaps with an active booking
+      const matchingBooking = activeBookings.find((b) => {
+        const bStart = timeToMinutes(b.startTime);
+        const bEnd = timeToMinutes(b.endTime);
+        return currentStart < bEnd && currentEnd > bStart;
+      });
+
+      if (matchingBlackout) {
+        slots.push({
+          id: `dyn-${targetDate}-${startStr}-${endStr}`,
+          priestId,
+          slotDate: targetDate,
+          date: targetDate,
+          startTime: startStr,
+          endTime: endStr,
+          status: 'BOOKED',
+          isBlocked: true,
+          blockedReason: matchingBlackout.reason || 'Blocked by Purohit',
+        });
+      } else if (matchingBooking) {
+        slots.push({
+          id: `dyn-${targetDate}-${startStr}-${endStr}`,
+          priestId,
+          slotDate: targetDate,
+          date: targetDate,
+          startTime: startStr,
+          endTime: endStr,
+          status: 'BOOKED',
+          isBlocked: false,
+        });
+      } else {
+        slots.push({
+          id: `dyn-${targetDate}-${startStr}-${endStr}`,
+          priestId,
+          slotDate: targetDate,
+          date: targetDate,
+          startTime: startStr,
+          endTime: endStr,
+          status: 'AVAILABLE',
+          isBlocked: false,
+        });
+      }
     }
-  });
+    currentStart += slotDurationMinutes;
+  }
 
   return slots;
 }

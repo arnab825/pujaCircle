@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { Booking } from '@/types/booking.types';
 import { formatINR, formatDate } from '@/lib/utils';
-import { Calendar, Clock, MapPin, Phone, User, Sparkles } from 'lucide-react';
+import { Calendar, Clock, MapPin, Phone, User, Sparkles, Ban, AlertCircle, FileText } from 'lucide-react';
 
 interface PriestBookingDetailsDialogProps {
   isOpen: boolean;
@@ -35,7 +35,7 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
               <Sparkles className="w-5 h-5 text-primary" />
               <DialogTitle className="text-lg font-serif">Ceremony Appointment</DialogTitle>
             </div>
-            <BookingStatusBadge status={booking.status} />
+            <BookingStatusBadge status={booking.status} cancelledBy={booking.cancelledBy} />
           </div>
           <DialogDescription className="text-xs font-mono">
             Ref: {booking.bookingReference || booking.id}
@@ -101,15 +101,47 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
             )}
           </div>
 
+          {/* Devotee Requirements & Gotra */}
+          {(booking.specialInstructions || booking.notes || booking.userNotes) && (
+            <div className="p-3.5 rounded-lg bg-amber-50/90 border border-amber-300 space-y-1.5 shadow-2xs">
+              <div className="flex items-center gap-1.5 font-bold text-stone-900">
+                <FileText className="w-4 h-4 text-[#780016]" />
+                <span>Devotee Special Requirements & Gotra:</span>
+              </div>
+              <p className="pl-5 text-stone-800 text-xs font-medium leading-relaxed">
+                "{booking.specialInstructions || booking.notes || booking.userNotes}"
+              </p>
+            </div>
+          )}
+
           {/* Rejection / Cancellation Notes if applicable */}
           {booking.rejectionReason && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-              <strong>Decline Reason:</strong> {booking.rejectionReason}
+            <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-900 text-xs space-y-1">
+              <strong className="font-bold flex items-center gap-1.5">
+                <Ban className="w-4 h-4 text-red-700" />
+                Declined by You (Priest):
+              </strong>
+              <p className="pl-5 text-stone-700 font-medium">{booking.rejectionReason}</p>
             </div>
           )}
           {booking.cancellationReason && (
-            <div className="p-3 rounded-lg bg-muted border text-muted-foreground text-xs">
-              <strong>Cancellation Reason:</strong> {booking.cancellationReason}
+            <div className={`p-3.5 rounded-lg border text-xs space-y-1.5 ${
+              booking.cancelledBy === 'USER'
+                ? 'bg-amber-50 border-amber-300 text-amber-950'
+                : 'bg-muted border-border text-foreground'
+            }`}>
+              <strong className="font-bold flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-[#780016]" />
+                {booking.cancelledBy === 'USER' ? 'Devotee Cancelled Appointment:' : 'Cancellation Reason:'}
+              </strong>
+              <p className="pl-5 text-stone-800 font-medium">
+                "{booking.cancellationReason}"
+              </p>
+              {booking.cancelledBy === 'USER' && (
+                <p className="pl-5 text-[11px] text-stone-500 italic">
+                  The devotee {booking.user?.name ? `(${booking.user.name})` : ''} cancelled this booking. Your calendar Muhurat slot has been automatically released.
+                </p>
+              )}
             </div>
           )}
         </div>

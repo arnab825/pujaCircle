@@ -11,12 +11,55 @@ import {
   UploadCloud,
   AlertCircle,
   Loader2,
+  Clock,
 } from "lucide-react";
 import { PujaCatalogEntry } from "@/types/catalog.types";
 import { catalogApi } from "@/api/catalog.api";
 import { apiClient } from "@/api/client";
 import { modalTransition, buttonPress } from "@/motion/variants";
 import { toast } from "sonner";
+
+const getCategoryBadge = (category: string) => {
+  const norm = (category || "").toLowerCase().replace(/[\s_-]+/g, "");
+  switch (norm) {
+    case "lifeevent":
+      return {
+        label: "Life Event",
+        icon: "🌟",
+        className: "bg-amber-100 text-amber-950 border-amber-300",
+      };
+    case "doshanivaran":
+      return {
+        label: "Dosha Nivaran",
+        icon: "🛡️",
+        className: "bg-purple-100 text-purple-950 border-purple-300",
+      };
+    case "festival":
+      return {
+        label: "Festival & Vrat",
+        icon: "🪔",
+        className: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      };
+    case "business":
+      return {
+        label: "Business & Trade",
+        icon: "💼",
+        className: "bg-blue-100 text-blue-950 border-blue-300",
+      };
+    case "ancestral":
+      return {
+        label: "Ancestral & Pitru",
+        icon: "🕊️",
+        className: "bg-stone-200 text-stone-900 border-stone-300",
+      };
+    default:
+      return {
+        label: category,
+        icon: "✨",
+        className: "bg-amber-50 text-amber-900 border-amber-200",
+      };
+  }
+};
 
 export const AdminCatalogPage: React.FC = () => {
   const [catalog, setCatalog] = useState<PujaCatalogEntry[]>([]);
@@ -46,6 +89,8 @@ export const AdminCatalogPage: React.FC = () => {
   const [timingNote, setTimingNote] = useState("");
   const [durationMinutes, setDurationMinutes] = useState<string>("120");
 
+  const normalizeCat = (c: string) => (c || '').toLowerCase().replace(/[\s_-]+/g, '');
+
   const filteredCatalog = catalog.filter((entry) => {
     const matchesSearch =
       entry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -55,7 +100,8 @@ export const AdminCatalogPage: React.FC = () => {
       );
 
     const matchesCategory =
-      selectedCategory === "ALL" || entry.category === selectedCategory;
+      selectedCategory === "ALL" ||
+      normalizeCat(entry.category) === normalizeCat(selectedCategory);
 
     return matchesSearch && matchesCategory;
   });
@@ -381,67 +427,137 @@ export const AdminCatalogPage: React.FC = () => {
         </motion.button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-amber-50/40 p-3 rounded-xl border border-amber-200">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-stone-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by puja name, deity, or tag..."
-            className="w-full rounded-md border border-amber-300 bg-white pl-9 pr-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#780016]"
-          />
+      {/* Search and Category Control Station */}
+      <div className="bg-white rounded-2xl border-2 border-amber-300 p-4 sm:p-5 shadow-xs space-y-4">
+        {/* Top: Full-Width Search Input with Live Results & Quick Reset */}
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 absolute left-3.5 top-3 text-amber-700" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ceremonies by puja name, presiding deity, or intent tags..."
+              className="w-full rounded-xl border-2 border-amber-200 bg-amber-50/20 pl-10 pr-10 py-2 text-xs text-stone-900 placeholder:text-stone-500 focus:outline-none focus:border-[#780016] focus:bg-white transition-all shadow-2xs"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-2.5 text-stone-400 hover:text-stone-700 text-xs font-bold bg-stone-100 hover:bg-stone-200 h-5 w-5 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <span className="text-xs font-medium text-stone-600">
+              Showing <strong className="text-[#780016] font-bold">{filteredCatalog.length}</strong> of {catalog.length} ceremonies
+            </span>
+            {(searchQuery || selectedCategory !== "ALL") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCategory("ALL");
+                }}
+                className="text-[11px] font-bold text-[#780016] hover:text-red-900 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-md border border-amber-300 transition-colors cursor-pointer"
+              >
+                Reset Filters
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto text-xs">
-          <Filter className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+        {/* Bottom: Wrap Category Pills (Zero Horizontal Scrollbar) */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-100">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-stone-700 mr-1 shrink-0">
+            <Filter className="w-3.5 h-3.5 text-amber-700" />
+            <span className="uppercase text-[10px] tracking-wider text-stone-500">Categories:</span>
+          </div>
+
           {[
-            "ALL",
-            "life-event",
-            "dosha-nivaran",
-            "festival",
-            "business",
-            "ancestral",
-          ].map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-md text-[11px] font-semibold transition-colors cursor-pointer shrink-0 ${
-                selectedCategory === cat
-                  ? "bg-[#780016] text-white border border-amber-400 shadow-xs"
-                  : "bg-white text-stone-700 hover:bg-amber-50 border border-amber-300"
-              }`}
-            >
-              {cat.replace("-", " ")}
-            </button>
-          ))}
+            { key: "ALL", label: "All Ceremonies", icon: "🕉️" },
+            { key: "life-event", label: "Life Events", icon: "🌟" },
+            { key: "dosha-nivaran", label: "Dosha Nivaran", icon: "🛡️" },
+            { key: "festival", label: "Festivals & Vrats", icon: "🪔" },
+            { key: "business", label: "Business & Trade", icon: "💼" },
+            { key: "ancestral", label: "Ancestral & Pitru", icon: "🕊️" },
+          ].map((catItem) => {
+            const isSelected = selectedCategory === catItem.key;
+            const count =
+              catItem.key === "ALL"
+                ? catalog.length
+                : catalog.filter((c) => normalizeCat(c.category) === normalizeCat(catItem.key)).length;
+
+            return (
+              <button
+                key={catItem.key}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSelectedCategory(catItem.key);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs select-none active:scale-95 ${
+                  isSelected
+                    ? "bg-[#780016] text-white border-2 border-amber-400 shadow-xs"
+                    : "bg-white hover:bg-amber-50 text-stone-700 border border-amber-200 hover:border-amber-400"
+                }`}
+              >
+                <span>{catItem.icon}</span>
+                <span>{catItem.label}</span>
+                <span
+                  className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full ${
+                    isSelected
+                      ? "bg-amber-400/30 text-amber-200"
+                      : "bg-stone-100 text-stone-600"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <div className="rounded-xl border-2 border-amber-200/80 bg-white shadow-xs overflow-hidden">
+      {/* Main Catalog Directory Table */}
+      <div className="rounded-2xl border-2 border-amber-300/80 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-stone-800 divide-y divide-amber-200">
-            <thead className="bg-amber-50/80 text-stone-700 font-bold uppercase text-[10px] tracking-wider">
+            <thead className="bg-linear-to-r from-amber-100/90 via-amber-50 to-amber-100/90 text-stone-900 font-bold uppercase text-[11px] font-serif tracking-wider">
               <tr>
-                <th className="py-3 px-4">Puja Ceremony & Cover</th>
-                <th className="py-3 px-4">Category</th>
-                <th className="py-3 px-4">Intent Tags (Rules Engine)</th>
-                <th className="py-3 px-4">Items / Steps</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3.5 px-4">Puja Ceremony & Cover</th>
+                <th className="py-3.5 px-4">Category</th>
+                <th className="py-3.5 px-4">Intent Tags (Rules Engine)</th>
+                <th className="py-3.5 px-4">Vidhi & Samagri</th>
+                <th className="py-3.5 px-4 text-right pr-6">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-amber-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-stone-500">
+                  <td colSpan={5} className="py-12 text-center text-stone-500 font-serif">
                     Loading sacred catalog entries...
                   </td>
                 </tr>
               ) : filteredCatalog.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-stone-500">
-                    No catalog entries found matching your search.
+                  <td colSpan={5} className="py-12 text-center text-stone-500 space-y-2">
+                    <p className="font-semibold text-stone-700 font-serif">No catalog ceremonies found for this category or search.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory("ALL");
+                        setSearchQuery("");
+                      }}
+                      className="text-xs text-[#780016] font-bold underline hover:text-red-800 cursor-pointer"
+                    >
+                      Reset filter to All Ceremonies
+                    </button>
                   </td>
                 </tr>
               ) : (
@@ -450,74 +566,87 @@ export const AdminCatalogPage: React.FC = () => {
                     key={entry.id}
                     className="hover:bg-amber-50/40 transition-colors"
                   >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={entry.coverImage}
-                          alt={entry.name}
-                          className="w-14 h-10 object-cover rounded-md border border-amber-200 shadow-xs shrink-0 bg-stone-100"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "/images/hero_vedic_puja.jpg";
-                          }}
-                        />
-                        <div>
-                          <div className="font-semibold text-stone-900">
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="relative w-16 h-12 rounded-lg overflow-hidden border-2 border-amber-300 shadow-2xs shrink-0 group">
+                          <img
+                            src={entry.coverImage || "/images/hero_vedic_puja.jpg"}
+                            alt={entry.name}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 bg-stone-100"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src =
+                                "/images/hero_vedic_puja.jpg";
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-serif font-extrabold text-stone-950 text-sm hover:text-[#780016] transition-colors leading-tight">
                             {entry.name}
-                          </div>
-                          <div className="text-[11px] text-[#780016] font-medium flex items-center gap-1.5 flex-wrap">
-                            <span>Deity: {entry.deity}</span>
-                            <span>•</span>
-                            <span className="font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded text-[10px]">
-                              {entry.durationMinutes || 120} mins (
-                              {((entry.durationMinutes || 120) / 60).toFixed(1)}{" "}
-                              hrs)
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                            <span className="font-medium text-amber-950 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              <span className="text-amber-600">🕉️</span> Deity: <strong>{entry.deity}</strong>
+                            </span>
+                            <span className="font-semibold text-stone-700 bg-stone-100 px-2 py-0.5 rounded border border-stone-200 flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-amber-700" />
+                              <span>{entry.durationMinutes || 120} mins ({((entry.durationMinutes || 120) / 60).toFixed(1)} hrs)</span>
                             </span>
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="rounded-sm bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-stone-800 border border-amber-300">
-                        {entry.category}
-                      </span>
+                    <td className="py-3.5 px-4 whitespace-nowrap">
+                      {(() => {
+                        const catBadge = getCategoryBadge(entry.category);
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border shadow-2xs ${catBadge.className}`}>
+                            <span>{catBadge.icon}</span>
+                            <span>{catBadge.label}</span>
+                          </span>
+                        );
+                      })()}
                     </td>
-                    <td className="py-3 px-4 max-w-xs">
-                      <div className="flex flex-wrap gap-1">
-                        {entry.intentTags.slice(0, 4).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-700 border border-stone-200"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {entry.intentTags.length > 4 && (
-                          <span className="text-[10px] text-stone-500 pt-0.5">
-                            +{entry.intentTags.length - 4} more
-                          </span>
-                        )}
+                    <td className="py-3.5 px-4 max-w-xs">
+                      <div className="flex flex-wrap gap-1.5">
+                        {entry.intentTags.map((tag) => {
+                          const cleanTag = tag.replace(/^["'\s]+|["',\s]+$/g, "").trim();
+                          if (!cleanTag) return null;
+                          return (
+                            <span
+                              key={cleanTag}
+                              className="inline-flex items-center rounded-md bg-stone-100 hover:bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-stone-700 hover:text-amber-950 border border-stone-200 transition-colors"
+                            >
+                              #{cleanTag}
+                            </span>
+                          );
+                        })}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-[11px] text-stone-600">
-                      <div>{entry.samagriList.length} samagri items</div>
-                      <div>{entry.steps.length} sequential steps</div>
+                    <td className="py-3.5 px-4 text-xs space-y-1 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 font-medium text-stone-800">
+                        <span className="text-amber-700">📦</span>
+                        <span><strong>{entry.samagriList.length}</strong> Samagri items</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-stone-600 text-[11px]">
+                        <span className="text-emerald-700">📜</span>
+                        <span><strong>{entry.steps.length}</strong> Vidhi steps</span>
+                      </div>
                     </td>
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right pr-6 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(entry)}
-                          className="rounded p-1.5 text-stone-500 hover:text-[#780016] hover:bg-amber-50 transition-colors cursor-pointer"
-                          title="Edit Entry"
+                          className="h-8 w-8 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                          title="Edit Ceremony"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteEntry(entry.id)}
-                          className="rounded p-1.5 text-stone-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
-                          title="Delete Entry"
+                          className="h-8 w-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center justify-center transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+                          title="Delete Ceremony"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -530,12 +659,12 @@ export const AdminCatalogPage: React.FC = () => {
           </table>
         </div>
 
-        <div className="p-3 bg-amber-50/50 border-t border-amber-200 text-[11px] text-stone-600 flex justify-between items-center">
+        <div className="p-3.5 bg-amber-50/60 border-t border-amber-200 text-xs text-stone-700 flex flex-col sm:flex-row justify-between items-center gap-2">
           <span>
-            Showing {filteredCatalog.length} of {catalog.length} catalog entries
+            Showing <strong className="text-stone-900 font-bold">{filteredCatalog.length}</strong> of {catalog.length} catalog ceremonies
           </span>
-          <span className="text-amber-900 font-medium">
-            Session In-Memory Persistence Active (FR-21)
+          <span className="text-amber-900 font-semibold font-serif flex items-center gap-1.5">
+            <span>🕉️</span> Verified Vedic Vidhi Catalog Directory
           </span>
         </div>
       </div>

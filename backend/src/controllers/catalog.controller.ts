@@ -12,7 +12,11 @@ export class CatalogController {
     try {
       const category = typeof req.query.category === 'string' ? req.query.category : undefined;
       const query = typeof req.query.query === 'string' ? req.query.query : undefined;
-      const catalog = await catalogService.getCatalog(category, query);
+      const withPriestsOnly =
+        req.query.withPriestsOnly === 'true' ||
+        req.query.hasPriests === 'true' ||
+        req.query.availableOnly === 'true';
+      const catalog = await catalogService.getCatalog(category, query, withPriestsOnly);
       sendSuccess(res, 'Puja catalog retrieved successfully.', catalog);
     } catch (error) {
       next(error);

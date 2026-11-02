@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { priestApi } from '@/api/priest.api';
+import { addressApi, PincodeLocation } from '@/api/address.api';
 import { Priest } from '@/types/priest.types';
 import { PriestCard } from '@/components/priest/PriestCard';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ import {
   ChevronUp,
   ShieldCheck,
   Flame,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -63,19 +65,24 @@ export const PriestListingPage: React.FC = () => {
   const [activeCatalogId, setActiveCatalogId] = useState<string>(catalogIdParam);
   const [activeServiceName, setActiveServiceName] = useState<string>(serviceParam);
   const [activeLanguage, setActiveLanguage] = useState<string>('All');
+  const pincodeParam = searchParams.get('pincode') || '';
+  const [pincode, setPincode] = useState<string>(pincodeParam);
+  const [pincodeLocation, setPincodeLocation] = useState<PincodeLocation | null>(null);
   const [activeMinExp, setActiveMinExp] = useState<number>(0);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const appliedFiltersCount =
-    (activeLanguage !== 'All' ? 1 : 0) + (activeMinExp > 0 ? 1 : 0) + (activeCatalogId ? 1 : 0);
-  const hasActiveFilters = searchQuery !== '' || appliedFiltersCount > 0 || activeCatalogId !== '';
+    (activeLanguage !== 'All' ? 1 : 0) + (activeMinExp > 0 ? 1 : 0) + (activeCatalogId ? 1 : 0) + (pincode ? 1 : 0);
+  const hasActiveFilters = searchQuery !== '' || appliedFiltersCount > 0 || activeCatalogId !== '' || pincode !== '';
 
   const fetchPriests = async (query = searchQuery) => {
     setIsLoading(true);
     try {
       // Devotee discovery: Only approved and active priests appear (status 'ALL' omitted)
+      const cleanPin = pincode.trim().replace(/\D/g, '');
       const data = await priestApi.getPriests({
         searchQuery: query || undefined,
+        pincode: cleanPin.length === 6 ? cleanPin : undefined,
         catalogId: activeCatalogId || undefined,
         serviceName: activeServiceName || undefined,
         language: activeLanguage !== 'All' ? activeLanguage : undefined,
@@ -87,22 +94,41 @@ export const PriestListingPage: React.FC = () => {
     }
   };
 
+  // Postal lookup effect when user enters a 6-digit PINCODE
+  useEffect(() => {
+    const cleanPin = pincode.trim().replace(/\D/g, '');
+    if (cleanPin.length === 6) {
+      addressApi.lookupPincode(cleanPin).then((res) => {
+        if (res.locations && res.locations.length > 0) {
+          setPincodeLocation(res.locations[0]);
+        } else {
+          setPincodeLocation(null);
+        }
+      });
+    } else {
+      setPincodeLocation(null);
+    }
+  }, [pincode]);
+
   // Live debounced search & filter reaction
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchPriests(searchQuery);
       const newParams: Record<string, string> = {};
       if (searchQuery) newParams.searchQuery = searchQuery;
+      if (pincode) newParams.pincode = pincode;
       if (activeCatalogId) newParams.catalogId = activeCatalogId;
       if (activeServiceName) newParams.service = activeServiceName;
       setSearchParams(newParams);
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, activeCatalogId, activeServiceName, activeLanguage, activeMinExp]);
+  }, [searchQuery, pincode, activeCatalogId, activeServiceName, activeLanguage, activeMinExp]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
+    setPincode('');
+    setPincodeLocation(null);
     setActiveCatalogId('');
     setActiveServiceName('');
     setActiveLanguage('All');
@@ -111,7 +137,7 @@ export const PriestListingPage: React.FC = () => {
   };
 
   return (
-    <div className="container py-6 sm:py-8 space-y-6 max-w-5xl">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Header Banner */}
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-sm bg-amber-100 border border-amber-300 text-stone-900 text-xs font-bold">
@@ -140,12 +166,12 @@ export const PriestListingPage: React.FC = () => {
 
       {/* Search & Filter Control Hub */}
       <div className="bg-white border-2 border-amber-300 rounded-lg shadow-xs overflow-hidden p-4 sm:p-5 space-y-4">
-        {/* 1. Live Search Bar & Filters Toggle */}
-        <div className="flex items-center gap-2.5">
+        {/* 1. Live Search Bar, Indian PINCODE & Filters Toggle */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
           <div className="relative flex-1 w-full">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-stone-500" />
             <Input
-              placeholder="Type ceremony name or priest (e.g. Griha Pravesh, Satyanarayan, Rudrabhishek)..."
+              placeholder="Search ceremony or priest (e.g. Satyanarayan, Rudrabhishek)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-9 text-xs sm:text-sm h-10 rounded-md border-amber-300 focus-visible:ring-2 focus-visible:ring-red-700"
@@ -156,6 +182,28 @@ export const PriestListingPage: React.FC = () => {
                 onClick={() => setSearchQuery('')}
                 className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
                 aria-label="Clear search query"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* 6-Digit Indian Postal PINCODE Filter */}
+          <div className="relative w-full sm:w-44 shrink-0">
+            <MapPin className="absolute left-3 top-3 h-4 w-4 text-red-700" />
+            <Input
+              placeholder="PIN Code (e.g. 700019)"
+              maxLength={6}
+              value={pincode}
+              onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="pl-9 pr-8 text-xs sm:text-sm h-10 rounded-md border-amber-300 focus-visible:ring-2 focus-visible:ring-red-700 font-mono font-bold"
+            />
+            {pincode && (
+              <button
+                type="button"
+                onClick={() => setPincode('')}
+                className="absolute right-2.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                aria-label="Clear PIN code"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -188,6 +236,26 @@ export const PriestListingPage: React.FC = () => {
             )}
           </Button>
         </div>
+
+        {/* Verified Postal PIN Locality Match Badge */}
+        {pincode.length === 6 && (
+          <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-300 rounded-md text-xs text-emerald-950 font-medium">
+            <MapPin className="h-4 w-4 text-emerald-700 shrink-0" />
+            <span className="flex-1">
+              Matching priests serving PIN <strong>{pincode}</strong>
+              {pincodeLocation ? ` (${pincodeLocation.locality || pincodeLocation.city}, ${pincodeLocation.district}, ${pincodeLocation.state})` : ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPincode('')}
+              className="text-stone-500 hover:text-stone-800 p-1 rounded-sm cursor-pointer flex items-center gap-1 font-semibold"
+              title="Clear PIN code"
+            >
+              <span>Clear</span>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* Active Ceremony Filter Badge */}
         {activeServiceName && (
@@ -339,9 +407,13 @@ export const PriestListingPage: React.FC = () => {
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-amber-100 text-red-700 border-2 border-amber-300">
               <Search className="h-6 w-6" />
             </div>
-            <h2 className="text-base font-bold font-serif text-stone-900">No Priests Found</h2>
+            <h2 className="text-base font-bold font-serif text-stone-900">
+              {pincode.length === 6 ? `No Purohits Currently Serving PIN ${pincode}` : 'No Priests Found'}
+            </h2>
             <p className="text-xs text-stone-600 leading-relaxed">
-              No verified priests matched your search criteria. Try selecting another ceremony or resetting your filters.
+              {pincode.length === 6
+                ? `We could not find any active verified priests serving PIN ${pincode}${pincodeLocation ? ` in ${pincodeLocation.locality || pincodeLocation.district}` : ''}. Try searching a nearby PIN code or reset your location filter.`
+                : 'No verified priests matched your search criteria. Try selecting another ceremony or resetting your filters.'}
             </p>
             <Button
               variant="outline"

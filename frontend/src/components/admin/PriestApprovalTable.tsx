@@ -54,13 +54,47 @@ export const PriestApprovalTable: React.FC<PriestApprovalTableProps> = ({
         <TableBody>
           {priests.map((p) => {
             const isBanned = p.accountStatus === 'BANNED';
+            const priestAvatar =
+              p.profileImageUrl ||
+              (p as any).avatarUrl ||
+              (typeof window !== 'undefined'
+                ? localStorage.getItem(`priest_avatar_${p.id}`) ||
+                  localStorage.getItem(`priest_avatar_${(p as any).userId}`)
+                : null);
+            const pInitials = p.fullName
+              ? p.fullName
+                  .split(' ')
+                  .filter(Boolean)
+                  .map((w) => w[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2)
+              : 'PR';
 
             return (
               <TableRow key={p.id} className="text-xs border-b border-stone-100 hover:bg-amber-50/30 transition-colors">
                 <TableCell className="font-medium py-3.5 pl-5">
-                  <div>
-                    <p className="font-bold text-stone-950 font-serif text-sm">{p.fullName}</p>
-                    <p className="text-[11px] text-stone-500 font-mono mt-0.5">{p.phoneNumber}</p>
+                  <div className="flex items-center gap-3">
+                    {priestAvatar ? (
+                      <img
+                        src={priestAvatar}
+                        alt={p.fullName}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-amber-400 shadow-xs shrink-0 bg-amber-50"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-[#780016] text-amber-300 border-2 border-amber-400 flex items-center justify-center font-bold text-xs shrink-0 font-serif shadow-xs">
+                        {pInitials}
+                      </div>
+                    )}
+                    <div>
+                      <Link
+                        to={`/admin/priests/${p.id}`}
+                        className="font-bold text-stone-950 font-serif text-sm hover:text-[#780016] transition-colors block"
+                      >
+                        {p.fullName}
+                      </Link>
+                      <p className="text-[11px] text-stone-500 font-mono mt-0.5">{p.phoneNumber}</p>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="py-3.5">

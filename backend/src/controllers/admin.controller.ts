@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess } from '../views/response.view.js';
+import { sendSuccess, sendError } from '../views/response.view.js';
 import { adminService } from '../services/admin.service.js';
 import { getPagination } from '../utils/pagination.js';
 
@@ -97,6 +97,16 @@ export class AdminController {
     }
   }
 
+  // GET /api/v1/admin/users/:id
+  async getUserById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await adminService.getUserById(req.params.id);
+      sendSuccess(res, 'Devotee details retrieved successfully.', user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // POST /api/v1/admin/users/:id/suspend
   async suspendUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
@@ -123,6 +133,56 @@ export class AdminController {
       const { page, limit } = getPagination(req.query, 50, 100);
       const bookingsList = await adminService.getAllBookings(page, limit);
       sendSuccess(res, 'All platform ceremony bookings retrieved.', bookingsList);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // DELETE /api/v1/admin/users/:id
+  async deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await adminService.deleteUser(req.params.id, req.user?.id);
+      sendSuccess(res, 'User account ' + req.params.id + ' permanently deleted.');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // DELETE /api/v1/admin/priests/:id
+  async deletePriest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await adminService.deletePriest(req.params.id, req.user?.id);
+      sendSuccess(res, 'Priest record ' + req.params.id + ' permanently deleted.');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /api/v1/admin/profile
+  async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      sendSuccess(res, 'Admin profile details retrieved.', req.user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PUT /api/v1/admin/profile
+  async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const name = req.body?.name || req.body?.fullName;
+      const avatarUrl = req.body?.avatarUrl;
+
+      if (name !== undefined && (typeof name !== 'string' || name.trim().length < 2)) {
+        sendError(res, 'Full name must be at least 2 characters long.', 400);
+        return;
+      }
+
+      const updated = await adminService.updateAdminProfile(req.user!.id, {
+        name: typeof name === 'string' ? name : undefined,
+        avatarUrl: typeof avatarUrl === 'string' || avatarUrl === null ? avatarUrl : undefined,
+      });
+      sendSuccess(res, 'Admin profile updated successfully.', updated);
     } catch (error) {
       next(error);
     }

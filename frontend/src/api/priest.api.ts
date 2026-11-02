@@ -6,6 +6,7 @@ import {
 } from '@/types/priest.types';
 import { PincodeLookupResponse } from '@/types/address.types';
 import { apiClient } from './client';
+import { bookingApi } from './booking.api';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 import { calculateDayMuhuratSlots, CalculatedSlot } from '@/lib/availabilityUtils';
 
@@ -138,15 +139,16 @@ export const priestApi = {
   // Date-Based Muhurat Availability Computations
   getAvailableSlotsForDate: async (priestId: string, date: string, durationMinutes: number = 120): Promise<CalculatedSlot[]> => {
     try {
-      const [exceptions, whData] = await Promise.all([
+      const [exceptions, whData, priestBookings] = await Promise.all([
         priestApi.getPriestExceptions(priestId),
         priestApi.getWorkingHours(priestId),
+        bookingApi.getPriestBookings(priestId).catch(() => []),
       ]);
       return calculateDayMuhuratSlots(
         priestId,
         date,
         exceptions,
-        [],
+        priestBookings || [],
         durationMinutes || 120,
         whData?.defaultStartTime || '07:00',
         whData?.defaultEndTime || '21:00'
@@ -192,21 +194,29 @@ export const priestApi = {
   },
 
   blockHours: async (
-    payload: { date: string; startTime: string; endTime: string; reason?: string; priestId?: string }
+    payload: {
+      date: string;
+      startTime: string;
+      endTime: string;
+      reason?: string;
+      priestId?: string;
+      exceptionType?: 'BLOCK' | 'CUSTOM_HOURS';
+    }
   ) => {
     try {
       const res = await apiClient.post('/availability/block-hours', {
         date: payload.date,
         startTime: payload.startTime,
         endTime: payload.endTime,
-        reason: payload.reason || 'Blocked Hours',
+        reason: payload.reason || (payload.exceptionType === 'CUSTOM_HOURS' ? 'Specific Working Hours' : 'Blocked Hours'),
+        exceptionType: payload.exceptionType || 'BLOCK',
       });
       return res as any;
     } catch (error) {
       logAppError('priestApi.blockHours', error, { payload });
       return {
         success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to block hours.'),
+        message: getUserFriendlyErrorMessage(error, 'Failed to configure hours.'),
       };
     }
   },

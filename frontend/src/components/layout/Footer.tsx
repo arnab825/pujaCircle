@@ -22,7 +22,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="relative z-20 border-t-2 border-amber-300/90 bg-[#FAF7F2] text-stone-900 mt-auto shadow-sm">
-      <div className="container py-10 sm:py-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 border-b border-amber-200/80 pb-8">
           {/* Brand Logo & One-line Tagline */}
           <div className="space-y-2 max-w-md">

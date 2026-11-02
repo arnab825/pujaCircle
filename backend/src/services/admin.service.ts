@@ -1,6 +1,8 @@
-import { count, eq, sql, desc, and } from 'drizzle-orm';
+import { count, eq, sql, desc, and, or } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db/index.js';
-import { users, priestProfiles, bookings } from '../models/index.js';
+import { users, priestProfiles, bookings, addresses } from '../models/index.js';
+import { supabaseAdmin } from '../config/supabase.js';
 import { AppError } from '../utils/AppError.js';
 import { getPagination } from '../utils/pagination.js';
 
@@ -81,7 +83,8 @@ export class AdminService {
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
-        profileImageUrl: priestProfiles.profileImageUrl,
+        profileImageUrl: sql<string | null>`NULLIF(${priestProfiles.profileImageUrl}, '')`,
+        avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
         createdAt: priestProfiles.createdAt,
@@ -123,7 +126,8 @@ export class AdminService {
         city: priestProfiles.city,
         state: priestProfiles.state,
         pincode: priestProfiles.pincode,
-        profileImageUrl: priestProfiles.profileImageUrl,
+        profileImageUrl: sql<string | null>`NULLIF(${priestProfiles.profileImageUrl}, '')`,
+        avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
         defaultStartTime: priestProfiles.defaultStartTime,
@@ -250,6 +254,74 @@ export class AdminService {
   }
 
   /**
+   * Get single devotee user profile with registered addresses and booking history
+   */
+  async getUserById(userId: string): Promise<any> {
+    const [user] = await db
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        phoneNumber: users.phoneNumber,
+        role: users.role,
+        accountStatus: users.accountStatus,
+        banReason: users.banReason,
+        avatarUrl: users.avatarUrl,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new AppError(404, 'Devotee user not found.');
+    }
+
+    const userAddresses = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.userId, userId))
+      .orderBy(desc(addresses.isDefault), desc(addresses.createdAt));
+
+    const priestUser = alias(users, 'priest_user');
+    const userBookings = await db
+      .select({
+        id: bookings.id,
+        bookingReference: bookings.bookingReference,
+        serviceName: bookings.serviceName,
+        servicePrice: bookings.servicePrice,
+        totalPrice: bookings.totalPrice,
+        scheduledDate: bookings.scheduledDate,
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+        status: bookings.status,
+        paymentMethod: bookings.paymentMethod,
+        specialInstructions: bookings.specialInstructions,
+        completionCode: bookings.completionCode,
+        createdAt: bookings.createdAt,
+        priestId: bookings.priestId,
+        priestName: priestUser.name,
+        priestPhone: priestUser.phoneNumber,
+      })
+      .from(bookings)
+      .leftJoin(priestProfiles, eq(bookings.priestId, priestProfiles.id))
+      .leftJoin(priestUser, eq(priestProfiles.userId, priestUser.id))
+      .where(eq(bookings.userId, userId))
+      .orderBy(desc(bookings.createdAt));
+
+    return {
+      ...user,
+      createdAt: user.createdAt ? new Date(user.createdAt).toISOString() : new Date().toISOString(),
+      addresses: userAddresses,
+      bookings: userBookings.map((b) => ({
+        ...b,
+        createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+      })),
+      bookingCount: userBookings.length,
+    };
+  }
+
+  /**
    * Suspend a devotee user specifically
    */
   async suspendUser(userId: string, reason?: string): Promise<void> {
@@ -273,6 +345,123 @@ export class AdminService {
         banReason: null,
       })
       .where(eq(users.id, userId));
+  }
+
+  /**
+   * Delete a devotee user account permanently.
+   * Associated bookings have their user_id disassociated to null,
+   * preserving booking financial and schedule audit history.
+   */
+  async deleteUser(userId: string, currentAdminId?: string): Promise<void> {
+    if (currentAdminId && userId === currentAdminId) {
+      throw new AppError(400, 'Security violation: Cannot delete the currently logged-in administrator account.');
+    }
+
+    const [user] = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new AppError(404, 'User record not found.');
+    }
+
+    if (user.role === 'PRIEST') {
+      return this.deletePriest(userId, currentAdminId);
+    }
+
+    if (user.role !== 'USER') {
+      throw new AppError(400, 'Only devotee accounts can be deleted through this endpoint.');
+    }
+
+    // Disassociate bookings from this user to preserve booking financial and schedule audit history
+    await db
+      .update(bookings)
+      .set({ userId: null })
+      .where(eq(bookings.userId, userId));
+
+    // Delete corresponding Supabase Authentication account so the user cannot log in
+    // and the same email address can be registered again if needed
+    await supabaseAdmin.auth.admin.deleteUser(userId).catch((err) => {
+      console.warn('Supabase auth user delete notice:', err?.message || err);
+    });
+
+    // Delete user from application users table (cascades to addresses)
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  /**
+   * Delete a priest profile and associated user account.
+   * Accepts priestProfiles.id or linked userId.
+   * Associated bookings have their priest_id disassociated to null, preserving booking history.
+   */
+  async deletePriest(priestId: string, currentAdminId?: string): Promise<void> {
+    const [priest] = await db
+      .select({ id: priestProfiles.id, userId: priestProfiles.userId })
+      .from(priestProfiles)
+      .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
+      .limit(1);
+
+    if (!priest) {
+      throw new AppError(404, 'Priest record not found.');
+    }
+
+    if (currentAdminId && priest.userId === currentAdminId) {
+      throw new AppError(400, 'Security violation: Cannot delete your own administrator account.');
+    }
+
+    // Disassociate bookings from this priest to preserve booking history
+    await db
+      .update(bookings)
+      .set({ priestId: null, priestServiceId: null })
+      .where(eq(bookings.priestId, priest.id));
+
+    // Delete corresponding Supabase Authentication account for the priest
+    await supabaseAdmin.auth.admin.deleteUser(priest.userId).catch((err) => {
+      console.warn('Supabase auth priest delete notice:', err?.message || err);
+    });
+
+    // Delete priestProfile (cascades to priest_services and priest_availability_exceptions)
+    await db.delete(priestProfiles).where(eq(priestProfiles.id, priest.id));
+
+    // Delete the linked user account
+    await db.delete(users).where(eq(users.id, priest.userId));
+  }
+
+  /**
+   * Update admin display name and/or avatar in the users table
+   */
+  async updateAdminProfile(
+    userId: string,
+    dataOrName: string | { name?: string; avatarUrl?: string | null }
+  ): Promise<{ id: string; name: string; avatarUrl: string | null }> {
+    const data = typeof dataOrName === 'string' ? { name: dataOrName } : dataOrName;
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+
+    if (data.name !== undefined) {
+      const trimmedName = data.name.trim();
+      if (!trimmedName || trimmedName.length < 2) {
+        throw new AppError(400, 'Name must be at least 2 characters long.');
+      }
+      updateData.name = trimmedName;
+    }
+
+    if (data.avatarUrl !== undefined) {
+      updateData.avatarUrl = data.avatarUrl;
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning({ id: users.id, name: users.name, avatarUrl: users.avatarUrl });
+
+    if (!updated) {
+      throw new AppError(404, 'Admin user record not found.');
+    }
+
+    return updated;
   }
 
   // Query platform ceremony bookings with SQL joins and pagination

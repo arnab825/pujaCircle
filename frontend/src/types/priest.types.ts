@@ -37,6 +37,7 @@ export interface Priest {
   serviceAreas: string[];
   city: string;
   state: string;
+  pincode?: string;
   profileImageUrl: string;
   rating?: number;
   reviewCount?: number;
@@ -117,6 +118,7 @@ export interface PriestRegistrationRequest {
 }
 
 export interface PriestFilterParams {
+  pincode?: string;
   city?: string;
   catalogId?: string;
   serviceName?: string;

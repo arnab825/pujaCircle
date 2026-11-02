@@ -71,6 +71,7 @@ const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage')
 const AdminPriestsPage = lazy(() => import('@/pages/admin/AdminPriestsPage'));
 const AdminPriestDetailsPage = lazy(() => import('@/pages/admin/AdminPriestDetailsPage'));
 const AdminUsersPage = lazy(() => import('@/pages/admin/AdminUsersPage'));
+const AdminUserDetailsPage = lazy(() => import('@/pages/admin/AdminUserDetailsPage'));
 const AdminProfilePage = lazy(() => import('@/pages/admin/AdminProfilePage'));
 const AdminCatalogPage = lazy(() => import('@/pages/admin/AdminCatalogPage'));
 
@@ -167,6 +168,7 @@ export const appRouter = createBrowserRouter([
       { path: 'priests', element: LazyPage(AdminPriestsPage) },
       { path: 'priests/:id', element: LazyPage(AdminPriestDetailsPage) },
       { path: 'users', element: LazyPage(AdminUsersPage) },
+      { path: 'users/:id', element: LazyPage(AdminUserDetailsPage) },
       { path: 'profile', element: LazyPage(AdminProfilePage) },
       { path: 'catalog', element: LazyPage(AdminCatalogPage) },
     ],

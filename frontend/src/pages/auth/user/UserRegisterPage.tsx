@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -39,6 +39,8 @@ import { toast } from "sonner";
  */
 export const UserRegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryEmail = searchParams.get("email") || "";
   const { setUser, setToken } = useAuthStore();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -49,6 +51,7 @@ export const UserRegisterPage: React.FC = () => {
     register,
     handleSubmit,
     getValues,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<RegisterUserPersonalInput>({
@@ -56,10 +59,16 @@ export const UserRegisterPage: React.FC = () => {
     defaultValues: {
       fullName: "",
       phoneNumber: "",
-      email: "",
+      email: queryEmail,
       password: "",
     },
   });
+
+  React.useEffect(() => {
+    if (queryEmail) {
+      setValue("email", queryEmail, { shouldValidate: true });
+    }
+  }, [queryEmail, setValue]);
 
   const watchFullName = watch("fullName");
   const watchPhone = watch("phoneNumber");

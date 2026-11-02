@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PriestBookingDetailsDialog } from '@/components/priest/PriestBookingDetailsDialog';
 import { BlockTimeModal } from '@/components/priest/BlockTimeModal';
+import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { EditWorkingHoursModal } from '@/components/priest/EditWorkingHoursModal';
 import {
   formatTimeAmPm,
@@ -26,6 +27,9 @@ import {
   AlertTriangle,
   Info,
   CalendarDays,
+  User,
+  MapPin,
+  Edit2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,13 +54,14 @@ export const PriestAvailabilityPage: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [workingHours, setWorkingHours] = useState<{ defaultStartTime: string; defaultEndTime: string }>({
     defaultStartTime: '07:00',
-    defaultEndTime: '18:00',
+    defaultEndTime: '21:00',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Modals State
   const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [blockModalInitialMode, setBlockModalInitialMode] = useState<'CUSTOM_HOURS' | 'BLOCK'>('CUSTOM_HOURS');
   const [isEditHoursModalOpen, setIsEditHoursModalOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -200,8 +205,13 @@ export const PriestAvailabilityPage: React.FC = () => {
     }
   };
 
-  // Add Partial Hour Blackout
-  const handleSaveBlackout = async (startTime: string, endTime: string, reason: string) => {
+  // Add Specific Working Hours or Partial Break
+  const handleSaveBlackout = async (
+    startTime: string,
+    endTime: string,
+    reason: string,
+    exceptionType: 'BLOCK' | 'CUSTOM_HOURS' = 'CUSTOM_HOURS'
+  ) => {
     try {
       setIsSubmitting(true);
       const res = await priestApi.blockHours({
@@ -210,29 +220,22 @@ export const PriestAvailabilityPage: React.FC = () => {
         endTime,
         reason,
         priestId,
+        exceptionType,
       });
 
       if (res && res.success === false) {
-        toast.error(res.message || 'Failed to block hours.');
+        toast.error(res.message || 'Failed to configure hours.');
         return;
       }
 
-      const saved = (res && res.data) ? res.data : res;
-      const newBlackout: PriestException = {
-        id: saved?.id || `blackout-${Date.now()}`,
-        priestId,
-        date: selectedDate,
-        type: 'PARTIAL_BLACKOUT',
-        startTime: saved?.startTime || startTime,
-        endTime: saved?.endTime || endTime,
-        reason: saved?.reason || reason,
-        createdAt: saved?.createdAt || new Date().toISOString(),
-      };
-      setExceptions((prev) => [...prev.filter((e) => e.id !== newBlackout.id), newBlackout]);
       await loadScheduleData();
-      toast.success(`Blocked ${formatTimeAmPm(startTime)} – ${formatTimeAmPm(endTime)} on ${formatFullDate(selectedDate)}.`);
+      if (exceptionType === 'CUSTOM_HOURS') {
+        toast.success(`Specific working hours configured: ${formatTimeAmPm(startTime)} – ${formatTimeAmPm(endTime)} on ${formatFullDate(selectedDate)}.`);
+      } else {
+        toast.success(`Blocked break: ${formatTimeAmPm(startTime)} – ${formatTimeAmPm(endTime)} on ${formatFullDate(selectedDate)}.`);
+      }
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to block hours.');
+      toast.error(err?.message || 'Failed to configure hours.');
     } finally {
       setIsSubmitting(false);
     }
@@ -243,22 +246,25 @@ export const PriestAvailabilityPage: React.FC = () => {
     try {
       await priestApi.deletePriestException(exceptionId, priestId);
       setExceptions((prev) => prev.filter((e) => e.id !== exceptionId));
-      toast.success('Blackout removed. Time window is now available.');
+      toast.success('Schedule updated. Reverted to standard hours.');
     } catch {
-      toast.error('Failed to remove blackout.');
+      toast.error('Failed to update schedule.');
     }
   };
 
   // Selected date status inspection
   const selectedDateExceptions = exceptions.filter((e) => e.date === selectedDate);
   const isSelectedFullLeave = selectedDateExceptions.some((e) => e.type === 'FULL_DAY_LEAVE');
-  const selectedDateBlackouts = selectedDateExceptions.filter((e) => e.type === 'PARTIAL_BLACKOUT');
-  const selectedDateBookings = bookings.filter((b) => b.bookingDate === selectedDate && b.status !== 'CANCELLED');
+  const selectedDateBlackouts = selectedDateExceptions.filter((e) => (e.type === 'PARTIAL_BLACKOUT' || e.exceptionType === 'BLOCK') && e.type !== 'FULL_DAY_LEAVE');
+  const selectedDateBookings = bookings.filter((b) => {
+    const bDate = (b.bookingDate || (b as any).scheduledDate || '').split('T')[0];
+    return bDate === selectedDate && b.status !== 'CANCELLED';
+  });
 
   // Overall metrics across the 90-day window
   const totalLeavesCount = exceptions.filter((e) => e.type === 'FULL_DAY_LEAVE').length;
   const totalBlackoutsCount = exceptions.filter((e) => e.type === 'PARTIAL_BLACKOUT').length;
-  const upcomingBookingsCount = bookings.filter((b) => b.bookingDate >= todayStr && b.status !== 'CANCELLED').length;
+  const upcomingBookingsCount = bookings.filter((b) => b.bookingDate >= todayStr && b.status === 'CONFIRMED').length;
 
   return (
     <div className="space-y-8 w-full max-w-7xl text-stone-900 pb-12">
@@ -286,67 +292,88 @@ export const PriestAvailabilityPage: React.FC = () => {
       </div>
 
       {/* Metrics Summary Deck */}
-      <div className="flex flex-wrap gap-4 w-full">
-        <div className="flex-1 min-w-50 p-5 rounded-lg border-2 border-amber-300 bg-white shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
-              Default Working Hours
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setIsEditHoursModalOpen(true)}
-                className="text-[10px] text-amber-800 hover:text-amber-950 font-bold bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2 py-0.5 rounded cursor-pointer transition-colors"
-                title="Configure daily standard hours"
-              >
-                Edit Hours
-              </button>
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+        {/* 1. Default Working Hours */}
+        <div className="p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-emerald-600 bg-white shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider whitespace-nowrap">
+                Default Working Hours
+              </span>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-serif text-emerald-700 mt-2">
+              {workingHoursDisplay}
             </div>
           </div>
-          <div className="text-2xl font-extrabold font-serif text-emerald-700 mt-2">
-            {workingHoursDisplay}
+          <div className="flex items-center justify-between gap-2 pt-2 mt-2 border-t border-amber-100">
+            <span className="text-[11px] text-stone-500 font-medium">
+              Auto {durationHours}-hr daily window
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsEditHoursModalOpen(true)}
+              className="text-xs text-[#780016] hover:text-[#5C0011] font-bold bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-md cursor-pointer transition-colors inline-flex items-center gap-1 shrink-0 shadow-2xs"
+              title="Configure daily standard hours"
+            >
+              <Edit2 className="h-3 w-3 text-red-700" />
+              <span>Edit Hours</span>
+            </button>
           </div>
-          <span className="text-[11px] text-stone-500 block mt-1">Automatic {durationHours}-hr daily window</span>
         </div>
 
-        <div className="flex-1 min-w-50 p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-red-600 bg-white shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider">
-              Marked Days Off
-            </span>
-            <Ban className="h-4 w-4 text-red-600" />
+        {/* 2. Marked Days Off */}
+        <div className="p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-red-600 bg-white shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider whitespace-nowrap">
+                Marked Days Off
+              </span>
+              <Ban className="h-4 w-4 text-red-600 shrink-0" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-serif text-red-700 mt-2">
+              {totalLeavesCount} {totalLeavesCount === 1 ? 'day' : 'days'}
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-serif text-red-700 mt-2">
-            {totalLeavesCount} {totalLeavesCount === 1 ? 'day' : 'days'}
-          </div>
-          <span className="text-[11px] text-stone-500 block mt-1">Full-day leaves marked</span>
+          <span className="text-[11px] text-stone-500 block pt-2 mt-2 border-t border-amber-100">
+            Full-day leaves marked
+          </span>
         </div>
 
-        <div className="flex-1 min-w-50 p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-amber-600 bg-white shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">
-              Partial Blackouts
-            </span>
-            <Clock className="h-4 w-4 text-amber-600" />
+        {/* 3. Partial Blackouts */}
+        <div className="p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-amber-600 bg-white shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider whitespace-nowrap">
+                Partial Blackouts
+              </span>
+              <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-serif text-amber-700 mt-2">
+              {totalBlackoutsCount}
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-serif text-amber-700 mt-2">
-            {totalBlackoutsCount}
-          </div>
-          <span className="text-[11px] text-stone-500 block mt-1">Blocked hour windows</span>
+          <span className="text-[11px] text-stone-500 block pt-2 mt-2 border-t border-amber-100">
+            Blocked hour windows
+          </span>
         </div>
 
-        <div className="flex-1 min-w-50 p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-blue-600 bg-white shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider">
-              Confirmed Pujas
-            </span>
-            <CalendarDays className="h-4 w-4 text-blue-600" />
+        {/* 4. Confirmed Pujas */}
+        <div className="p-5 rounded-lg border-2 border-amber-300 border-t-4 border-t-blue-600 bg-white shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-bold text-blue-800 uppercase tracking-wider whitespace-nowrap">
+                Confirmed Pujas
+              </span>
+              <CalendarDays className="h-4 w-4 text-blue-600 shrink-0" />
+            </div>
+            <div className="text-2xl sm:text-3xl font-extrabold font-serif text-blue-800 mt-2">
+              {upcomingBookingsCount}
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-serif text-blue-800 mt-2">
-            {upcomingBookingsCount}
-          </div>
-          <span className="text-[11px] text-stone-500 block mt-1">Upcoming bookings</span>
+          <span className="text-[11px] text-stone-500 block pt-2 mt-2 border-t border-amber-100">
+            Upcoming bookings
+          </span>
         </div>
       </div>
 
@@ -424,8 +451,13 @@ export const PriestAvailabilityPage: React.FC = () => {
               // Day states
               const dayExceptions = exceptions.filter((e) => e.date === dateStr);
               const isLeave = dayExceptions.some((e) => e.type === 'FULL_DAY_LEAVE');
-              const partialCount = dayExceptions.filter((e) => e.type === 'PARTIAL_BLACKOUT').length;
-              const dayBookings = bookings.filter((b) => b.bookingDate === dateStr && b.status !== 'CANCELLED');
+              const partialCount = dayExceptions.filter((e) => (e.type === 'PARTIAL_BLACKOUT' || e.exceptionType === 'BLOCK') && e.type !== 'FULL_DAY_LEAVE').length;
+              const dayBookings = bookings.filter((b) => {
+                const bDate = (b.bookingDate || (b as any).scheduledDate || '').split('T')[0];
+                return bDate === dateStr && (b.status === 'CONFIRMED' || b.status === 'PENDING');
+              });
+              const dayConfirmedBookings = dayBookings.filter((b) => b.status === 'CONFIRMED');
+              const dayPendingBookings = dayBookings.filter((b) => b.status === 'PENDING');
 
               return (
                 <div
@@ -476,8 +508,18 @@ export const PriestAvailabilityPage: React.FC = () => {
                           )}
 
                           {dayBookings.length > 0 && (
-                            <div className="text-[9px] font-bold text-blue-800 bg-blue-100 rounded px-1 py-0.2 truncate">
-                              🪔 {dayBookings.length} {dayBookings.length === 1 ? 'Puja' : 'Pujas'}
+                            <div className={`text-[9px] font-bold rounded px-1.5 py-0.5 truncate flex items-center gap-1 shadow-2xs ${
+                              dayPendingBookings.length > 0 && dayConfirmedBookings.length === 0
+                                ? 'text-amber-950 bg-amber-200 border border-amber-400'
+                                : 'text-blue-900 bg-blue-100 border border-blue-300'
+                            }`}>
+                              <span>🪔</span>
+                              <span className="truncate">
+                                {dayBookings[0]?.serviceName?.split(' ')[0] || 'Puja'}
+                                {(dayBookings[0]?.userName || dayBookings[0]?.user?.name || (dayBookings[0] as any)?.devoteeName)
+                                  ? ` (${(dayBookings[0]?.userName || dayBookings[0]?.user?.name || (dayBookings[0] as any)?.devoteeName || '').split(' ')[0]})`
+                                  : dayBookings.length > 1 ? ` (${dayBookings.length})` : ''}
+                              </span>
                             </div>
                           )}
                         </>
@@ -503,6 +545,10 @@ export const PriestAvailabilityPage: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
               <span>Blocked Hours</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <span>Pending Booking</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
@@ -560,13 +606,16 @@ export const PriestAvailabilityPage: React.FC = () => {
               <Button
                 variant="outline"
                 disabled={isSubmitting || isLoading}
-                onClick={() => setIsBlockModalOpen(true)}
+                onClick={() => {
+                  setBlockModalInitialMode('BLOCK');
+                  setIsBlockModalOpen(true);
+                }}
                 className={`w-full justify-center gap-2 h-11 border-2 border-amber-400 text-stone-900 hover:bg-amber-50 font-bold text-xs cursor-pointer ${
                   (isSubmitting || isLoading) ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 <Clock className="h-4 w-4 text-amber-700" />
-                <span>Block Specific Hours (e.g. 1 PM - 4 PM)</span>
+                <span>Block Specific Hours (e.g. 1 PM – 4 PM)</span>
               </Button>
             )}
           </div>
@@ -637,31 +686,70 @@ export const PriestAvailabilityPage: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Confirmed Bookings List */}
+                {/* Appointments for Selected Date */}
                 {selectedDateBookings.map((b) => (
                   <div
                     key={b.id}
-                    className="p-3 bg-blue-50 border border-blue-300 rounded-lg text-xs flex items-center justify-between"
+                    className={`p-3.5 rounded-lg text-xs space-y-2 border ${
+                      b.status === 'CONFIRMED'
+                        ? 'bg-blue-50/80 border-blue-300'
+                        : b.status === 'REJECTED'
+                        ? 'bg-red-50/80 border-red-200'
+                        : 'bg-amber-50/90 border-amber-300'
+                    }`}
                   >
-                    <div>
-                      <div className="font-bold text-blue-950">
-                        🪔 {b.serviceName || 'Puja Ceremony'}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-bold text-stone-950 flex flex-wrap items-center gap-2">
+                        <span>🪔 {b.serviceName || 'Puja Ceremony'}</span>
+                        <BookingStatusBadge status={b.status} withPulse={false} />
                       </div>
-                      <div className="text-[11px] text-blue-700 mt-0.5">
-                        {formatTimeAmPm(b.startTime || '')} – {formatTimeAmPm(b.endTime || '')} (Confirmed)
-                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedBooking(b);
+                          setIsBookingModalOpen(true);
+                        }}
+                        className="h-7 px-2.5 text-[11px] border-stone-300 text-stone-800 hover:bg-white font-bold bg-white/70 shrink-0 cursor-pointer"
+                      >
+                        Details
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedBooking(b);
-                        setIsBookingModalOpen(true);
-                      }}
-                      className="h-7 px-2.5 text-[11px] border-blue-300 text-blue-900 hover:bg-blue-100 font-bold"
-                    >
-                      Details
-                    </Button>
+
+                    {/* Devotee Name & Contact */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                      <div className="font-bold text-stone-900 flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-md border border-amber-300 shadow-2xs">
+                        <User className="w-3.5 h-3.5 text-[#780016]" />
+                        <span className="text-stone-600 font-medium text-[11px]">Booked by:</span>
+                        <span className="text-[#780016] font-serif font-extrabold text-xs">
+                          {b.userName || b.user?.name || (b as any).devoteeName || (b as any).customerName || 'Devotee'}
+                        </span>
+                      </div>
+                      {(b.userPhone || b.user?.phoneNumber) && (
+                        <span className="text-stone-700 font-mono text-[11px] font-semibold bg-white px-2.5 py-1 rounded-md border border-stone-200">
+                          📞 {b.userPhone || b.user?.phoneNumber}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-[11px] text-stone-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="font-semibold text-stone-800">
+                        ⏰ {formatTimeAmPm(b.startTime || '')} – {formatTimeAmPm(b.endTime || '')} ({b.status === 'CONFIRMED' ? 'Confirmed' : b.status === 'PENDING' ? 'Pending' : b.status})
+                      </span>
+                      {b.address && (
+                        <span className="text-stone-600 flex items-center gap-0.5">
+                          <MapPin className="w-3 h-3 text-red-700 inline shrink-0" />
+                          <span>{b.address.villageTown || b.address.locality || b.address.city}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {(b.specialInstructions || b.notes || b.userNotes) && (
+                      <div className="text-[11px] text-amber-950 bg-amber-100/90 px-2.5 py-1 rounded border border-amber-300 font-medium">
+                        <span className="font-bold">Gotra / Notes: </span>
+                        <span>"{b.specialInstructions || b.notes || b.userNotes}"</span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -670,11 +758,12 @@ export const PriestAvailabilityPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Partial Hour Blackout Modal */}
+      {/* Partial Hour Blackout & Custom Specific Hours Modal */}
       <BlockTimeModal
         isOpen={isBlockModalOpen}
         onClose={() => setIsBlockModalOpen(false)}
         selectedDate={selectedDate}
+        initialMode={blockModalInitialMode}
         onSave={handleSaveBlackout}
       />
 

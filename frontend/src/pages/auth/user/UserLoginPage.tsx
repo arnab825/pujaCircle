@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,14 +17,25 @@ import {
   Sparkles,
   CheckCircle2,
   Shield,
+  UserCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AuthRoleTabs } from "@/components/auth/AuthRoleTabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export const UserLoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login, isLoading, error, clearError } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
+  const [isRegisterPopupOpen, setIsRegisterPopupOpen] = useState(false);
+  const [attemptedEmail, setAttemptedEmail] = useState("");
 
   const {
     register,
@@ -43,9 +54,23 @@ export const UserLoginPage: React.FC = () => {
   const watchPassword = watch("password");
   const isFormValid = Boolean(watchEmail?.trim() && watchPassword?.trim());
 
+  // Clear stale errors on mount and unmount
+  useEffect(() => {
+    clearError();
+    return () => clearError();
+  }, [clearError]);
+
+  // Clear displayed error when user starts typing
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [watchEmail, watchPassword]);
+
   const onLogin = async (data: UserLoginInput) => {
     clearError();
     const email = data.email.trim();
+    setAttemptedEmail(email);
 
     const success = await login({
       email,
@@ -66,6 +91,17 @@ export const UserLoginPage: React.FC = () => {
           "Namaste Devotee! Welcome to your sacred sanctuary portal.",
         );
         navigate("/user/home");
+      }
+    } else {
+      const authError = useAuthStore.getState().error || "Sign in failed. Please check your email and password.";
+      toast.error(authError);
+      if (
+        authError.toLowerCase().includes("register") ||
+        authError.toLowerCase().includes("not found") ||
+        authError.toLowerCase().includes("removed") ||
+        authError.toLowerCase().includes("deleted")
+      ) {
+        setIsRegisterPopupOpen(true);
       }
     }
   };
@@ -138,6 +174,7 @@ export const UserLoginPage: React.FC = () => {
               <AuthRoleTabs
                 activeRole="USER"
                 onRoleChange={(role) => {
+                  clearError();
                   if (role === "PRIEST") navigate("/priest/login");
                 }}
                 className="mb-0 w-full sm:w-auto"
@@ -165,9 +202,28 @@ export const UserLoginPage: React.FC = () => {
             </div>
 
             {error && (
-              <div className="mb-5 p-3 rounded-md bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700">
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{error}</span>
+              <div className="mb-5 space-y-2">
+                <div className="p-3 rounded-md bg-red-50 border border-red-200 flex items-start gap-2.5 text-xs text-red-700">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{error}</span>
+                </div>
+                {(error.toLowerCase().includes("register") ||
+                  error.toLowerCase().includes("not found") ||
+                  error.toLowerCase().includes("removed") ||
+                  error.toLowerCase().includes("deleted")) && (
+                  <div className="p-2.5 rounded-md bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 text-xs text-amber-900">
+                    <span className="text-stone-700 font-medium">
+                      Account removed or not registered yet?
+                    </span>
+                    <Link
+                      to={`/user/register?email=${encodeURIComponent(watchEmail?.trim() || attemptedEmail || "")}`}
+                      className="font-bold text-[#780016] hover:underline flex items-center gap-1 shrink-0"
+                    >
+                      <span>Create Devotee Account</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -268,6 +324,57 @@ export const UserLoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Registration Required Popup Dialog */}
+      <Dialog open={isRegisterPopupOpen} onOpenChange={setIsRegisterPopupOpen}>
+        <DialogContent className="sm:max-w-md p-6 bg-white border-2 border-amber-300 rounded-xl shadow-2xl">
+          <DialogHeader className="text-center sm:text-left space-y-2">
+            <div className="mx-auto sm:mx-0 w-12 h-12 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-800 font-serif font-black text-xl shadow-sm">
+              ॐ
+            </div>
+            <DialogTitle className="font-serif text-xl font-bold text-stone-950">
+              Devotee Account Not Found
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-600 leading-relaxed pt-1">
+              No active Devotee account was found for{" "}
+              <strong className="text-stone-900 font-mono">{attemptedEmail}</strong>.
+              Your account may have been removed or deleted by administration, or you have not yet registered on PujaCircle.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3.5 rounded-lg bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-1.5 my-2">
+            <p className="font-bold flex items-center gap-1.5 text-red-900">
+              <AlertCircle className="w-4 h-4 text-red-700 shrink-0" />
+              Registration Required
+            </p>
+            <p className="text-[11px] text-stone-600 leading-normal">
+              To book sacred Vedic ceremonies and connect with verified Purohits, please create your Devotee account. Once registered, you will be able to sign in smoothly.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsRegisterPopupOpen(false)}
+              className="text-xs h-10 border-stone-300 font-medium"
+            >
+              Close & Try Again
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setIsRegisterPopupOpen(false);
+                navigate(`/user/register?email=${encodeURIComponent(attemptedEmail)}`);
+              }}
+              className="text-xs h-10 bg-[#780016] hover:bg-red-800 text-white font-bold gap-1.5 shadow-md cursor-pointer"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Create Devotee Account</span>
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

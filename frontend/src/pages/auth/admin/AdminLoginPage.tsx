@@ -49,8 +49,19 @@ export const AdminLoginPage: React.FC = () => {
     });
 
     if (success) {
+      const user = useAuthStore.getState().user;
+      if (user?.role !== "ADMIN") {
+        await useAuthStore.getState().logout();
+        const msg = "Access denied: This portal is strictly for authorized PujaCircle Operations Staff. Please log in through the Devotee or Purohit portal.";
+        toast.error(msg);
+        useAuthStore.setState({ error: msg });
+        return;
+      }
       toast.success("Welcome to PujaCircle Operations Console.");
       navigate("/admin/dashboard");
+    } else {
+      const authError = useAuthStore.getState().error || "Sign in failed. Please check your email and password.";
+      toast.error(authError);
     }
   };
 

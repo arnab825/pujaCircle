@@ -19,11 +19,12 @@ export const createBookingSchema = z.object({
   serviceName: z.string().optional(),
   specialInstructions: z.string().trim().max(1000).optional(),
   notes: z.string().trim().max(1000).optional(),
+  userNotes: z.string().trim().max(1000).optional(),
 });
 
 export const ratingSchema = z.object({
   bookingId: z.string().uuid('Invalid Booking ID format').optional(),
-  rating: z.coerce.number().int().min(1, 'Rating must be between 1 and 5').max(5, 'Rating must be between 1 and 5').optional(),
+  rating: z.coerce.number().int().min(1, 'Rating must be between 1 and 5 stars').max(5, 'Rating must be between 1 and 5 stars'),
   review: z.string().trim().max(2000, 'Review cannot exceed 2000 characters').optional().nullable(),
   userId: z.string().optional(),
 });
@@ -35,6 +36,14 @@ export const bookingActionReasonSchema = z.object({
   completionCode: z.string().optional(),
 });
 
+export const bookingQuerySchema = z.object({
+  userId: z.string().uuid('Invalid user ID format').optional(),
+  priestId: z.string().uuid('Invalid priest ID format').optional(),
+  page: z.coerce.number().int().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type RatingInput = z.infer<typeof ratingSchema>;
 export type BookingActionReasonInput = z.infer<typeof bookingActionReasonSchema>;
+export type BookingQueryInput = z.infer<typeof bookingQuerySchema>;

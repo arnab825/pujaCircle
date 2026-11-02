@@ -10,14 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   ShieldCheck,
   Check,
   Plus,
@@ -32,7 +24,6 @@ import {
   Loader2,
   Camera,
   Trash2,
-  Upload,
   Search,
   ExternalLink,
   Sparkles,
@@ -57,23 +48,22 @@ const POPULAR_LANGUAGES = [
  * 100% Flexbox, zero CSS grids, zero gradients, pure solid white canvas, Haldi gold trims.
  */
 export const PriestProfilePage: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const priestId = user?.id || '';
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSearchingPin, setIsSearchingPin] = useState(false);
-  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
 
   // Form States
   const [priest, setPriest] = useState<Priest | null>(null);
   const [services, setServices] = useState<PriestService[]>([]);
   const [fullName, setFullName] = useState("");
-  const [experienceYears, setExperienceYears] = useState<number>(10);
-  const [pincode, setPincode] = useState("400050");
-  const [city, setCity] = useState("Mumbai");
-  const [state, setState] = useState("Maharashtra");
+  const [experienceYears, setExperienceYears] = useState<number>(0);
+  const [pincode, setPincode] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
   const [bio, setBio] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
@@ -82,6 +72,9 @@ export const PriestProfilePage: React.FC = () => {
   // Inputs for adding custom items
   const [customLanguage, setCustomLanguage] = useState("");
   const [newAreaInput, setNewAreaInput] = useState("");
+  const [areaPinSuggestions, setAreaPinSuggestions] = useState<Array<{ name: string; city: string; state: string; pincode: string }>>([]);
+  const [isSearchingAreaPin, setIsSearchingAreaPin] = useState(false);
+  const [areaPinQuery, setAreaPinQuery] = useState("");
 
   const loadProfile = async () => {
     setIsLoading(true);
@@ -93,19 +86,17 @@ export const PriestProfilePage: React.FC = () => {
 
       if (p) {
         setPriest(p);
-        setFullName(p.fullName || "");
+        setFullName(p.fullName || user?.name || "");
         setExperienceYears(p.experienceYears || 0);
         setBio(p.bio || "");
-        setCity(p.city || "Mumbai");
-        setState(p.state || "Maharashtra");
+        setCity(p.city || "");
+        setState(p.state || "");
         setProfileImageUrl(p.profileImageUrl || "");
         setLanguages(p.languages || []);
         setServiceAreas(p.serviceAreas || []);
-
-        if (p.city === "Mumbai") setPincode("400050");
-        else if (p.city === "Bengaluru") setPincode("560038");
-        else if (p.city === "Kolkata") setPincode("700019");
-        else if (p.city === "Gurugram") setPincode("122002");
+        setPincode(p.pincode || "");
+      } else if (user) {
+        setFullName(user.name || "");
       }
 
       setServices(srvList || []);
@@ -159,7 +150,6 @@ export const PriestProfilePage: React.FC = () => {
     reader.onloadend = () => {
       const dataUrl = reader.result as string;
       setProfileImageUrl(dataUrl);
-      setIsAvatarModalOpen(false);
       toast.success("Profile photo updated! Remember to save changes.");
     };
     reader.readAsDataURL(file);
@@ -167,7 +157,6 @@ export const PriestProfilePage: React.FC = () => {
 
   const handleRemoveAvatar = () => {
     setProfileImageUrl("");
-    setIsAvatarModalOpen(false);
     toast.success("Profile photo removed.");
   };
 
@@ -195,6 +184,86 @@ export const PriestProfilePage: React.FC = () => {
     setCustomLanguage("");
   };
 
+  const handleAreaInputChange = (value: string) => {
+    setNewAreaInput(value);
+    const cleanDigits = value.trim().replace(/\D/g, "");
+
+    if (cleanDigits.length === 6 && cleanDigits !== areaPinQuery) {
+      setAreaPinQuery(cleanDigits);
+      setIsSearchingAreaPin(true);
+      priestApi
+        .lookupPincode(cleanDigits)
+        .then((res) => {
+          if (res?.locations && res.locations.length > 0) {
+            const unique = new Map<
+              string,
+              { name: string; city: string; state: string; pincode: string }
+            >();
+            res.locations.forEach((loc) => {
+              const name = loc.locality || loc.villageTown || loc.postOffice;
+              if (name && !unique.has(name)) {
+                unique.set(name, {
+                  name,
+                  city: loc.city || loc.district || "",
+                  state: loc.state || "",
+                  pincode: cleanDigits,
+                });
+              }
+            });
+            setAreaPinSuggestions(Array.from(unique.values()));
+          } else {
+            setAreaPinSuggestions([]);
+          }
+        })
+        .catch(() => {
+          setAreaPinSuggestions([]);
+        })
+        .finally(() => {
+          setIsSearchingAreaPin(false);
+        });
+    } else if (cleanDigits.length < 6) {
+      if (areaPinSuggestions.length > 0) setAreaPinSuggestions([]);
+      setAreaPinQuery("");
+    }
+  };
+
+  const handleSelectAreaSuggestion = (item: {
+    name: string;
+    city: string;
+    state: string;
+    pincode: string;
+  }) => {
+    const formatted = `${item.pincode} - ${item.name}`;
+    if (!serviceAreas.includes(formatted) && !serviceAreas.includes(item.name)) {
+      setServiceAreas((prev) => [...prev, formatted]);
+      toast.success(`Added ${formatted} to service localities.`);
+    } else {
+      toast.info(`${formatted} is already in your service areas.`);
+    }
+  };
+
+  const handleAddAllSuggestions = () => {
+    let addedCount = 0;
+    const toAdd: string[] = [];
+    areaPinSuggestions.forEach((s) => {
+      const formatted = `${s.pincode} - ${s.name}`;
+      if (
+        !serviceAreas.includes(formatted) &&
+        !serviceAreas.includes(s.name) &&
+        !toAdd.includes(formatted)
+      ) {
+        toAdd.push(formatted);
+        addedCount++;
+      }
+    });
+    if (addedCount > 0) {
+      setServiceAreas((prev) => [...prev, ...toAdd]);
+      toast.success(`Added ${addedCount} localities for PIN ${areaPinQuery}.`);
+    } else {
+      toast.info("All suggested localities are already in your service areas.");
+    }
+  };
+
   const handleAddArea = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newAreaInput.trim();
@@ -205,6 +274,9 @@ export const PriestProfilePage: React.FC = () => {
     }
     setServiceAreas([...serviceAreas, trimmed]);
     setNewAreaInput("");
+    setAreaPinSuggestions([]);
+    setAreaPinQuery("");
+    toast.success(`Added "${trimmed}" to service localities.`);
   };
 
   const handleRemoveArea = (area: string) => {
@@ -225,6 +297,7 @@ export const PriestProfilePage: React.FC = () => {
       serviceAreas,
       city: city.trim(),
       state: state.trim(),
+      pincode: pincode.trim(),
       profileImageUrl: profileImageUrl.trim(),
     });
 
@@ -243,10 +316,21 @@ export const PriestProfilePage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const res = await priestApi.updatePriestProfile(priestId, parseResult.data);
+      const res = await priestApi.updatePriestProfile(priestId, {
+        ...parseResult.data,
+        fullName: fullName.trim(),
+        pincode: pincode.trim(),
+      });
 
       if (res.success && res.data) {
         setPriest(res.data);
+        if (user) {
+          setUser({
+            ...user,
+            name: res.data.fullName || fullName.trim(),
+            avatarUrl: res.data.profileImageUrl || profileImageUrl.trim(),
+          });
+        }
         toast.success(res.message || "Profile saved successfully!");
       } else {
         toast.error(res.message || "Failed to update profile.");
@@ -287,79 +371,6 @@ export const PriestProfilePage: React.FC = () => {
         accept="image/png, image/jpeg, image/webp"
         className="hidden"
       />
-
-      {/* Avatar Modal */}
-      <Dialog open={isAvatarModalOpen} onOpenChange={setIsAvatarModalOpen}>
-        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-bold text-stone-950 flex items-center gap-2">
-              <span className="text-amber-600 font-serif font-black text-xl">
-                ॐ
-              </span>
-              <span>Purohit Profile Picture</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs text-stone-600">
-              Upload a clear photo for your Purohit roster listing or reset to
-              default initials.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col items-center justify-center py-6 gap-4">
-            <div className="p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm">
-              <Avatar className="w-28 h-28 border-2 border-white">
-                {profileImageUrl ? (
-                  <AvatarImage
-                    src={profileImageUrl}
-                    alt={fullName}
-                    className="object-cover"
-                  />
-                ) : null}
-                <AvatarFallback className="bg-[#780016] text-white font-serif text-3xl font-bold">
-                  {getInitials(fullName)}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <p className="text-xs text-stone-500 font-medium">
-              Supported formats: JPG, PNG, WEBP (Max 5MB)
-            </p>
-          </div>
-
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-between">
-            {profileImageUrl ? (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleRemoveAvatar}
-                className="w-full sm:w-auto text-xs rounded-md"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Remove Photo
-              </Button>
-            ) : (
-              <div />
-            )}
-
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsAvatarModalOpen(false)}
-                className="flex-1 sm:flex-none text-xs rounded-md"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-[#780016] hover:bg-red-800 text-white font-bold border border-amber-400 flex-1 sm:flex-none text-xs gap-1.5 rounded-md cursor-pointer"
-              >
-                <Upload className="w-4 h-4" />
-                Upload New Photo
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* 1. Header & Primary Action (100% Flexbox) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
@@ -413,38 +424,52 @@ export const PriestProfilePage: React.FC = () => {
       {/* 2. Top Summary Card with Interactive Avatar Trigger (Pure White, Haldi Gold Border) */}
       <div className="p-6 sm:p-8 rounded-xl border-2 border-amber-300 bg-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto text-center sm:text-left">
-          <div className="relative group shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsAvatarModalOpen(true)}
-              className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
-              title="Click to change profile picture"
-            >
-              <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-white">
-                {profileImageUrl ? (
-                  <AvatarImage
-                    src={profileImageUrl}
-                    alt={fullName}
-                    className="object-cover"
-                  />
-                ) : null}
-                <AvatarFallback className="bg-[#780016] text-white font-serif text-2xl font-bold">
-                  {getInitials(fullName)}
-                </AvatarFallback>
-              </Avatar>
+          <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
+            <div className="relative group shrink-0">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
+                title="Click to choose a new profile photo"
+              >
+                <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-white">
+                  {profileImageUrl ? (
+                    <AvatarImage
+                      src={profileImageUrl}
+                      alt={fullName}
+                      className="object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback className="bg-[#780016] text-white font-serif text-2xl font-bold">
+                    {getInitials(fullName)}
+                  </AvatarFallback>
+                </Avatar>
 
-              <div className="absolute inset-1 rounded-full bg-stone-950/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="w-5 h-5 mb-0.5" />
-                <span className="text-[9px] font-bold tracking-wide uppercase">
-                  Edit
-                </span>
-              </div>
-            </button>
+                <div className="absolute inset-1 rounded-full bg-stone-950/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="w-5 h-5 mb-0.5" />
+                  <span className="text-[9px] font-bold tracking-wide uppercase">
+                    Change
+                  </span>
+                </div>
+              </button>
+            </div>
+
+            {profileImageUrl && (
+              <button
+                type="button"
+                onClick={handleRemoveAvatar}
+                className="text-[11px] text-stone-500 hover:text-red-700 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
+                title="Remove custom profile photo"
+              >
+                <Trash2 className="w-3 h-3 text-red-600" />
+                <span>Remove Photo</span>
+              </button>
+            )}
           </div>
 
           <div className="space-y-1.5 flex-1">
             <h2 className="text-xl sm:text-2xl font-extrabold font-serif text-stone-950">
-              {fullName || "Acharya Pandit Ji"}
+              {fullName || user?.name || "Acharya Pandit Ji"}
             </h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600">
               <span className="font-bold text-stone-900">
@@ -452,12 +477,14 @@ export const PriestProfilePage: React.FC = () => {
               </span>
               <span>•</span>
               <span className="flex items-center gap-1 text-amber-700 font-bold">
-                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                {priest?.rating || 4.9} ({priest?.reviewCount || 0} reviews)
+                <Star className={`w-3.5 h-3.5 ${priest?.reviewCount && Number(priest?.rating) > 0 ? "fill-amber-500 text-amber-500" : "text-stone-400"}`} />
+                {priest?.reviewCount && Number(priest?.rating) > 0
+                  ? `${Number(priest.rating).toFixed(1)} (${priest.reviewCount} ${priest.reviewCount === 1 ? "review" : "reviews"})`
+                  : `0.0 (${priest?.reviewCount || 0} reviews)`}
               </span>
               <span>•</span>
               <span className="font-medium text-stone-800">
-                {city}, {state}
+                {city || "Location not set"}{state ? `, ${state}` : ""}
               </span>
             </div>
             <p className="text-xs text-stone-500">
@@ -591,7 +618,7 @@ export const PriestProfilePage: React.FC = () => {
                 </Badge>
               </div>
               <p className="font-mono text-sm font-bold text-stone-950">
-                {priest?.phoneNumber || "+919876543211"}
+                {priest?.phoneNumber || user?.phoneNumber || "Phone pending"}
               </p>
               <p className="text-[11px] text-stone-600">
                 Devotees contact you on this verified number for ritual
@@ -613,7 +640,7 @@ export const PriestProfilePage: React.FC = () => {
                 </Badge>
               </div>
               <p className="font-medium text-xs text-stone-950">
-                {priest?.email || "priest@pujacircle.com"}
+                {priest?.email || user?.email || "Email pending"}
               </p>
               <p className="text-[11px] text-stone-600">
                 Booking updates, scheduling notifications, and platform alerts.
@@ -793,21 +820,72 @@ export const PriestProfilePage: React.FC = () => {
           onSubmit={handleAddArea}
           className="flex gap-2 pt-2 border-t border-stone-200 max-w-md"
         >
-          <Input
-            placeholder="Add locality (e.g. Bandra, Juhu, Powai)..."
-            value={newAreaInput}
-            onChange={(e) => setNewAreaInput(e.target.value)}
-            className="h-10 text-xs flex-1 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-          />
+          <div className="relative flex-1">
+            <Input
+              placeholder="Add locality or 6-digit PIN (e.g. 700020, Bandra)..."
+              value={newAreaInput}
+              onChange={(e) => handleAreaInputChange(e.target.value)}
+              className="h-10 text-xs rounded-md border-stone-300 focus:ring-amber-500 bg-white pr-8"
+            />
+            {isSearchingAreaPin && (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 absolute right-2.5 top-1/2 -translate-y-1/2" />
+            )}
+          </div>
           <Button
             type="submit"
             size="sm"
             variant="outline"
-            className="h-10 text-xs gap-1 rounded-md border-amber-300 font-bold"
+            className="h-10 text-xs gap-1 rounded-md border-amber-300 font-bold shrink-0"
           >
             <Plus className="w-3.5 h-3.5 text-amber-600" /> Add Area
           </Button>
         </form>
+
+        {/* Dynamic PIN Code Suggestions Panel */}
+        {areaPinSuggestions.length > 0 && (
+          <div className="p-3.5 rounded-lg bg-amber-50/80 border border-amber-300 space-y-2.5 max-w-xl transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-red-700" />
+                Localities for PIN {areaPinQuery} ({areaPinSuggestions[0]?.city || ""}, {areaPinSuggestions[0]?.state || ""}):
+              </span>
+              <button
+                type="button"
+                onClick={handleAddAllSuggestions}
+                className="text-[11px] font-bold text-red-800 hover:text-red-950 underline cursor-pointer"
+              >
+                + Add All ({areaPinSuggestions.length})
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {areaPinSuggestions.map((s) => {
+                const formatted = `${s.pincode} - ${s.name}`;
+                const isAlreadyAdded =
+                  serviceAreas.includes(formatted) || serviceAreas.includes(s.name);
+                return (
+                  <button
+                    key={s.name}
+                    type="button"
+                    disabled={isAlreadyAdded}
+                    onClick={() => handleSelectAreaSuggestion(s)}
+                    className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 cursor-pointer ${
+                      isAlreadyAdded
+                        ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed"
+                        : "bg-white text-stone-900 border-amber-300 hover:bg-amber-100 hover:border-amber-400 shadow-2xs"
+                    }`}
+                  >
+                    <span>{isAlreadyAdded ? "✓" : "+"}</span>
+                    <span className="font-semibold">{s.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-stone-500">
+              Click any locality suggestion to add it to your travel-eligible puja service areas.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 9. Bottom Action Bar */}
