@@ -324,11 +324,13 @@ export const PriestProfilePage: React.FC = () => {
 
       if (res.success && res.data) {
         setPriest(res.data);
+        const resolvedImage = res.data.profileImageUrl || "";
+        setProfileImageUrl(resolvedImage);
         if (user) {
           setUser({
             ...user,
             name: res.data.fullName || fullName.trim(),
-            avatarUrl: res.data.profileImageUrl || profileImageUrl.trim(),
+            avatarUrl: resolvedImage || undefined,
           });
         }
         toast.success(res.message || "Profile saved successfully!");

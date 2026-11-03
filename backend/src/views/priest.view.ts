@@ -18,6 +18,7 @@ export interface PriestViewModel {
   state: string;
   pincode?: string | null;
   profileImageUrl?: string | null;
+  avatarUrl?: string | null;
   rating: number;
   reviewCount: number;
   defaultStartTime?: string | null;

@@ -261,17 +261,18 @@ export class PriestService {
     return this.getPriestById(userId);
   }
 
-  // Update priest profile credentials, bio, and languages
+  // Update priest profile credentials, bio, and languages, syncing avatar with Cloudinary + users table
   async updatePriestProfile(id: string, updates: UpdatePriestProfileInput & { fullName?: string; displayName?: string; name?: string }): Promise<PriestViewModel | null> {
     const existing = await this.getPriestById(id);
     if (!existing) {
       throw new AppError(404, 'Priest profile not found.');
     }
 
-    const { fullName, displayName, name, ...profileUpdates } = updates as any;
+    // Destructure profileImageUrl separately so we control its persistence
+    const { fullName, displayName, name, profileImageUrl, ...profileUpdates } = updates as any;
     const newName = fullName || displayName || name;
 
-    // Persist priest display name to users table
+    // 1. Persist priest display name to users table
     if (newName && typeof newName === 'string' && newName.trim()) {
       await db
         .update(users)
@@ -279,22 +280,56 @@ export class PriestService {
         .where(eq(users.id, existing.userId));
     }
 
-    if (
-      updates.profileImageUrl &&
-      existing.profileImageUrl &&
-      updates.profileImageUrl !== existing.profileImageUrl &&
-      existing.profileImageUrl.startsWith('http')
-    ) {
-      await cloudinaryService.deleteImageByUrl(existing.profileImageUrl).catch(() => {});
-    }
+    // 2. Handle Cloudinary Upload & Avatar Sync for users + priestProfiles tables
+    if (profileImageUrl !== undefined) {
+      const oldImageUrl = existing.profileImageUrl || existing.avatarUrl;
+      let finalImageUrl: string | null = null;
 
-    if (updates.profileImageUrl) {
+      if (typeof profileImageUrl === 'string' && profileImageUrl.trim().length > 0) {
+        const trimmed = profileImageUrl.trim();
+
+        // Case A: Base64 Data URI from file picker -> Upload to Cloudinary
+        if (trimmed.startsWith('data:image/') || trimmed.startsWith('data:')) {
+          try {
+            const uploadResult = await cloudinaryService.uploadImage(trimmed, 'pujacircle/priests');
+            finalImageUrl = uploadResult.secure_url || uploadResult.url;
+          } catch (uploadError: any) {
+            console.error('[PriestService] Cloudinary avatar upload failed:', uploadError);
+            throw new AppError(500, 'Failed to upload profile picture to cloud storage.');
+          }
+        }
+        // Case B: Already a hosted URL (e.g. from Cloudinary or external)
+        else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          finalImageUrl = trimmed;
+        }
+
+        // Cleanup: Purge previous image from Cloudinary if different
+        if (oldImageUrl && oldImageUrl.startsWith('http') && oldImageUrl !== finalImageUrl) {
+          await cloudinaryService.deleteImageByUrl(oldImageUrl).catch((err) => {
+            console.warn('[PriestService] Failed to clean up previous Cloudinary asset:', err);
+          });
+        }
+      } else {
+        // Case C: Photo removed (empty string or null) -> Clean up Cloudinary
+        if (oldImageUrl && oldImageUrl.startsWith('http')) {
+          await cloudinaryService.deleteImageByUrl(oldImageUrl).catch((err) => {
+            console.warn('[PriestService] Failed to clean up previous Cloudinary asset:', err);
+          });
+        }
+        finalImageUrl = null;
+      }
+
+      // Sync to users table (users.avatar_url is nullable)
       await db
         .update(users)
-        .set({ avatarUrl: updates.profileImageUrl, updatedAt: new Date() })
+        .set({ avatarUrl: finalImageUrl, updatedAt: new Date() })
         .where(eq(users.id, existing.userId));
+
+      // Sync to priest_profiles table (profile_image_url defaults to empty string)
+      profileUpdates.profileImageUrl = finalImageUrl || '';
     }
 
+    // 3. Persist other profile fields to priest_profiles table
     await db
       .update(priestProfiles)
       .set({
