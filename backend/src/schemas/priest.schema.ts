@@ -16,7 +16,7 @@ export const updatePriestProfileSchema = z.object({
   city: z.string().trim().max(100).optional(),
   state: z.string().trim().max(100).optional(),
   pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional().or(z.literal('')),
-  profileImageUrl: z.string().optional().or(z.literal('')),
+  profileImageUrl: z.string().nullable().optional().or(z.literal('')),
   defaultStartTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be in HH:mm 24hr format').optional(),
   defaultEndTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be in HH:mm 24hr format').optional(),
 });
