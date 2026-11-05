@@ -323,11 +323,40 @@ export const BookingsPage: React.FC = () => {
 
                   {/* Priest and Dakshina Row */}
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 pt-2 border-t border-amber-100 text-xs">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <span className="text-stone-500 font-medium">Appointed Priest:</span>
-                      <strong className="text-stone-900 font-semibold">
-                        {b.priest?.displayName || b.priest?.fullName || 'Assigned Purohit'}
-                      </strong>
+                      <div className="flex items-center gap-1.5">
+                        {(() => {
+                          const priestImg =
+                            b.priest?.profileImageUrl ||
+                            (b.priest as any)?.avatarUrl ||
+                            (b as any).priestAvatar ||
+                            (b as any).priestProfile?.profileImageUrl;
+                          const name = b.priest?.displayName || b.priest?.fullName || 'Assigned Purohit';
+                          return (
+                            <>
+                              <div className="relative w-5 h-5 rounded-full overflow-hidden bg-[#780016] text-amber-300 font-serif font-bold text-[10px] flex items-center justify-center border border-amber-400 shrink-0">
+                                {priestImg ? (
+                                  <img
+                                    src={priestImg}
+                                    alt={name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.currentTarget as HTMLElement).style.display = 'none';
+                                      const fb = e.currentTarget.nextElementSibling as HTMLElement;
+                                      if (fb) fb.style.display = 'flex';
+                                    }}
+                                  />
+                                ) : null}
+                                <span className={`w-full h-full items-center justify-center ${priestImg ? 'hidden' : 'flex'}`}>
+                                  {name.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <strong className="text-stone-900 font-semibold">{name}</strong>
+                            </>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-1.5">

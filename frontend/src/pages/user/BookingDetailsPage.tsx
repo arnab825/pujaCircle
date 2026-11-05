@@ -213,6 +213,14 @@ export const BookingDetailsPage: React.FC = () => {
     (booking as any).priestProfile?.user?.phoneNumber ||
     '';
 
+  const priestAvatar =
+    booking.priest?.profileImageUrl ||
+    booking.priest?.avatarUrl ||
+    (booking as any).priestAvatar ||
+    (booking as any).priestProfile?.profileImageUrl ||
+    (booking as any).priestProfile?.user?.avatarUrl ||
+    '';
+
   const priestInitial = priestDisplayName.charAt(0).toUpperCase() || 'प';
 
   const ceremonyDateStr = booking.bookingDate || (booking as any).scheduledDate || '';
@@ -486,8 +494,26 @@ export const BookingDetailsPage: React.FC = () => {
                   {/* Resilient Priest Profile Card */}
                   <div className="p-4 rounded-lg bg-white border border-amber-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3.5">
-                      <div className="h-12 w-12 rounded-xl bg-linear-to-br from-[#780016] to-[#50000e] text-amber-300 flex items-center justify-center font-serif font-black text-lg border-2 border-amber-400 shadow-sm shrink-0">
-                        {priestInitial}
+                      <div className="relative h-12 w-12 rounded-xl bg-linear-to-br from-[#780016] to-[#50000e] text-amber-300 flex items-center justify-center font-serif font-black text-lg border-2 border-amber-400 shadow-sm shrink-0 overflow-hidden">
+                        {priestAvatar ? (
+                          <img
+                            src={priestAvatar}
+                            alt={priestDisplayName}
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = 'none';
+                              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div
+                          className={`h-full w-full items-center justify-center ${
+                            priestAvatar ? 'hidden' : 'flex'
+                          }`}
+                        >
+                          {priestInitial}
+                        </div>
                       </div>
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-1.5">

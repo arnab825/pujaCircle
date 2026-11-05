@@ -61,7 +61,8 @@ export class BookingService {
             fullName: b.priestProfile.user?.name || 'Assigned Purohit',
             phoneNumber: b.priestProfile.user?.phoneNumber,
             email: b.priestProfile.user?.email,
-            profileImageUrl: b.priestProfile.profileImageUrl,
+            profileImageUrl: b.priestProfile.profileImageUrl || b.priestProfile.user?.avatarUrl || '',
+            avatarUrl: b.priestProfile.profileImageUrl || b.priestProfile.user?.avatarUrl || '',
           }
         : undefined,
       ritual: b.catalog || undefined,

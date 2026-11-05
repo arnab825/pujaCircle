@@ -179,9 +179,40 @@ export const UserHomePage: React.FC = () => {
                     <span>Appointed Purohit</span>
                   </div>
                   <div className="flex items-center gap-2.5 pt-0.5">
-                    <div className="h-8 w-8 rounded-full bg-[#780016] text-amber-200 flex items-center justify-center font-serif font-bold text-xs ring-2 ring-amber-400 shrink-0">
-                      {getInitials(upcomingBooking.priest?.displayName || upcomingBooking.priest?.fullName || 'P')}
-                    </div>
+                    {(() => {
+                      const priestImg =
+                        upcomingBooking.priest?.profileImageUrl ||
+                        (upcomingBooking.priest as any)?.avatarUrl ||
+                        (upcomingBooking as any).priestAvatar ||
+                        (upcomingBooking as any).priestProfile?.profileImageUrl;
+                      const priestName =
+                        upcomingBooking.priest?.displayName ||
+                        upcomingBooking.priest?.fullName ||
+                        'Assigned Gurukul Acharya';
+                      return (
+                        <div className="relative h-8 w-8 rounded-full bg-[#780016] text-amber-200 flex items-center justify-center font-serif font-bold text-xs ring-2 ring-amber-400 shrink-0 overflow-hidden">
+                          {priestImg ? (
+                            <img
+                              src={priestImg}
+                              alt={priestName}
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div
+                            className={`h-full w-full items-center justify-center ${
+                              priestImg ? 'hidden' : 'flex'
+                            }`}
+                          >
+                            {getInitials(priestName || 'P')}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div>
                       <p className="font-serif font-bold text-stone-950 text-sm">
                         {upcomingBooking.priest?.displayName || upcomingBooking.priest?.fullName || 'Assigned Gurukul Acharya'}
