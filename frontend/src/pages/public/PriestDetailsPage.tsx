@@ -54,8 +54,10 @@ export const PriestDetailsPage: React.FC = () => {
   const dayAfterTomorrow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
   const dayAfterTomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(dayAfterTomorrow);
 
-  // Standard day window concludes around 20:00 (no full ceremony can start before 21:00 cutoff)
-  const isTodayConcluded = istMinutes >= (20 * 60);
+  // Standard day window concludes around 21:00. Purohits require at least 12 hours advance notice
+  // to review prior bookings and prepare samagri. After 9:00 AM IST (540 mins), all remaining slots for today
+  // fall within the 12-hour notice buffer, so today is locked for new bookings.
+  const isTodayConcluded = (istMinutes + (12 * 60)) >= (21 * 60);
   const initialDate = isTodayConcluded ? tomorrowStr : istDate;
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [availableSlots, setAvailableSlots] = useState<CalculatedSlot[]>([]);
@@ -455,7 +457,7 @@ export const PriestDetailsPage: React.FC = () => {
                     setSelectedDate(istDate);
                     setSelectedSlot(null);
                   } else {
-                    toast.warning("Today's booking time has concluded. Please book for tomorrow.");
+                    toast.warning("Purohits require 12 hours advance booking notice. Today's slots are within this window; please book for tomorrow.");
                   }
                 }}
                 disabled={isTodayConcluded}
@@ -468,7 +470,7 @@ export const PriestDetailsPage: React.FC = () => {
                 }`}
               >
                 <span>Today</span>
-                {isTodayConcluded && <span className="text-[10px] text-red-500">(Ended)</span>}
+                {isTodayConcluded && <span className="text-[10px] text-amber-700 font-semibold">(12h Notice)</span>}
               </button>
 
               <button
@@ -517,14 +519,14 @@ export const PriestDetailsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Today Exceeded Warning */}
+            {/* Today 12-Hour Notice Warning */}
             {selectedDate === istDate && isTodayConcluded && (
               <div className="p-3 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
-                <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+                <AlertCircle className="w-4 h-4 text-[#780016] shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[#780016]">Today's booking cutoff has passed:</strong>
+                  <strong className="text-[#780016]">12-Hour Advance Notice Required:</strong>
                   <p className="text-[11px] text-stone-700 mt-0.5">
-                    Same-day ceremony bookings are closed for today. Please pick tomorrow ({formatFullDate(tomorrowStr)}) starting from {formatTimeAmPm(priest?.defaultStartTime || "07:00")} onwards.
+                    Purohits require at least 12 hours advance booking notice to review prior commitments, verify schedule availability, and prepare sacred Vedic samagri. Same-day bookings for today are within this preparation window. Please pick tomorrow ({formatFullDate(tomorrowStr)}) or an upcoming auspicious date.
                   </p>
                 </div>
               </div>
@@ -559,6 +561,14 @@ export const PriestDetailsPage: React.FC = () => {
               </div>
               <span className="text-xs text-stone-500 font-medium">
                 {formatFullDate(selectedDate)}
+              </span>
+            </div>
+
+            {/* 12-Hour Advance Notice Policy Reminder */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50/70 border border-amber-200 text-[11px] text-amber-900">
+              <Clock className="w-3.5 h-3.5 text-[#780016] shrink-0" />
+              <span>
+                <strong>12-Hour Advance Notice Policy:</strong> Purohits require at least 12 hours notice to review existing commitments, verify schedule availability, and prepare authentic puja samagri.
               </span>
             </div>
 
@@ -640,7 +650,7 @@ export const PriestDetailsPage: React.FC = () => {
                           {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
                         </span>
                         <span className="text-[9px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded">
-                          Blocked Break
+                          {slot.blockedReason || 'Unavailable'}
                         </span>
                       </div>
                     );

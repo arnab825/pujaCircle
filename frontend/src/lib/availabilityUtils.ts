@@ -169,14 +169,21 @@ export function calculateDayMuhuratSlots(
       b.endTime
   );
 
+  // Calculate day difference in Asia/Kolkata (IST) to accurately calculate advance notice window
+  const [tY, tM, tD] = targetDate.split('-').map(Number);
+  const [iY, iM, iD] = istDate.split('-').map(Number);
+  const diffDays = Math.round((Date.UTC(tY, tM - 1, tD) - Date.UTC(iY, iM - 1, iD)) / (24 * 60 * 60 * 1000));
+
   const slots: CalculatedSlot[] = [];
   let currentStart = startMin;
   while (currentStart + slotDurationMinutes <= endMin) {
     const currentEnd = currentStart + slotDurationMinutes;
     const startStr = minutesToTime(currentStart);
     const endStr = minutesToTime(currentEnd);
-    const isTargetToday = targetDate === istDate;
-    const isPastSlot = isTargetToday && currentStart <= istMinutes;
+
+    // Total advance notice in minutes from right now in IST
+    const advanceMinutes = (diffDays * 24 * 60) + (currentStart - istMinutes);
+    const isPastSlot = advanceMinutes <= 0;
 
     if (!isPastSlot) {
       // Check if this slot overlaps with any blocked hours (e.g. 1 PM - 4 PM)
@@ -215,6 +222,19 @@ export function calculateDayMuhuratSlots(
           endTime: endStr,
           status: 'BOOKED',
           isBlocked: false,
+        });
+      } else if (advanceMinutes < 12 * 60) {
+        // Enforce minimum 12-hour preparation / booking check window
+        slots.push({
+          id: `dyn-${targetDate}-${startStr}-${endStr}`,
+          priestId,
+          slotDate: targetDate,
+          date: targetDate,
+          startTime: startStr,
+          endTime: endStr,
+          status: 'BOOKED',
+          isBlocked: true,
+          blockedReason: '12h Notice Required',
         });
       } else {
         slots.push({

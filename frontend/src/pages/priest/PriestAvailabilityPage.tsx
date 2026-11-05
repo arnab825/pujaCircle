@@ -13,6 +13,7 @@ import {
   formatTimeAmPm,
   timeToMinutes,
   PriestException,
+  getISTNow,
 } from '@/lib/availabilityUtils';
 import { formatFullDate } from '@/lib/utils';
 import {
@@ -43,11 +44,47 @@ import { toast } from 'sonner';
 export const PriestAvailabilityPage: React.FC = () => {
   const { user } = useAuthStore();
   const priestId = user?.id || '';
-  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Real-time IST Today state (Asia/Kolkata timezone - dynamic midnight rollover)
+  const [currentIstState, setCurrentIstState] = useState(() => getISTNow());
+  const todayStr = currentIstState.istDate;
 
   // Calendar State: 0 = current month, 1 = +1 month, 2 = +2 months (90 days total)
   const [monthOffset, setMonthOffset] = useState<number>(0);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  // Dynamic heartbeat: keeps todayStr live so calendar never stays static at midnight
+  useEffect(() => {
+    const updateTime = () => {
+      const now = getISTNow();
+      setCurrentIstState((prev) => {
+        if (prev.istDate !== now.istDate) {
+          // Midnight rollover! Auto-advance selectedDate if user was on yesterday's date
+          setSelectedDate((currSel) => (currSel === prev.istDate ? now.istDate : currSel));
+          return now;
+        }
+        if (Math.abs(prev.istMinutes - now.istMinutes) >= 1) {
+          return now;
+        }
+        return prev;
+      });
+    };
+
+    const interval = setInterval(updateTime, 15000); // 15-second heartbeat
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        updateTime();
+      }
+    };
+    window.addEventListener('focus', updateTime);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', updateTime);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
 
   // Data State
   const [exceptions, setExceptions] = useState<PriestException[]>([]);
@@ -128,26 +165,39 @@ export const PriestAvailabilityPage: React.FC = () => {
     toast.success(`Standard working hours updated to ${formatDisplayHour(startTime)} – ${formatDisplayHour(endTime)}.`);
   };
 
-  // Calendar Month Computation
-  const viewDate = new Date();
-  viewDate.setDate(1); // Set to 1st to avoid overflow issues
-  viewDate.setMonth(viewDate.getMonth() + monthOffset);
+  // Calendar Month Computation (IST aligned)
+  const { currentYear, currentMonth, monthTitle, firstDayOfWeek, daysInMonth, maxDateStr } = React.useMemo(() => {
+    const [tYear, tMonth, tDay] = todayStr.split('-').map(Number);
+    // Base view date on 1st of target month in IST
+    const vDate = new Date(tYear, tMonth - 1 + monthOffset, 1);
+    const cYear = vDate.getFullYear();
+    const cMonth = vDate.getMonth();
+    const mTitle = vDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const fDay = new Date(cYear, cMonth, 1).getDay();
+    const dCount = new Date(cYear, cMonth + 1, 0).getDate();
 
-  const currentYear = viewDate.getFullYear();
-  const currentMonth = viewDate.getMonth();
-  const monthTitle = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    // 90 days rolling maximum in IST
+    const maxD = new Date(tYear, tMonth - 1, tDay + 90);
+    const mDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(maxD);
 
-  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-  // Max rolling date: 90 days from today
-  const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + 90);
-  const maxDateStr = maxDate.toISOString().split('T')[0];
+    return {
+      currentYear: cYear,
+      currentMonth: cMonth,
+      monthTitle: mTitle,
+      firstDayOfWeek: fDay,
+      daysInMonth: dCount,
+      maxDateStr: mDateStr,
+    };
+  }, [todayStr, monthOffset]);
 
   // Toggle Full Day Leave
   const handleToggleFullDayLeave = async () => {
     if (isSubmitting) return;
+
+    if (selectedDate < todayStr) {
+      toast.error('Cannot modify schedule for past dates.');
+      return;
+    }
 
     const existingLeave = exceptions.find(
       (e) => e.date === selectedDate && e.type === 'FULL_DAY_LEAVE'
@@ -212,6 +262,10 @@ export const PriestAvailabilityPage: React.FC = () => {
     reason: string,
     exceptionType: 'BLOCK' | 'CUSTOM_HOURS' = 'CUSTOM_HOURS'
   ) => {
+    if (selectedDate < todayStr) {
+      toast.error('Cannot configure working hours for past dates.');
+      return;
+    }
     try {
       setIsSubmitting(true);
       const res = await priestApi.blockHours({
@@ -260,6 +314,12 @@ export const PriestAvailabilityPage: React.FC = () => {
     const bDate = (b.bookingDate || (b as any).scheduledDate || '').split('T')[0];
     return bDate === selectedDate && b.status !== 'CANCELLED';
   });
+
+  const isSelectedPast = selectedDate < todayStr;
+  const isSelectedToday = selectedDate === todayStr;
+  const currentMinutesIST = currentIstState.istMinutes;
+  const isPastWorkingHours = currentMinutesIST >= endMinutes;
+  const isBeforeWorkingHours = currentMinutesIST < startMinutes;
 
   // Overall metrics across the 90-day window
   const totalLeavesCount = exceptions.filter((e) => e.type === 'FULL_DAY_LEAVE').length;
@@ -462,10 +522,14 @@ export const PriestAvailabilityPage: React.FC = () => {
               return (
                 <div
                   key={dateStr}
-                  onClick={() => !isDisabled && setSelectedDate(dateStr)}
+                  onClick={() => !isBeyond90 && setSelectedDate(dateStr)}
                   className={`h-24 p-2 rounded-lg border-2 transition-all flex flex-col justify-between select-none ${
-                    isDisabled
-                      ? 'bg-stone-50/70 border-stone-200/60 opacity-45 cursor-not-allowed'
+                    isBeyond90
+                      ? 'bg-stone-50/50 border-stone-200/40 opacity-30 cursor-not-allowed'
+                      : isPast
+                      ? isSelected
+                        ? 'border-stone-500 bg-stone-100 shadow-sm cursor-pointer ring-2 ring-stone-300'
+                        : 'bg-stone-50/80 border-stone-200/70 opacity-50 hover:opacity-80 cursor-pointer'
                       : isSelected
                       ? 'border-[#780016] bg-amber-50/60 shadow-sm cursor-pointer ring-2 ring-amber-300/40'
                       : 'border-amber-200/80 hover:border-amber-400 bg-white cursor-pointer'
@@ -568,12 +632,36 @@ export const PriestAvailabilityPage: React.FC = () => {
               {formatFullDate(selectedDate)}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              {isSelectedFullLeave ? (
-                <Badge className="bg-red-100 text-red-800 border-red-300 text-xs font-bold">
+              {isSelectedPast ? (
+                <Badge className="bg-stone-100 text-stone-700 border-stone-300 text-xs font-bold gap-1">
+                  <Clock className="w-3.5 h-3.5 text-stone-500" />
+                  Status: Concluded (Past Date)
+                </Badge>
+              ) : isSelectedFullLeave ? (
+                <Badge className="bg-red-100 text-red-800 border-red-300 text-xs font-bold gap-1">
+                  <Ban className="w-3.5 h-3.5 text-red-600" />
                   Status: Full Day Off
                 </Badge>
+              ) : isSelectedToday ? (
+                isPastWorkingHours ? (
+                  <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-xs font-bold gap-1">
+                    <Clock className="w-3.5 h-3.5 text-amber-700" />
+                    Status: Hours Concluded for Today
+                  </Badge>
+                ) : isBeforeWorkingHours ? (
+                  <Badge className="bg-blue-100 text-blue-900 border-blue-300 text-xs font-bold gap-1">
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    Status: Opens at {formatDisplayHour(workingHours.defaultStartTime)} Today
+                  </Badge>
+                ) : (
+                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    Status: Open For Bookings Today
+                  </Badge>
+                )
               ) : (
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold">
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-bold gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                   Status: Open For Bookings
                 </Badge>
               )}
@@ -582,41 +670,55 @@ export const PriestAvailabilityPage: React.FC = () => {
 
           {/* Quick Action Buttons */}
           <div className="space-y-3">
-            <Button
-              disabled={isSubmitting || isLoading}
-              onClick={handleToggleFullDayLeave}
-              className={`w-full justify-center gap-2 h-11 text-xs font-bold shadow-xs cursor-pointer ${
-                isSelectedFullLeave
-                  ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
-                  : 'bg-red-800 hover:bg-red-900 text-white'
-              } ${(isSubmitting || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {isSelectedFullLeave ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4" /> Cancel Leave (Make Available)
-                </>
-              ) : (
-                <>
-                  <Ban className="h-4 w-4" /> Mark Full Day Off (Leave)
-                </>
-              )}
-            </Button>
+            {isSelectedPast ? (
+              <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-lg text-stone-600 text-xs flex items-start gap-2.5">
+                <Info className="h-4 w-4 text-stone-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-stone-700">Past Date Locked</p>
+                  <p className="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                    This ceremony date has already concluded. Calendar exceptions, working hours, and leaves can only be scheduled for active or future dates.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Button
+                  disabled={isSubmitting || isLoading}
+                  onClick={handleToggleFullDayLeave}
+                  className={`w-full justify-center gap-2 h-11 text-xs font-bold shadow-xs cursor-pointer ${
+                    isSelectedFullLeave
+                      ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                      : 'bg-red-800 hover:bg-red-900 text-white'
+                  } ${(isSubmitting || isLoading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isSelectedFullLeave ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" /> Cancel Leave (Make Available)
+                    </>
+                  ) : (
+                    <>
+                      <Ban className="h-4 w-4" /> Mark Full Day Off (Leave)
+                    </>
+                  )}
+                </Button>
 
-            {!isSelectedFullLeave && (
-              <Button
-                variant="outline"
-                disabled={isSubmitting || isLoading}
-                onClick={() => {
-                  setBlockModalInitialMode('BLOCK');
-                  setIsBlockModalOpen(true);
-                }}
-                className={`w-full justify-center gap-2 h-11 border-2 border-amber-400 text-stone-900 hover:bg-amber-50 font-bold text-xs cursor-pointer ${
-                  (isSubmitting || isLoading) ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <Clock className="h-4 w-4 text-amber-700" />
-                <span>Block Specific Hours (e.g. 1 PM – 4 PM)</span>
-              </Button>
+                {!isSelectedFullLeave && (
+                  <Button
+                    variant="outline"
+                    disabled={isSubmitting || isLoading}
+                    onClick={() => {
+                      setBlockModalInitialMode('BLOCK');
+                      setIsBlockModalOpen(true);
+                    }}
+                    className={`w-full justify-center gap-2 h-11 border-2 border-amber-400 text-stone-900 hover:bg-amber-50 font-bold text-xs cursor-pointer ${
+                      (isSubmitting || isLoading) ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Clock className="h-4 w-4 text-amber-700" />
+                    <span>Block Specific Hours (e.g. 1 PM – 4 PM)</span>
+                  </Button>
+                )}
+              </>
             )}
           </div>
 
@@ -640,23 +742,33 @@ export const PriestAvailabilityPage: React.FC = () => {
             ) : (
               <div className="space-y-2.5">
                 {/* Default Working Window */}
-                <div className="p-3 bg-emerald-50/70 border border-emerald-300 rounded-lg text-xs flex items-center justify-between">
+                <div className={`p-3 rounded-lg text-xs flex items-center justify-between ${
+                  isSelectedPast
+                    ? 'bg-stone-50 border border-stone-200'
+                    : 'bg-emerald-50/70 border border-emerald-300'
+                }`}>
                   <div>
-                    <span className="font-bold text-emerald-950 block">Standard Hours</span>
-                    <span className="text-[11px] text-emerald-700">
+                    <span className={`font-bold block ${isSelectedPast ? 'text-stone-700' : 'text-emerald-950'}`}>Standard Hours</span>
+                    <span className={`text-[11px] ${isSelectedPast ? 'text-stone-500' : 'text-emerald-700'}`}>
                       {formatTimeAmPm(workingHours.defaultStartTime)} – {formatTimeAmPm(workingHours.defaultEndTime)} ({durationHours} hrs)
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditHoursModalOpen(true)}
-                      className="text-[10px] text-emerald-800 hover:underline font-semibold cursor-pointer"
-                    >
-                      Change
-                    </button>
-                    <Badge variant="outline" className="bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                      Active
+                    {!isSelectedPast && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditHoursModalOpen(true)}
+                        className="text-[10px] text-emerald-800 hover:underline font-semibold cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    )}
+                    <Badge variant="outline" className={`text-[10px] font-bold ${
+                      isSelectedPast
+                        ? 'bg-stone-100 text-stone-600 border-stone-300'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {isSelectedPast ? 'Concluded' : 'Active'}
                     </Badge>
                   </div>
                 </div>
@@ -674,15 +786,17 @@ export const PriestAvailabilityPage: React.FC = () => {
                       </div>
                       <div className="text-[11px] text-amber-800 mt-0.5">{bo.reason || 'Unavailable'}</div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteException(bo.id)}
-                      className="h-8 w-8 p-0 text-red-600 hover:bg-red-100 hover:text-red-800"
-                      title="Remove blackout"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isSelectedPast && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDeleteException(bo.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:bg-red-100 hover:text-red-800 cursor-pointer"
+                        title="Remove blackout"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 ))}
 
