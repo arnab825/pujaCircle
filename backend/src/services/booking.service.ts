@@ -241,6 +241,21 @@ export class BookingService {
       );
     }
 
+    // Verify minimum 12-hour advance booking notice window (Purohits require notice to check existing commitments and assemble sacred samagri)
+    const [bookingYear, bookingMonth, bookingDay] = data.bookingDate.split('-').map(Number);
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    // Convert target slot start time in Asia/Kolkata (IST = UTC + 5h30m) to UTC epoch milliseconds
+    const slotTimestampIST = Date.UTC(bookingYear, bookingMonth - 1, bookingDay, startHour, startMin) - (5.5 * 60 * 60 * 1000);
+    const advanceMinutes = Math.floor((slotTimestampIST - now.getTime()) / (60 * 1000));
+
+    const MIN_ADVANCE_NOTICE_MINUTES = 12 * 60; // 12 hours minimum advance notice
+    if (advanceMinutes < MIN_ADVANCE_NOTICE_MINUTES) {
+      throw new AppError(
+        400,
+        'Ceremonies require at least 12 hours advance booking notice so the Purohit can review existing commitments, verify schedule availability, and prepare authentic sacred samagri. Please choose a slot at least 12 hours in advance.'
+      );
+    }
+
     // Verify no overlap via availabilityService.checkBookingOverlap
     const hasOverlap = await availabilityService.checkBookingOverlap(
       resolvedPriestId,

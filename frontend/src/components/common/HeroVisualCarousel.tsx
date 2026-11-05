@@ -49,12 +49,13 @@ const DEFAULT_ITEMS: VisualItem[] = [
 
 interface HeroVisualCarouselProps {
   items?: VisualItem[];
-  transitionDuration?: number; // Time in ms for snapping glide
+  transitionDuration?: number; // Time in ms for slow, graceful transition (default 1400ms)
+  autoScrollInterval?: number; // Time in ms between automatic slide advances (default 6000ms)
 }
 
-// Snappy easeOutQuart curve
-function easeOutQuart(x: number): number {
-  return 1 - Math.pow(1 - x, 4);
+// Gentle, organic sinusoidal curve - whisper-soft acceleration and deceleration with zero bounce
+function easeInOutSine(x: number): number {
+  return -(Math.cos(Math.PI * x) - 1) / 2;
 }
 
 // Calculates shortest signed circular distance along the track
@@ -72,7 +73,8 @@ function getShortestTrackDelta(
 
 export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
   items = DEFAULT_ITEMS,
-  transitionDuration = 320,
+  transitionDuration = 1400, // Cinematic, ultra-smooth 1400ms glide
+  autoScrollInterval = 6000, // Calm 6s interval before next slide advances
 }) => {
   const totalReps = 3;
   const carouselItems = Array.from({ length: totalReps }, () => items).flat();
@@ -120,38 +122,69 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
   const totalTrackWidth = totalCards * step;
 
   // Track state references (strictly normalized to [0, totalTrackWidth))
+  const activeIdxRef = useRef<number>(0);
   const currentScrollRef = useRef<number>(0);
   const startScrollRef = useRef<number>(0);
   const travelDistanceRef = useRef<number>(0);
   const animStartTimeRef = useRef<number>(0);
+  const transitionDurationRef = useRef<number>(transitionDuration);
   const isTransitioningRef = useRef<boolean>(false);
   const isDraggingRef = useRef<boolean>(false);
   const dragStartXRef = useRef<number>(0);
   const dragStartScrollRef = useRef<number>(0);
   const hasDraggedRef = useRef<boolean>(false);
+  const autoScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Trigger smooth bounded transition to target slide
+  // Trigger smooth bounded transition to target slide (strictly 1 slide, slow and majestic)
   const goToOffset = useCallback(
     (deltaSteps: number, now: number) => {
+      const nextIdx = (activeIdxRef.current + deltaSteps + totalCards) % totalCards;
+      activeIdxRef.current = nextIdx;
+      const targetScroll = nextIdx * step;
       const current =
         ((currentScrollRef.current % totalTrackWidth) + totalTrackWidth) %
         totalTrackWidth;
-      const currentIdx = Math.round(current / step);
-      const targetIdx = (currentIdx + deltaSteps + totalCards) % totalCards;
-      const targetScroll = targetIdx * step;
       const shortestDelta = getShortestTrackDelta(
         current,
         targetScroll,
         totalTrackWidth,
       );
 
+      transitionDurationRef.current = transitionDuration; // Slow 1400ms glide
       startScrollRef.current = current;
       travelDistanceRef.current = shortestDelta;
       animStartTimeRef.current = now;
       isTransitioningRef.current = true;
     },
-    [step, totalCards, totalTrackWidth],
+    [step, totalCards, totalTrackWidth, transitionDuration],
   );
+
+  // Continuous automatic scrolling: seamlessly resumes after swipe/drag
+  const resetAutoScroll = useCallback(() => {
+    if (autoScrollTimerRef.current) {
+      clearTimeout(autoScrollTimerRef.current);
+    }
+    if (autoScrollInterval <= 0) return;
+
+    autoScrollTimerRef.current = setTimeout(() => {
+      // If user is currently dragging, wait and reschedule
+      if (isDraggingRef.current) {
+        resetAutoScroll();
+        return;
+      }
+      goToOffset(1, performance.now());
+      resetAutoScroll();
+    }, autoScrollInterval);
+  }, [autoScrollInterval, goToOffset]);
+
+  useEffect(() => {
+    resetAutoScroll();
+    return () => {
+      if (autoScrollTimerRef.current) {
+        clearTimeout(autoScrollTimerRef.current);
+      }
+    };
+  }, [resetAutoScroll]);
 
   // Pointer drag interaction: Mouse/Touch down
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -162,7 +195,7 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
       // Fallback
     }
 
-    // Freeze motion immediately on click/touch
+    // Freeze motion immediately on touch/click to grab card
     isTransitioningRef.current = false;
     isDraggingRef.current = true;
     hasDraggedRef.current = false;
@@ -181,7 +214,7 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
       hasDraggedRef.current = true;
     }
 
-    // Direct 1:1 responsive dragging with cursor
+    // Direct natural sliding follows hand/mouse
     let nextScroll = dragStartScrollRef.current - deltaX;
     nextScroll =
       ((nextScroll % totalTrackWidth) + totalTrackWidth) % totalTrackWidth;
@@ -208,34 +241,47 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
       return;
     }
 
-    // If user dragged: snap cleanly to nearest slide
+    // User swiped or dragged:
     const deltaX = e.clientX - dragStartXRef.current;
     const current = currentScrollRef.current;
 
-    let targetScroll: number;
-    if (Math.abs(deltaX) > 40) {
-      // Swiped left (deltaX < 0) -> advance 1 slide
-      // Swiped right (deltaX > 0) -> go back 1 slide
-      const dir = deltaX < 0 ? 1 : -1;
-      const baseIdx = Math.round(dragStartScrollRef.current / step);
-      const targetIdx = (baseIdx + dir + totalCards) % totalCards;
-      targetScroll = targetIdx * step;
+    // Strict 1-slide movement: A swipe gesture advances EXACTLY 1 slide (never skips!)
+    let targetIdx: number;
+    let isSwipe = false;
+    if (deltaX < -25) {
+      // Swiped left -> advance exactly to next slide (+1, slow cinematic glide)
+      targetIdx = (activeIdxRef.current + 1 + totalCards) % totalCards;
+      isSwipe = true;
+    } else if (deltaX > 25) {
+      // Swiped right -> go back exactly to previous slide (-1, slow cinematic glide)
+      targetIdx = (activeIdxRef.current - 1 + totalCards) % totalCards;
+      isSwipe = true;
     } else {
-      // Snap to closest slide
-      const nearestIdx = Math.round(current / step) % totalCards;
-      targetScroll = nearestIdx * step;
+      // Minor drag under 25px -> settle on closest card
+      targetIdx = (Math.round(current / step) + totalCards) % totalCards;
     }
 
+    activeIdxRef.current = targetIdx;
+    const targetScroll = targetIdx * step;
     const shortestDelta = getShortestTrackDelta(
       current,
       targetScroll,
       totalTrackWidth,
     );
 
+    // Slow glide on swipe (1400ms), smooth settle on small release
+    const dynamicDuration = isSwipe
+      ? transitionDuration
+      : Math.max(600, Math.min(transitionDuration, Math.abs(shortestDelta) * 1.5));
+    transitionDurationRef.current = dynamicDuration;
+
     startScrollRef.current = current;
     travelDistanceRef.current = shortestDelta;
     animStartTimeRef.current = performance.now();
     isTransitioningRef.current = true;
+
+    // Automatic wise: seamlessly restart autoscroll cycle from this newly swiped slide
+    resetAutoScroll();
   };
 
   // Card click: clicking a side card smoothly centers it; clicking center card stays still
@@ -244,37 +290,37 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
     if (Math.abs(distFromCenter) > cardWidth * 0.3) {
       const direction = distFromCenter > 0 ? 1 : -1;
       goToOffset(direction, performance.now());
+      resetAutoScroll();
     } else {
       // Center card clicked: stay frozen right there
       isTransitioningRef.current = false;
     }
   };
 
-  // 60/120fps hardware-accelerated animation frame loop (NO auto-advance!)
+  // 60/120fps hardware-accelerated animation frame loop
   useAnimationFrame((time) => {
     if (!containerRef.current) return;
 
-    if (!isDraggingRef.current) {
-      // Transition to snap target if settling after a drag/click
-      if (isTransitioningRef.current) {
-        const elapsed = time - animStartTimeRef.current;
-        const progress = Math.min(elapsed / transitionDuration, 1);
-        const eased = easeOutQuart(progress);
+    if (!isDraggingRef.current && isTransitioningRef.current) {
+      // Smooth simultaneous sliding curve with gentle sinusoidal deceleration
+      const elapsed = time - animStartTimeRef.current;
+      const duration = transitionDurationRef.current || transitionDuration;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = easeInOutSine(progress);
 
+      currentScrollRef.current =
+        ((startScrollRef.current + travelDistanceRef.current * eased) %
+          totalTrackWidth +
+          totalTrackWidth) %
+        totalTrackWidth;
+
+      if (progress >= 1) {
         currentScrollRef.current =
-          ((startScrollRef.current + travelDistanceRef.current * eased) %
+          ((startScrollRef.current + travelDistanceRef.current) %
             totalTrackWidth +
             totalTrackWidth) %
           totalTrackWidth;
-
-        if (progress >= 1) {
-          currentScrollRef.current =
-            ((startScrollRef.current + travelDistanceRef.current) %
-              totalTrackWidth +
-              totalTrackWidth) %
-            totalTrackWidth;
-          isTransitioningRef.current = false;
-        }
+        isTransitioningRef.current = false;
       }
     }
 
@@ -309,12 +355,12 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
       const normalized = distFromCenter / cardWidth;
       const clampedNorm = Math.max(-1.5, Math.min(1.5, normalized));
 
-      // 3D Coverflow angles
-      const rotateY = -clampedNorm * 22;
-      const translateZ = -Math.abs(clampedNorm) * 80;
-      const scale = 1 - Math.min(Math.abs(clampedNorm) * 0.08, 0.15);
+      // Clean, calm 3D depth - photos flow together simultaneously left and right
+      const rotateY = -clampedNorm * 12; // gentle 12deg
+      const translateZ = -Math.abs(clampedNorm) * 35; // gentle 35px depth
+      const scale = 1 - Math.min(Math.abs(clampedNorm) * 0.05, 0.08); // subtle 5% scale
       const zIndex = Math.round(50 - Math.abs(clampedNorm) * 10);
-      const brightness = 1 - Math.min(Math.abs(clampedNorm) * 0.22, 0.35);
+      const brightness = 1 - Math.min(Math.abs(clampedNorm) * 0.15, 0.25);
 
       card.style.zIndex = `${zIndex}`;
       card.style.filter = `brightness(${brightness})`;
@@ -338,8 +384,10 @@ export const HeroVisualCarousel: React.FC<HeroVisualCarouselProps> = ({
         onKeyDown={(e) => {
           if (e.key === "ArrowLeft") {
             goToOffset(-1, performance.now());
+            resetAutoScroll();
           } else if (e.key === "ArrowRight") {
             goToOffset(1, performance.now());
+            resetAutoScroll();
           }
         }}
       >
