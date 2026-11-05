@@ -39,6 +39,7 @@ export interface Priest {
   state: string;
   pincode?: string;
   profileImageUrl: string;
+  avatarUrl?: string;
   rating?: number;
   reviewCount?: number;
   defaultStartTime?: string;

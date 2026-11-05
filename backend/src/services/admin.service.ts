@@ -1,4 +1,4 @@
-import { count, eq, sql, desc, and, or } from 'drizzle-orm';
+import { count, eq, sql, desc, and, or, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db/index.js';
 import { users, priestProfiles, bookings, addresses } from '../models/index.js';
@@ -375,11 +375,25 @@ export class AdminService {
       throw new AppError(400, 'Only devotee accounts can be deleted through this endpoint.');
     }
 
-    // Disassociate bookings from this user to preserve booking financial and schedule audit history
+    // Find all address IDs belonging to this user
+    const userAddresses = await db
+      .select({ id: addresses.id })
+      .from(addresses)
+      .where(eq(addresses.userId, userId));
+    const addressIds = userAddresses.map((a) => a.id);
+
+    // Disassociate bookings from this user and this user's addresses to preserve booking financial/audit history
     await db
       .update(bookings)
-      .set({ userId: null })
+      .set({ userId: null, addressId: null })
       .where(eq(bookings.userId, userId));
+
+    if (addressIds.length > 0) {
+      await db
+        .update(bookings)
+        .set({ addressId: null })
+        .where(inArray(bookings.addressId, addressIds));
+    }
 
     // Delete corresponding Supabase Authentication account so the user cannot log in
     // and the same email address can be registered again if needed
@@ -387,7 +401,7 @@ export class AdminService {
       console.warn('Supabase auth user delete notice:', err?.message || err);
     });
 
-    // Delete user from application users table (cascades to addresses)
+    // Delete user from application users table (cascades cleanly to addresses)
     await db.delete(users).where(eq(users.id, userId));
   }
 

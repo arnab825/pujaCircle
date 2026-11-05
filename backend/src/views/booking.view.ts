@@ -31,6 +31,7 @@ export interface BookingViewModel {
     phoneNumber?: string;
     email?: string;
     profileImageUrl?: string;
+    avatarUrl?: string;
   };
   slot: { startTime: string; endTime: string };
   ritual?: any;

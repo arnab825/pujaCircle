@@ -28,7 +28,7 @@ export const bookings = pgTable('bookings', {
   priestId: uuid('priest_id').references(() => priestProfiles.id, { onDelete: 'set null' }),
   priestServiceId: uuid('priest_service_id').references(() => priestServices.id, { onDelete: 'set null' }),
   pujaCatalogId: uuid('puja_catalog_id').references(() => pujaCatalog.id, { onDelete: 'set null' }),
-  addressId: uuid('address_id').references(() => addresses.id),
+  addressId: uuid('address_id').references(() => addresses.id, { onDelete: 'set null' }),
   serviceName: varchar('service_name', { length: 255 }).default('Puja Ceremony').notNull(),
   servicePrice: integer('service_price').notNull(), // INR amount in rupees (?)
   totalPrice: integer('total_price').notNull(), // INR amount in rupees (?)
