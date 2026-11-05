@@ -131,11 +131,18 @@ export const ProfilePage: React.FC = () => {
         setUser({ ...user, avatarUrl: dataUrl });
       }
       try {
-        await userApi.updateProfile(devoteeId, { avatarUrl: dataUrl });
+        const res = await userApi.updateProfile(devoteeId, { avatarUrl: dataUrl });
+        const finalUrl = res?.data?.avatarUrl || dataUrl;
+        setAvatarUrl(finalUrl);
+        localStorage.setItem(`devotee_avatar_${devoteeId}`, finalUrl);
+        if (user) {
+          setUser({ ...user, avatarUrl: finalUrl });
+        }
+        toast.success("Sacred profile photo updated successfully!");
       } catch (err) {
         console.warn("Devotee avatar sync notice:", err);
+        toast.error("Failed to update profile photo.");
       }
-      toast.success("Sacred profile photo updated successfully!");
     };
     reader.readAsDataURL(file);
   };
