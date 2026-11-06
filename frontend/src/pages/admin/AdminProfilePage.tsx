@@ -12,6 +12,7 @@ import {
   EyeOff,
   Camera,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -41,7 +42,17 @@ export const AdminProfilePage: React.FC = () => {
       user?.avatarUrl || localStorage.getItem(`admin_avatar_${adminId}`) || null
     );
   });
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    if (user?.avatarUrl) {
+      setAvatarUrl(user.avatarUrl);
+    } else {
+      const cached = localStorage.getItem(`admin_avatar_${adminId}`);
+      if (cached) setAvatarUrl(cached);
+    }
+  }, [user?.avatarUrl, adminId]);
 
   // Form states
   const [fullName, setFullName] = useState(user?.name || "Swastika Roy");
@@ -82,19 +93,26 @@ export const AdminProfilePage: React.FC = () => {
     reader.onloadend = async () => {
       const dataUrl = reader.result as string;
       setAvatarUrl(dataUrl);
-      localStorage.setItem(`admin_avatar_${adminId}`, dataUrl);
-      if (user) {
-        setUser({
-          ...user,
-          avatarUrl: dataUrl,
-        });
-      }
+      setIsUploadingAvatar(true);
+
       try {
-        await adminApi.updateAdminProfile({ avatarUrl: dataUrl });
+        const res = await adminApi.updateAdminProfile({ avatarUrl: dataUrl });
+        const finalUrl = res?.data?.avatarUrl || dataUrl;
+        setAvatarUrl(finalUrl);
+        localStorage.setItem(`admin_avatar_${adminId}`, finalUrl);
+        if (user) {
+          setUser({
+            ...user,
+            avatarUrl: finalUrl,
+          });
+        }
+        toast.success("Administrator avatar synced with Cloudinary successfully!");
       } catch (err) {
         console.warn("Avatar sync notice:", err);
+        toast.error("Failed to sync administrator avatar with cloud storage.");
+      } finally {
+        setIsUploadingAvatar(false);
       }
-      toast.success("Administrator avatar updated!");
     };
     reader.readAsDataURL(file);
   };
@@ -110,10 +128,11 @@ export const AdminProfilePage: React.FC = () => {
     }
     try {
       await adminApi.updateAdminProfile({ avatarUrl: null });
+      toast.success("Administrator photo removed.");
     } catch (err) {
       console.warn("Avatar remove notice:", err);
+      toast.error("Failed to remove administrator avatar.");
     }
-    toast.success("Administrator photo removed.");
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -221,7 +240,8 @@ export const AdminProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="relative block rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
+                disabled={isUploadingAvatar}
+                className="relative block rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer disabled:cursor-not-allowed disabled:opacity-80"
                 title="Click to choose a new profile photo"
               >
                 <Avatar className="w-20 h-20 border-2 border-white">
@@ -237,8 +257,12 @@ export const AdminProfilePage: React.FC = () => {
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="absolute inset-1 rounded-full bg-stone-950/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-4 h-4" />
+                <div className={`absolute inset-1 rounded-full bg-stone-950/60 text-white flex flex-col items-center justify-center transition-opacity ${isUploadingAvatar ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  {isUploadingAvatar ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-amber-300" />
+                  ) : (
+                    <Camera className="w-4 h-4" />
+                  )}
                 </div>
               </button>
             </div>
