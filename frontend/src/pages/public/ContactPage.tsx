@@ -39,7 +39,7 @@ export const ContactPage: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-5 w-full">
-            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs puja-card-lift flex-1 min-w-70">
+            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs puja-card-lift flex-1 min-w-0 sm:min-w-70">
               <CardContent className="p-4 sm:p-5 flex items-start gap-3.5">
                 <div className="h-10 w-10 rounded-md bg-red-700 text-white flex items-center justify-center shrink-0">
                   <Phone className="h-5 w-5" />
@@ -58,7 +58,7 @@ export const ContactPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs puja-card-lift flex-1 min-w-70">
+            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs puja-card-lift flex-1 min-w-0 sm:min-w-70">
               <CardContent className="p-4 sm:p-5 flex items-start gap-3.5">
                 <div className="h-10 w-10 rounded-md bg-emerald-700 text-white flex items-center justify-center shrink-0">
                   <MessageSquare className="h-5 w-5" />
@@ -77,7 +77,7 @@ export const ContactPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs puja-card-lift flex-1 min-w-70">
+            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs puja-card-lift flex-1 min-w-0 sm:min-w-70">
               <CardContent className="p-4 sm:p-5 flex items-start gap-3.5">
                 <div className="h-10 w-10 rounded-md bg-amber-500 text-stone-900 flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-5 w-5" />
@@ -96,7 +96,7 @@ export const ContactPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs flex-1 min-w-70">
+            <Card className="border-2 border-stone-200 bg-white rounded-lg shadow-xs flex-1 min-w-0 sm:min-w-70">
               <CardContent className="p-4 sm:p-5 flex items-start gap-3.5">
                 <div className="h-10 w-10 rounded-md bg-stone-900 text-white flex items-center justify-center shrink-0">
                   <Clock className="h-5 w-5" />

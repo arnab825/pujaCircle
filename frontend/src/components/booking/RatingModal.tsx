@@ -75,9 +75,9 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md text-center">
-        <DialogHeader className="text-center">
-          <DialogTitle className="font-serif text-xl">
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="pr-8 sm:pr-10 text-center">
+          <DialogTitle className="font-serif text-lg sm:text-xl">
             Rate Vedic Ceremony
           </DialogTitle>
           <DialogDescription className="text-xs">
@@ -142,22 +142,22 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             />
           </div>
 
-          <DialogFooter className="pt-2 gap-2 sm:justify-center">
+          <DialogFooter className="pt-2 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
-              disabled={isLoading || isSubmitting || !selectedRating || selectedRating < 1}
-              className="text-xs h-9 px-4 rounded-md border-2 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
+              disabled={isLoading || isSubmitting}
+              className="w-full sm:w-auto text-xs h-9 px-4 rounded-md border border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               size="sm"
-              disabled={isLoading || isSubmitting}
-              className="text-xs font-bold bg-[#780016] hover:bg-[#600012] text-white h-9 px-6 rounded-md shadow-xs border border-amber-400 cursor-pointer disabled:opacity-50"
+              disabled={isLoading || isSubmitting || !selectedRating || selectedRating < 1}
+              className="w-full sm:w-auto text-xs font-bold bg-[#780016] hover:bg-[#600012] text-white h-9 px-6 rounded-md shadow-xs border border-amber-400 cursor-pointer disabled:opacity-50"
             >
               {isLoading || isSubmitting ? "Submitting..." : "Submit Review & Rating"}
             </Button>

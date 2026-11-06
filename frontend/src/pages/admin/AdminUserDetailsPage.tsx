@@ -492,8 +492,8 @@ export const AdminUserDetailsPage: React.FC = () => {
 
       {/* Suspend Confirmation Dialog */}
       <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl bg-white border-2 border-amber-300 shadow-xl">
+          <DialogHeader className="pr-8 sm:pr-10 text-left">
             <DialogTitle className="text-base font-bold font-serif text-red-700">
               Suspend Devotee Account
             </DialogTitle>
@@ -515,12 +515,12 @@ export const AdminUserDetailsPage: React.FC = () => {
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex flex-col-reverse sm:flex-row">
+          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsSuspendDialogOpen(false)}
-              className="text-xs rounded-md h-10 px-4"
+              className="text-xs rounded-md h-10 px-4 w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -528,7 +528,7 @@ export const AdminUserDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmSuspend}
-              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white w-full sm:w-auto"
             >
               Confirm Suspension
             </Button>

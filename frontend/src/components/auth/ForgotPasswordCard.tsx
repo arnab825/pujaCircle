@@ -120,7 +120,7 @@ export const ForgotPasswordCard: React.FC<ForgotPasswordCardProps> = ({
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-140px)] flex items-center justify-center py-8 sm:py-12 px-4 text-stone-900">
+    <div className="w-full min-h-[calc(100vh-140px)] flex items-center justify-center py-6 sm:py-10 px-3 sm:px-4 text-stone-900 max-w-full overflow-x-hidden">
       <div className="w-full max-w-4xl rounded-xl border-2 border-amber-300 bg-white shadow-xl overflow-hidden flex flex-col lg:flex-row items-stretch">
         {/* Left Showcase Panel */}
         <div
@@ -183,14 +183,16 @@ export const ForgotPasswordCard: React.FC<ForgotPasswordCardProps> = ({
         </div>
 
         {/* Right Form Panel */}
-        <div className="w-full lg:w-7/12 p-6 sm:p-10 bg-white flex flex-col justify-between relative">
+        <div className="w-full lg:w-7/12 p-4 sm:p-8 md:p-10 bg-white flex flex-col justify-between relative">
           <div>
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <AuthRoleTabs
-                activeRole={activeRole}
-                onRoleChange={handleRoleChange}
-                className="mb-0 w-full sm:w-auto"
-              />
+            <div className="flex items-center justify-between gap-2 sm:gap-4 mb-6">
+              <div className="flex-1 min-w-0">
+                <AuthRoleTabs
+                  activeRole={activeRole}
+                  onRoleChange={handleRoleChange}
+                  className="mb-0 w-full sm:w-auto"
+                />
+              </div>
             </div>
 
             <div className="space-y-1 mb-6">

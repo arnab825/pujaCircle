@@ -60,15 +60,15 @@ export const CancelBookingDialog: React.FC<CancelBookingDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="pr-8 sm:pr-10 text-left">
           <div className="flex items-center gap-2 text-destructive font-semibold">
-            <AlertCircle className="h-5 w-5" />
-            <span>{isPriest ? 'Decline Puja Request' : 'Cancel Ceremony Appointment'}</span>
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span className="truncate">{isPriest ? 'Decline Puja Request' : 'Cancel Ceremony Appointment'}</span>
           </div>
-          <DialogTitle className="text-base">
+          <DialogTitle className="text-base break-words">
             {bookingReference ? `Booking: ${bookingReference}` : 'Confirm Action'}
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-xs leading-relaxed">
             {isPriest
               ? 'Please provide a clear reason to notify the devotee. The reserved slot will be released.'
               : 'If you booked this appointment mistakenly or need to cancel, please select a reason below. The Pandit Ji will be notified immediately.'}
@@ -82,9 +82,9 @@ export const CancelBookingDialog: React.FC<CancelBookingDialogProps> = ({
                 key={r}
                 type="button"
                 onClick={() => setReason(r)}
-                className={`px-2.5 py-1 rounded-md text-[11px] border transition-colors ${
+                className={`px-2.5 py-1 rounded-md text-[11px] border text-left transition-colors ${
                   reason === r
-                    ? 'bg-primary text-primary-foreground border-primary'
+                    ? 'bg-primary text-primary-foreground border-primary font-medium'
                     : 'bg-muted/50 text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -101,8 +101,8 @@ export const CancelBookingDialog: React.FC<CancelBookingDialogProps> = ({
           />
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Keep Booking
           </Button>
           <Button
@@ -110,9 +110,9 @@ export const CancelBookingDialog: React.FC<CancelBookingDialogProps> = ({
             size="sm"
             onClick={handleSubmit}
             disabled={!reason.trim() || isSubmitting}
-            className="gap-1.5"
+            className="w-full sm:w-auto gap-1.5"
           >
-            <Ban className="w-3.5 h-3.5" />
+            <Ban className="w-3.5 h-3.5 shrink-0" />
             {isSubmitting ? 'Processing...' : isPriest ? 'Decline Request' : 'Confirm Cancellation'}
           </Button>
         </DialogFooter>

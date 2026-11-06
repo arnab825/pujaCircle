@@ -105,7 +105,7 @@ export const PriestLoginPage: React.FC = () => {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-140px)] flex items-center justify-center py-8 sm:py-12 px-4">
+    <div className="w-full min-h-[calc(100vh-140px)] flex items-center justify-center py-6 sm:py-10 px-3 sm:px-4 max-w-full overflow-x-hidden">
       <div className="w-full max-w-4xl rounded-xl border-2 border-amber-300 bg-white shadow-xl overflow-hidden flex flex-col lg:flex-row items-stretch">
         {/* Left Showcase Panel (Solid Sacred Vermilion `#780016`) */}
         <div className="hidden lg:flex flex-col justify-between w-5/12 bg-[#780016] text-white p-8 sm:p-10 border-r-2 border-amber-400/40 relative">
@@ -167,20 +167,22 @@ export const PriestLoginPage: React.FC = () => {
         </div>
 
         {/* Right Form Panel */}
-        <div className="w-full lg:w-7/12 p-6 sm:p-10 bg-white flex flex-col justify-between relative">
+        <div className="w-full lg:w-7/12 p-4 sm:p-8 md:p-10 bg-white flex flex-col justify-between relative">
           <div>
             {/* Role Switcher Tabs */}
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <AuthRoleTabs
-                activeRole="PRIEST"
-                onRoleChange={(role) => {
-                  clearError();
-                  if (role === "USER") navigate("/user/login");
-                }}
-                className="mb-0 w-full sm:w-auto"
-              />
+            <div className="flex items-center justify-between gap-2 sm:gap-4 mb-6">
+              <div className="flex-1 min-w-0">
+                <AuthRoleTabs
+                  activeRole="PRIEST"
+                  onRoleChange={(role) => {
+                    clearError();
+                    if (role === "USER") navigate("/user/login");
+                  }}
+                  className="mb-0 w-full sm:w-auto"
+                />
+              </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                 <Link
                   to="/admin/login"
                   title="Staff Operations Portal"
@@ -327,8 +329,8 @@ export const PriestLoginPage: React.FC = () => {
 
       {/* Registration Required Popup Dialog */}
       <Dialog open={isRegisterPopupOpen} onOpenChange={setIsRegisterPopupOpen}>
-        <DialogContent className="sm:max-w-md p-6 bg-white border-2 border-amber-300 rounded-xl shadow-2xl">
-          <DialogHeader className="text-center sm:text-left space-y-2">
+        <DialogContent className="sm:max-w-md p-4 sm:p-6 bg-white border-2 border-amber-300 rounded-xl shadow-2xl">
+          <DialogHeader className="pr-8 sm:pr-10 text-center sm:text-left space-y-2">
             <div className="mx-auto sm:mx-0 w-12 h-12 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-800 font-serif font-black text-xl shadow-sm">
               ॐ
             </div>

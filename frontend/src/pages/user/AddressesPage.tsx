@@ -366,8 +366,8 @@ export const AddressesPage: React.FC = () => {
 
         {/* Add / Edit Address Modal with PIN Auto-Lookup */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-md p-6 rounded-lg max-h-[90vh] overflow-y-auto bg-white border-2 border-amber-300 shadow-xl">
-            <DialogHeader className="space-y-1 pb-1">
+          <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl max-h-[90vh] overflow-y-auto bg-white border-2 border-amber-300 shadow-xl">
+            <DialogHeader className="pr-8 sm:pr-10 space-y-1 pb-1 text-left">
               <DialogTitle className="font-serif text-xl font-bold text-stone-950 flex items-center gap-2">
                 <span className="text-amber-600 font-serif font-black text-xl">
                   ॐ

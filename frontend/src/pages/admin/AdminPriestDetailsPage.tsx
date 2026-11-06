@@ -745,8 +745,8 @@ export const AdminPriestDetailsPage: React.FC = () => {
 
       {/* Reject Application Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl bg-white border-2 border-amber-300 shadow-xl">
+          <DialogHeader className="pr-8 sm:pr-10 text-left">
             <DialogTitle className="text-base font-bold font-serif text-red-700">
               Reject Priest Application
             </DialogTitle>
@@ -772,12 +772,12 @@ export const AdminPriestDetailsPage: React.FC = () => {
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex flex-col-reverse sm:flex-row">
+          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsRejectDialogOpen(false)}
-              className="text-xs rounded-md h-10 px-4"
+              className="text-xs rounded-md h-10 px-4 w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -785,7 +785,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmReject}
-              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white w-full sm:w-auto"
             >
               Confirm Rejection
             </Button>
@@ -795,8 +795,8 @@ export const AdminPriestDetailsPage: React.FC = () => {
 
       {/* Ban Account Dialog */}
       <Dialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl bg-white border-2 border-amber-300 shadow-xl">
+          <DialogHeader className="pr-8 sm:pr-10 text-left">
             <DialogTitle className="text-base font-bold font-serif text-red-700">
               Ban Priest Account
             </DialogTitle>
@@ -822,12 +822,12 @@ export const AdminPriestDetailsPage: React.FC = () => {
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex flex-col-reverse sm:flex-row">
+          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsBanDialogOpen(false)}
-              className="text-xs rounded-md h-10 px-4"
+              className="text-xs rounded-md h-10 px-4 w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -835,7 +835,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmBan}
-              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white w-full sm:w-auto"
             >
               Confirm Ban
             </Button>

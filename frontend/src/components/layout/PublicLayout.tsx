@@ -11,10 +11,10 @@ import { SacredBackground } from '@/components/common/SacredBackground';
  */
 export const PublicLayout: React.FC = () => {
   return (
-    <div className="flex min-h-screen flex-col font-sans text-stone-900 relative">
+    <div className="flex min-h-screen flex-col font-sans text-stone-900 relative w-full max-w-full overflow-x-clip">
       <SacredBackground />
       <Navbar />
-      <main className="flex-1 relative z-10">
+      <main className="flex-1 relative z-10 w-full max-w-full overflow-x-clip">
         <Outlet />
       </main>
       <Footer />
