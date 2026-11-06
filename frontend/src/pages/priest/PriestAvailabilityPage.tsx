@@ -499,7 +499,7 @@ export const PriestAvailabilityPage: React.FC = () => {
             {Array.from({ length: firstDayOfWeek }).map((_, i) => (
               <div
                 key={`blank-${i}`}
-                className="min-h-[52px] sm:h-24 bg-stone-50/40 rounded-md sm:rounded-lg border border-transparent"
+                className="min-h-13 sm:h-24 bg-stone-50/40 rounded-md sm:rounded-lg border border-transparent"
               />
             ))}
 
@@ -528,7 +528,7 @@ export const PriestAvailabilityPage: React.FC = () => {
                 <div
                   key={dateStr}
                   onClick={() => !isBeyond90 && setSelectedDate(dateStr)}
-                  className={`min-h-[52px] sm:h-24 p-1 sm:p-2 rounded-md sm:rounded-lg border sm:border-2 transition-all flex flex-col justify-between select-none ${
+                  className={`min-h-13 sm:h-24 p-1 sm:p-2 rounded-md sm:rounded-lg border sm:border-2 transition-all flex flex-col justify-between select-none ${
                     isBeyond90
                       ? 'bg-stone-50/50 border-stone-200/40 opacity-30 cursor-not-allowed'
                       : isPast

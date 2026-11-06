@@ -40,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 import { adminApi } from "@/api/admin.api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatFullDate, formatTime } from "@/lib/utils";
 
 /**
  * AdminUserDetailsPage
@@ -184,30 +184,30 @@ export const AdminUserDetailsPage: React.FC = () => {
       : null);
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6 pb-16 text-stone-900">
+    <div className="container max-w-5xl py-4 sm:py-8 px-2 sm:px-6 space-y-4 sm:space-y-6 pb-16 text-stone-900">
       {/* Top Back Navigation */}
       <Link
         to="/admin/users"
         className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#780016] font-bold transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Devotee Accounts Directory
+        <ArrowLeft className="w-4 h-4 shrink-0" />
+        <span>Back to Devotee Accounts Directory</span>
       </Link>
 
       {/* Main Devotee Header Card */}
-      <div className="border-2 border-amber-400 bg-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-7 relative">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+      <div className="border-2 border-amber-400 bg-white shadow-md rounded-xl sm:rounded-2xl overflow-hidden p-4 sm:p-7 relative">
+        <div className="flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left justify-between gap-4 sm:gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4 min-w-0 w-full sm:w-auto">
             <div className="relative shrink-0">
               <div className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm">
                 {effectiveAvatarUrl ? (
                   <img
                     src={effectiveAvatarUrl}
                     alt={devotee.name}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-xs shrink-0"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white shadow-xs shrink-0"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-[#780016] text-white border-2 border-white flex items-center justify-center font-bold text-2xl font-serif shrink-0 shadow-xs">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#780016] text-white border-2 border-white flex items-center justify-center font-bold text-xl sm:text-2xl font-serif shrink-0 shadow-xs">
                     {initials}
                   </div>
                 )}
@@ -217,28 +217,28 @@ export const AdminUserDetailsPage: React.FC = () => {
                   className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
                   title="Active Devotee"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </div>
               )}
             </div>
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950">
+            <div className="space-y-1 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h1 className="text-xl sm:text-3xl font-extrabold font-serif text-stone-950 wrap-break-word">
                   {devotee.name}
                 </h1>
                 {!isBanned ? (
-                  <Badge className="bg-emerald-600 text-white text-xs px-3 py-1 gap-1 font-bold">
+                  <Badge className="bg-emerald-600 text-white text-xs px-2.5 py-0.5 gap-1 font-bold shrink-0">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     Active Devotee
                   </Badge>
                 ) : (
-                  <Badge className="bg-rose-600 text-white text-xs px-3 py-1 gap-1 font-bold">
+                  <Badge className="bg-rose-600 text-white text-xs px-2.5 py-0.5 gap-1 font-bold shrink-0">
                     <Ban className="w-3.5 h-3.5" />
                     Suspended Account
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-stone-600 font-medium">
+              <p className="text-xs text-stone-600 font-medium break-all">
                 Devotee ID: <span className="font-mono text-stone-800">{devotee.id}</span>
               </p>
               <p className="text-[11px] text-stone-500 font-mono">
@@ -250,9 +250,9 @@ export const AdminUserDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-2 text-xs">
+          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex flex-col sm:flex-col justify-center items-center sm:items-end gap-2 text-xs">
             <div className="flex items-center gap-1.5 font-bold text-amber-950 bg-amber-100 px-3 py-1 rounded-md border border-amber-300">
-              <Calendar className="w-4 h-4 text-amber-700" />
+              <Calendar className="w-4 h-4 text-amber-700 shrink-0" />
               <span>{devotee.bookings?.length || 0} Ceremonies Booked</span>
             </div>
             <span className="text-xs text-stone-700 font-bold">
@@ -276,41 +276,41 @@ export const AdminUserDetailsPage: React.FC = () => {
       )}
 
       {/* Contact Cards Row */}
-      <div className="flex flex-col sm:flex-row gap-4 w-full">
-        <div className="flex-1 p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full">
+        <div className="flex-1 p-4 sm:p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1 min-w-0">
           <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5 text-amber-700" />
+            <Phone className="w-3.5 h-3.5 text-amber-700 shrink-0" />
             Verified Mobile
           </span>
-          <p className="text-lg font-mono font-bold text-stone-900 mt-1">
+          <p className="text-base sm:text-lg font-mono font-bold text-stone-900 mt-1 break-all">
             {devotee.phoneNumber}
           </p>
         </div>
 
-        <div className="flex-1 p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1">
+        <div className="flex-1 p-4 sm:p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1 min-w-0">
           <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 text-amber-700" />
+            <Mail className="w-3.5 h-3.5 text-amber-700 shrink-0" />
             Email Address
           </span>
-          <p className="text-lg font-medium text-stone-900 mt-1 truncate">
+          <p className="text-sm sm:text-lg font-medium text-stone-900 mt-1 break-all">
             {devotee.email || "No email on record"}
           </p>
         </div>
       </div>
 
       {/* Registered Sanctum Venues Card */}
-      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-amber-700" />
-            <div>
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Registered Sanctum Venues ({devotee.addresses?.length || 0})
-              </h3>
-              <p className="text-xs text-stone-500">
-                Addresses registered by the devotee for in-home Vedic ceremony conduction.
-              </p>
-            </div>
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-3.5 sm:p-7 space-y-4">
+        <div className="flex items-start gap-2.5 pb-3 border-b border-amber-200">
+          <div className="h-8 w-8 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+            <MapPin className="w-4 h-4 text-amber-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug break-words">
+              Registered Sanctum Venues ({devotee.addresses?.length || 0})
+            </h3>
+            <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 leading-relaxed">
+              Addresses registered by the devotee for in-home Vedic ceremony conduction.
+            </p>
           </div>
         </div>
 
@@ -359,82 +359,94 @@ export const AdminUserDetailsPage: React.FC = () => {
       </div>
 
       {/* Ceremony Bookings History Card */}
-      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-amber-700" />
-            <div>
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Ceremony Booking History ({devotee.bookings?.length || 0})
-              </h3>
-              <p className="text-xs text-stone-500">
-                Past and upcoming Vedic ceremonies scheduled through PujaCircle.
-              </p>
-            </div>
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-3.5 sm:p-7 space-y-4">
+        <div className="flex items-start gap-2.5 pb-3 border-b border-amber-200">
+          <div className="h-8 w-8 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+            <Calendar className="w-4 h-4 text-amber-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug break-words">
+              Ceremony Booking History ({devotee.bookings?.length || 0})
+            </h3>
+            <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 leading-relaxed">
+              Past and upcoming Vedic ceremonies scheduled through PujaCircle.
+            </p>
           </div>
         </div>
 
         {devotee.bookings && devotee.bookings.length > 0 ? (
           <div className="flex flex-col gap-3">
-            {devotee.bookings.map((booking: any) => (
-              <div
-                key={booking.id}
-                className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-serif font-bold text-stone-950 text-sm">
-                      {booking.serviceName}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-bold ${
-                        booking.status === "CONFIRMED"
-                          ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                          : booking.status === "COMPLETED"
-                            ? "bg-blue-50 text-blue-800 border-blue-300"
-                            : booking.status === "CANCELLED"
-                              ? "bg-rose-50 text-rose-800 border-rose-300"
-                              : "bg-amber-50 text-amber-800 border-amber-300"
-                      }`}
-                    >
-                      {booking.status}
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3 text-stone-600">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-amber-700" />
-                      {booking.scheduledDate}{" "}
-                      {booking.startTime && `(${booking.startTime} - ${booking.endTime})`}
-                    </span>
-                    <span>
-                      Purohit: <strong className="text-stone-800">{booking.priestName || "Assigned Scholar"}</strong>
-                    </span>
-                    {booking.completionCode && (
-                      <span className="font-mono text-stone-500">
-                        Code: <strong>{booking.completionCode}</strong>
+            {devotee.bookings.map((booking: any) => {
+              const displayDate = booking.scheduledDate || booking.bookingDate;
+              const formattedDate = displayDate
+                ? (displayDate.includes('T') ? formatDate(displayDate) : formatFullDate(displayDate))
+                : 'Date not set';
+
+              return (
+                <div
+                  key={booking.id}
+                  className="p-3.5 sm:p-4 rounded-xl border border-stone-200 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1.5 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+                      <span className="font-serif font-bold text-stone-950 text-sm wrap-break-word">
+                        {booking.serviceName}
                       </span>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-bold shrink-0 ${
+                          booking.status === "CONFIRMED"
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                            : booking.status === "COMPLETED"
+                              ? "bg-blue-50 text-blue-800 border-blue-300"
+                              : booking.status === "CANCELLED"
+                                ? "bg-rose-50 text-rose-800 border-rose-300"
+                                : "bg-amber-50 text-amber-800 border-amber-300"
+                        }`}
+                      >
+                        {booking.status}
+                      </Badge>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-stone-600">
+                      <span className="flex items-center gap-1 font-medium">
+                        <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>{formattedDate}</span>
+                        {booking.startTime && (
+                          <span className="font-mono text-stone-700">
+                            ({formatTime(booking.startTime)} – {formatTime(booking.endTime)})
+                          </span>
+                        )}
+                      </span>
+                      <span className="truncate">
+                        Purohit: <strong className="text-stone-800">{booking.priestName || "Assigned Scholar"}</strong>
+                      </span>
+                      {booking.completionCode && (
+                        <span className="font-mono text-stone-700 bg-amber-100/70 px-1.5 py-0.2 rounded border border-amber-200 font-bold">
+                          Code: {booking.completionCode}
+                        </span>
+                      )}
+                    </div>
+
+                    {booking.specialInstructions && (
+                      <div className="text-[11px] bg-amber-50/60 p-2 rounded border border-amber-200/80 text-amber-950 mt-1 wrap-break-word">
+                        <span className="font-bold">Sankalp / Gotra Notes: </span>
+                        {booking.specialInstructions}
+                      </div>
                     )}
                   </div>
 
-                  {booking.specialInstructions && (
-                    <div className="text-[11px] bg-amber-50/60 p-2 rounded border border-amber-200/80 text-amber-950 mt-1">
-                      <span className="font-bold">Sankalp / Gotra Notes: </span>
-                      {booking.specialInstructions}
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-stone-200/80 shrink-0">
+                    <div className="text-base sm:text-sm font-bold text-[#780016] font-serif">
+                      ₹{Number(booking.totalPrice || 0).toLocaleString("en-IN")}
                     </div>
-                  )}
-                </div>
-
-                <div className="text-right">
-                  <div className="text-sm font-bold text-[#780016]">
-                    ₹{Number(booking.totalPrice || 0).toLocaleString("en-IN")}
+                    <span className="text-[10px] text-stone-500 font-mono">
+                      Ref: {booking.bookingReference}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-stone-500 font-mono">
-                    Ref: {booking.bookingReference}
-                  </span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="p-6 text-center text-xs text-stone-500 bg-stone-50 rounded-lg border border-stone-200">
@@ -444,7 +456,7 @@ export const AdminUserDetailsPage: React.FC = () => {
       </div>
 
       {/* Administrative Actions Deck */}
-      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-3">
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-4 sm:p-7 space-y-3">
         <div>
           <h3 className="text-base font-serif font-bold text-stone-950">
             Administrative Actions & Moderation
@@ -454,14 +466,14 @@ export const AdminUserDetailsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-200">
-          <div className="flex items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-amber-200">
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
             {!isBanned ? (
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => setIsSuspendDialogOpen(true)}
-                className="text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700"
+                className="w-full sm:w-auto text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700"
               >
                 <Ban className="w-4 h-4" />
                 Suspend Devotee Account
@@ -470,7 +482,7 @@ export const AdminUserDetailsPage: React.FC = () => {
               <Button
                 size="sm"
                 onClick={handleReactivate}
-                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 Reactivate Account
@@ -482,7 +494,7 @@ export const AdminUserDetailsPage: React.FC = () => {
             size="sm"
             variant="ghost"
             onClick={() => setIsDeleteDialogOpen(true)}
-            className="text-xs text-red-700 hover:bg-red-50 gap-1.5 h-10 px-3 rounded-md font-bold cursor-pointer"
+            className="w-full sm:w-auto text-xs text-red-700 hover:bg-red-50 gap-1.5 h-10 px-3 rounded-md font-bold cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
             Delete Devotee Account
