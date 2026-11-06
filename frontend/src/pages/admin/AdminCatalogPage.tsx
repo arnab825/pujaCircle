@@ -570,12 +570,12 @@ export const AdminCatalogPage: React.FC = () => {
                       <div className="flex items-center gap-3.5">
                         <div className="relative w-16 h-12 rounded-lg overflow-hidden border-2 border-amber-300 shadow-2xs shrink-0 group">
                           <img
-                            src={entry.coverImage || "/images/hero_vedic_puja.jpg"}
+                            src={entry.coverImage || "/images/hero_vedic_puja.webp"}
                             alt={entry.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 bg-stone-100"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src =
-                                "/images/hero_vedic_puja.jpg";
+                                "/images/hero_vedic_puja.webp";
                             }}
                           />
                         </div>

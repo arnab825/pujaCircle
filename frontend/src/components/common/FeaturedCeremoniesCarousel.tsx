@@ -187,7 +187,7 @@ export const FeaturedCeremoniesCarousel: React.FC = () => {
                   className="w-full h-full object-cover object-center group-hover:scale-108 transition-transform duration-500 ease-out"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src =
-                      "/images/hero_vedic_puja.jpg";
+                      "/images/hero_vedic_puja.webp";
                   }}
                 />
 

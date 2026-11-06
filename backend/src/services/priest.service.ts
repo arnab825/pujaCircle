@@ -156,6 +156,12 @@ export class PriestService {
         avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
+        completedPujas: sql<number>`COALESCE((
+          SELECT COUNT(*)::int
+          FROM ${bookings}
+          WHERE ${bookings.priestId} = ${priestProfiles.id}
+            AND ${bookings.status} = 'COMPLETED'
+        ), 0)`.mapWith(Number),
         defaultStartTime: priestProfiles.defaultStartTime,
         defaultEndTime: priestProfiles.defaultEndTime,
         createdAt: priestProfiles.createdAt,
@@ -175,6 +181,7 @@ export class PriestService {
       ...p,
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
+      completedPujas: Number(p.completedPujas || 0),
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
     }));
   }
@@ -205,6 +212,12 @@ export class PriestService {
         avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
+        completedPujas: sql<number>`COALESCE((
+          SELECT COUNT(*)::int
+          FROM ${bookings}
+          WHERE ${bookings.priestId} = ${priestProfiles.id}
+            AND ${bookings.status} = 'COMPLETED'
+        ), 0)`.mapWith(Number),
         defaultStartTime: priestProfiles.defaultStartTime,
         defaultEndTime: priestProfiles.defaultEndTime,
         createdAt: priestProfiles.createdAt,
@@ -240,6 +253,7 @@ export class PriestService {
       ...record,
       isPhoneVerified: true,
       rating: Number(record.rating || 0),
+      completedPujas: Number(record.completedPujas || 0),
       createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
       services: services.map((s) => ({
         id: s.id,

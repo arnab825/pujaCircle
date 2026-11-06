@@ -7,8 +7,7 @@ import { SacredBackground } from '@/components/common/SacredBackground';
 /**
  * PublicLayout
  * Used for the consumer-facing website and standard USER experience.
- * Solid Chandan Silk (#F4ECE1) canvas with animated sacred mandalas and golden sparks.
- * Zero grid, zero gradient.
+ * Serene, eye-pleasing Chandan Ivory canvas with animated sacred mandalas and warm ambient lighting.
  */
 export const PublicLayout: React.FC = () => {
   return (

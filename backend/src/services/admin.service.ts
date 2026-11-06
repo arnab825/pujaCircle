@@ -87,6 +87,12 @@ export class AdminService {
         avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
+        completedPujas: sql<number>`COALESCE((
+          SELECT COUNT(*)::int
+          FROM ${bookings}
+          WHERE ${bookings.priestId} = ${priestProfiles.id}
+            AND ${bookings.status} = 'COMPLETED'
+        ), 0)`.mapWith(Number),
         createdAt: priestProfiles.createdAt,
       })
       .from(priestProfiles)
@@ -103,6 +109,7 @@ export class AdminService {
       ...p,
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
+      completedPujas: Number(p.completedPujas || 0),
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
     }));
   }
@@ -142,6 +149,7 @@ export class AdminService {
       ...p,
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
+      completedPujas: 0,
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
     }));
   }

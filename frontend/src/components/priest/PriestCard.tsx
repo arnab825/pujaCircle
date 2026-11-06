@@ -34,7 +34,7 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
   const hasReviews = Boolean(priest.reviewCount && priest.reviewCount > 0 && priest.rating && Number(priest.rating) > 0);
   const ratingValue = hasReviews ? Number(priest.rating).toFixed(1) : null;
   const reviewTotal = priest.reviewCount || 0;
-  const poojaCount = (priest.experienceYears || 1) * 20;
+  const completedPujas = priest.completedPujas ?? 0;
 
   // Top specializations / ceremonies
   const topSpecializations =
@@ -116,10 +116,10 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
                 <span>{priest.experienceYears}+ Yrs Exp</span>
               </span>
 
-              {/* Pooja Count Pill */}
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-red-950 text-white text-[11px] font-semibold">
+              {/* Verified Completed Puja Count Pill */}
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-red-950 text-white text-[11px] font-semibold" title="Real verified ceremonies conducted">
                 <Flame className="h-3 w-3 text-amber-400" />
-                <span>{poojaCount}+ Pujas</span>
+                <span>{completedPujas} {completedPujas === 1 ? 'Puja' : 'Pujas'}</span>
               </span>
             </div>
 

@@ -42,6 +42,7 @@ export interface Priest {
   avatarUrl?: string;
   rating?: number;
   reviewCount?: number;
+  completedPujas?: number;
   defaultStartTime?: string;
   defaultEndTime?: string;
   services?: PriestService[];

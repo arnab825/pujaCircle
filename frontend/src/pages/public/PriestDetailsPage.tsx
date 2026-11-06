@@ -35,6 +35,7 @@ import {
   Moon,
   ShieldCheck,
   Award,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -323,6 +324,10 @@ export const PriestDetailsPage: React.FC = () => {
                 <span className="inline-flex items-center gap-1 font-bold text-stone-900 bg-amber-400 px-2.5 py-0.5 rounded-sm">
                   <Award className="h-3 w-3 text-stone-950" />
                   {priest.experienceYears}+ Yrs Shastric Exp
+                </span>
+                <span className="inline-flex items-center gap-1 font-bold text-white bg-red-950 px-2.5 py-0.5 rounded-sm">
+                  <Flame className="h-3 w-3 text-amber-400" />
+                  {(priest.completedPujas ?? 0)} {(priest.completedPujas ?? 0) === 1 ? 'Puja Conducted' : 'Pujas Conducted'}
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-stone-700">
                   <MapPin className="h-3.5 w-3.5 text-red-700" /> {priest.city},{" "}

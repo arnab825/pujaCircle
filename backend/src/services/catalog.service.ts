@@ -70,7 +70,7 @@ export class CatalogService {
       ...e,
       priestCount: Number(e.priestCount || 0),
       startingPrice: e.startingPrice !== null ? Number(e.startingPrice) : null,
-      coverImage: e.coverImage || '/images/hero_vedic_puja.jpg',
+      coverImage: e.coverImage || '/images/hero_vedic_puja.webp',
     }));
 
     if (withPriestsOnly) {
@@ -93,7 +93,7 @@ export class CatalogService {
 
     return {
       ...entry,
-      coverImage: entry.coverImage || '/images/hero_vedic_puja.jpg',
+      coverImage: entry.coverImage || '/images/hero_vedic_puja.webp',
     };
   }
 

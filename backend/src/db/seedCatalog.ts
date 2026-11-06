@@ -30,7 +30,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Aarti, Pushpanjali & Purohit Ashirwad',
     ],
     timingNote: 'Shubh Muhurat recommended during Shukla Paksha morning hours.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Vivah Sanskar (Vedic Wedding)',
@@ -57,7 +57,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Elder Blessings & Purohit Ashirwad',
     ],
     timingNote: 'Calculated strictly based on bride and groom Kundali Shubh Vivah Muhurat.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Namkaran Sanskar (Sacred Naming)',
@@ -82,7 +82,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Elder Family Blessings & Aarti',
     ],
     timingNote: 'Conducted on the 11th, 12th, or 21st day after childbirth during Abhijit Muhurat.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
 
   // 2. Dosha Nivaran
@@ -110,7 +110,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Sanctum Cleansing with Holy Water',
     ],
     timingNote: 'Best performed on Thursdays, Fridays, or Mondays during waxing moon.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Navagraha Shanti Puja',
@@ -135,7 +135,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Purnahuti & Planetary Danam Offering',
     ],
     timingNote: 'Performed on Saturdays, Tuesdays, or Amavasya mornings.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Kaal Sarp Dosh Nivaran',
@@ -160,7 +160,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Maha Mrityunjaya Raksha Kavach Chanting',
     ],
     timingNote: 'Most potent on Nag Panchami, Maha Shivratri, or Monday mornings.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
 
   // 3. Festival & Vrats
@@ -187,7 +187,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Aarti, Pushpanjali & Distribution of Prasad',
     ],
     timingNote: 'Performed on Purnima (Full Moon), Sankranti, Ekadashi, or house occasions.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Rudrabhishek Puja',
@@ -212,7 +212,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Maha Shivaratri Aarti & Panchamrit Teertham',
     ],
     timingNote: 'Auspicious on Pradosh Vrat, Mondays, and Maha Shivratri.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Maha Durga Puja & Chandi Paath',
@@ -237,7 +237,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Maha Aarti with Dhunuchi & Conch Shell',
     ],
     timingNote: 'Best observed during Navratri, Ashtami, Navami, or Amavasya.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
 
   // 4. Business & Commercial
@@ -264,7 +264,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Kuber Potli Blessing & Aarti',
     ],
     timingNote: 'Performed on Dhanteras, Diwali, Akshaya Tritiya, or new business launch.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Office & Commercial Inauguration',
@@ -288,7 +288,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Prasad Distribution & Team Blessings',
     ],
     timingNote: 'Conducted during Labha or Amrit Choghadiya on inauguration day.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
 
   // 5. Ancestral & Pitru
@@ -314,7 +314,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Brahmana Bhojanam / Dakshina & Cow Feeding (Go-Seva)',
     ],
     timingNote: 'Conducted during Pitru Paksha, Mahalaya, or ancestral death anniversaries (Tithi).',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
   {
     name: 'Maha Mrityunjaya Jaap & Havan',
@@ -338,7 +338,7 @@ export const SACRED_CATALOG_SEEDS = [
       'Mrityunjaya Raksha Bhasma Tilak & Holy Teertham',
     ],
     timingNote: 'Conducted on Mondays, Shani Pradosh, or in times of acute illness.',
-    coverImage: '/images/hero_vedic_puja.jpg',
+    coverImage: '/images/hero_vedic_puja.webp',
   },
 ];
 
