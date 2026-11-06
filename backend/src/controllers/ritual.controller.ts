@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess } from '../views/response.view.js';
-import { ritualService } from '../services/ritual.service.js';
+import { sendSuccess } from '@/views/response.view.js';
+import { ritualService } from '@/services/ritual.service.js';
 
 /**
  * [CONTROLLER] Ritual Controller

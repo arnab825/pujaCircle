@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { DevoteeRecord } from './UserManagementTable';
+import { DevoteeRecord } from '@/components/admin/UserManagementTable';
 import { Ban } from 'lucide-react';
 
 interface SuspendUserDialogProps {

@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient } from '@/api/client';
 import { PujaCatalogEntry } from '@/types/catalog.types';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 

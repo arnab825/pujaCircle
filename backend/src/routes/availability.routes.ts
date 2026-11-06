@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { availabilityController } from '../controllers/availability.controller.js';
-import { requireAuth } from '../middlewares/auth.middleware.js';
-import { validate } from '../middlewares/validate.middleware.js';
+import { availabilityController } from '@/controllers/availability.controller.js';
+import { requireAuth } from '@/middlewares/auth.middleware.js';
+import { validate } from '@/middlewares/validate.middleware.js';
 import {
   markDayOffSchema,
   blockHoursSchema,
   calendarQuerySchema,
-} from '../schemas/availability.schema.js';
+} from '@/schemas/availability.schema.js';
 
 const router = Router();
 

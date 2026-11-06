@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ritualController } from '../controllers/ritual.controller.js';
+import { ritualController } from '@/controllers/ritual.controller.js';
 
 const router = Router();
 

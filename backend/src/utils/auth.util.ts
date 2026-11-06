@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { AuthUserContext } from '../types/express.js';
+import { AuthUserContext } from '@/types/express.js';
 
 // Check if a user context or request belongs to an authenticated admin
 export const isAdmin = (target: Request | AuthUserContext | undefined | null): boolean => {

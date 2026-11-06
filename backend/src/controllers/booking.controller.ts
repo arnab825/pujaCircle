@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '../views/response.view.js';
-import { bookingService } from '../services/booking.service.js';
-import { getPagination } from '../utils/pagination.js';
-import { resolvePriestProfileId } from '../repositories/priest.repository.js';
+import { sendSuccess, sendError } from '@/views/response.view.js';
+import { bookingService } from '@/services/booking.service.js';
+import { getPagination } from '@/utils/pagination.js';
+import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
 
 // Controller managing ceremony reservations, lifecycle status transitions, and devotee reviews
 export class BookingController {

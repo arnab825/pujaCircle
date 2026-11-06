@@ -1,4 +1,4 @@
-import { AccountStatus } from './auth.types';
+import { AccountStatus } from '@/types/auth.types';
 
 export type PriestApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 

@@ -1,5 +1,5 @@
 import { db } from './index.js';
-import { pujaCatalog } from '../models/catalog.model.js';
+import { pujaCatalog } from '@/models/catalog.model.js';
 import { ilike } from 'drizzle-orm';
 
 export const SACRED_CATALOG_SEEDS = [

@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { users } from '../models/user.model.js';
-import { priestProfiles } from '../models/priest.model.js';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
-import { toUserView, UserViewModel } from '../views/user.view.js';
-import { UpdateUserProfileInput, ChangePasswordInput } from '../schemas/user.schema.js';
-import { AppError } from '../utils/AppError.js';
+import { db } from '@/db/index.js';
+import { users } from '@/models/user.model.js';
+import { priestProfiles } from '@/models/priest.model.js';
+import { supabase, supabaseAdmin } from '@/config/supabase.js';
+import { toUserView, UserViewModel } from '@/views/user.view.js';
+import { UpdateUserProfileInput, ChangePasswordInput } from '@/schemas/user.schema.js';
+import { AppError } from '@/utils/AppError.js';
 import { cloudinaryService } from './cloudinary.service.js';
-import { cloudinary } from '../config/cloudinary.js';
+import { cloudinary } from '@/config/cloudinary.js';
 
 // Service managing devotee user profile details, contact information, and credentials
 export class UserService {

@@ -1,5 +1,5 @@
 import { Booking, CreateBookingRequest, CancelBookingRequest, SubmitRatingRequest, Rating } from '@/types/booking.types';
-import { apiClient } from './client';
+import { apiClient } from '@/api/client';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 // Frontend API service for ceremony reservations, statuses, and devotee ratings

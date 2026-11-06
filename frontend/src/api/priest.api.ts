@@ -5,8 +5,8 @@ import {
   PriestService,
 } from '@/types/priest.types';
 import { PincodeLookupResponse } from '@/types/address.types';
-import { apiClient } from './client';
-import { bookingApi } from './booking.api';
+import { apiClient } from '@/api/client';
+import { bookingApi } from '@/api/booking.api';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 import { calculateDayMuhuratSlots, CalculatedSlot } from '@/lib/availabilityUtils';
 

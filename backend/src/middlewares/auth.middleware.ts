@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/supabase.js';
-import { env } from '../config/env.js';
-import { db } from '../db/index.js';
-import { users } from '../models/user.model.js';
-import { sendError } from '../views/response.view.js';
-import { AuthUserContext } from '../types/express.js';
+import { supabase } from '@/config/supabase.js';
+import { env } from '@/config/env.js';
+import { db } from '@/db/index.js';
+import { users } from '@/models/user.model.js';
+import { sendError } from '@/views/response.view.js';
+import { AuthUserContext } from '@/types/express.js';
 
 /**
  * [MIDDLEWARE] Resilient Authentication Guard

@@ -1,6 +1,6 @@
 import { Priest, PriestFilterParams } from '@/types/priest.types';
 import { Booking } from '@/types/booking.types';
-import { apiClient } from './client';
+import { apiClient } from '@/api/client';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 /**

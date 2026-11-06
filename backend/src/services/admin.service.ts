@@ -1,12 +1,12 @@
 import { count, eq, sql, desc, and, or, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { db } from '../db/index.js';
-import { users, priestProfiles, bookings, addresses } from '../models/index.js';
-import { supabaseAdmin } from '../config/supabase.js';
-import { AppError } from '../utils/AppError.js';
-import { getPagination } from '../utils/pagination.js';
+import { db } from '@/db/index.js';
+import { users, priestProfiles, bookings, addresses } from '@/models/index.js';
+import { supabaseAdmin } from '@/config/supabase.js';
+import { AppError } from '@/utils/AppError.js';
+import { getPagination } from '@/utils/pagination.js';
 import { cloudinaryService } from './cloudinary.service.js';
-import { cloudinary } from '../config/cloudinary.js';
+import { cloudinary } from '@/config/cloudinary.js';
 
 export interface DashboardStats {
   totalUsers: number;

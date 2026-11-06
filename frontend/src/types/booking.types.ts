@@ -1,5 +1,5 @@
-import { Address } from './address.types';
-import { Priest, Ritual, PriestService } from './priest.types';
+import { Address } from '@/types/address.types';
+import { Priest, Ritual, PriestService } from '@/types/priest.types';
 
 export type BookingStatus =
   | 'PENDING'

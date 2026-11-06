@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '../views/response.view.js';
-import { addressService } from '../services/address.service.js';
+import { sendSuccess, sendError } from '@/views/response.view.js';
+import { addressService } from '@/services/address.service.js';
 
 /**
  * [CONTROLLER] Address Controller
