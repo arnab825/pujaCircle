@@ -5,6 +5,8 @@ import { users, priestProfiles, bookings, addresses } from '../models/index.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import { AppError } from '../utils/AppError.js';
 import { getPagination } from '../utils/pagination.js';
+import { cloudinaryService } from './cloudinary.service.js';
+import { cloudinary } from '../config/cloudinary.js';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -366,7 +368,7 @@ export class AdminService {
     }
 
     const [user] = await db
-      .select({ id: users.id, role: users.role })
+      .select({ id: users.id, role: users.role, avatarUrl: users.avatarUrl })
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
@@ -411,6 +413,13 @@ export class AdminService {
 
     // Delete user from application users table (cascades cleanly to addresses)
     await db.delete(users).where(eq(users.id, userId));
+
+    // Purge user avatar from Cloudinary if hosted there
+    if (user.avatarUrl && user.avatarUrl.startsWith('http')) {
+      await cloudinaryService.deleteImageByUrl(user.avatarUrl).catch((err) => {
+        console.warn('[AdminService] Failed to clean up user Cloudinary avatar:', err);
+      });
+    }
   }
 
   /**
@@ -420,7 +429,11 @@ export class AdminService {
    */
   async deletePriest(priestId: string, currentAdminId?: string): Promise<void> {
     const [priest] = await db
-      .select({ id: priestProfiles.id, userId: priestProfiles.userId })
+      .select({
+        id: priestProfiles.id,
+        userId: priestProfiles.userId,
+        profileImageUrl: priestProfiles.profileImageUrl,
+      })
       .from(priestProfiles)
       .where(or(eq(priestProfiles.id, priestId), eq(priestProfiles.userId, priestId)))
       .limit(1);
@@ -432,6 +445,12 @@ export class AdminService {
     if (currentAdminId && priest.userId === currentAdminId) {
       throw new AppError(400, 'Security violation: Cannot delete your own administrator account.');
     }
+
+    const [priestUser] = await db
+      .select({ avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(eq(users.id, priest.userId))
+      .limit(1);
 
     // Disassociate bookings from this priest to preserve booking history
     await db
@@ -449,10 +468,26 @@ export class AdminService {
 
     // Delete the linked user account
     await db.delete(users).where(eq(users.id, priest.userId));
+
+    // Clean up priest Cloudinary images
+    if (priest.profileImageUrl && priest.profileImageUrl.startsWith('http')) {
+      await cloudinaryService.deleteImageByUrl(priest.profileImageUrl).catch((err) => {
+        console.warn('[AdminService] Failed to clean up priest Cloudinary image:', err);
+      });
+    }
+    if (
+      priestUser?.avatarUrl &&
+      priestUser.avatarUrl.startsWith('http') &&
+      priestUser.avatarUrl !== priest.profileImageUrl
+    ) {
+      await cloudinaryService.deleteImageByUrl(priestUser.avatarUrl).catch((err) => {
+        console.warn('[AdminService] Failed to clean up priest user Cloudinary avatar:', err);
+      });
+    }
   }
 
   /**
-   * Update admin display name and/or avatar in the users table
+   * Update admin display name and/or avatar in the users table, syncing avatar with Cloudinary in 'pujacircle/admin'
    */
   async updateAdminProfile(
     userId: string,
@@ -470,7 +505,55 @@ export class AdminService {
     }
 
     if (data.avatarUrl !== undefined) {
-      updateData.avatarUrl = data.avatarUrl;
+      const [currentUser] = await db
+        .select({ avatarUrl: users.avatarUrl })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      const oldAvatarUrl = currentUser?.avatarUrl;
+      let finalAvatarUrl: string | null = null;
+
+      if (typeof data.avatarUrl === 'string' && data.avatarUrl.trim().length > 0) {
+        const trimmed = data.avatarUrl.trim();
+
+        // Case A: Base64 Data URI from file picker -> Upload to Cloudinary in 'pujacircle/admin' folder
+        if (trimmed.startsWith('data:image/') || trimmed.startsWith('data:')) {
+          try {
+            // Ensure 'pujacircle/admin' folder exists in the Cloudinary account
+            await cloudinary.api.create_folder('pujacircle/admin').catch(() => { });
+            // Clean up any accidentally created root-level 'admin' folder if empty
+            await cloudinary.api.delete_folder('admin').catch(() => { });
+
+            const uploadResult = await cloudinaryService.uploadImage(trimmed, 'pujacircle/admin');
+            finalAvatarUrl = uploadResult.secure_url || uploadResult.url;
+          } catch (uploadError: any) {
+            console.error('[AdminService] Cloudinary avatar upload failed:', uploadError);
+            throw new AppError(500, 'Failed to upload profile picture to cloud storage.');
+          }
+        }
+        // Case B: Already a hosted URL (e.g. from Cloudinary or external)
+        else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+          finalAvatarUrl = trimmed;
+        }
+
+        // Cleanup: Purge previous image from Cloudinary if different
+        if (oldAvatarUrl && oldAvatarUrl.startsWith('http') && oldAvatarUrl !== finalAvatarUrl) {
+          await cloudinaryService.deleteImageByUrl(oldAvatarUrl).catch((err) => {
+            console.warn('[AdminService] Failed to clean up previous Cloudinary asset:', err);
+          });
+        }
+      } else {
+        // Case C: Photo removed (empty string or null) -> Clean up Cloudinary
+        if (oldAvatarUrl && oldAvatarUrl.startsWith('http')) {
+          await cloudinaryService.deleteImageByUrl(oldAvatarUrl).catch((err) => {
+            console.warn('[AdminService] Failed to clean up previous Cloudinary asset:', err);
+          });
+        }
+        finalAvatarUrl = null;
+      }
+
+      updateData.avatarUrl = finalAvatarUrl;
     }
 
     const [updated] = await db
