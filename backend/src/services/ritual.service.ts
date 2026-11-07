@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { pujaCatalog } from '../models/catalog.model.js';
+import { db } from '@/db/index.js';
+import { pujaCatalog } from '@/models/catalog.model.js';
 
 /**
  * [SERVICE] Ritual Service

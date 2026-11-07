@@ -1,12 +1,12 @@
 import { count, eq, sql, desc, and, or, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-import { db } from '../db/index.js';
-import { users, priestProfiles, bookings, addresses } from '../models/index.js';
-import { supabaseAdmin } from '../config/supabase.js';
-import { AppError } from '../utils/AppError.js';
-import { getPagination } from '../utils/pagination.js';
+import { db } from '@/db/index.js';
+import { users, priestProfiles, bookings, addresses } from '@/models/index.js';
+import { supabaseAdmin } from '@/config/supabase.js';
+import { AppError } from '@/utils/AppError.js';
+import { getPagination } from '@/utils/pagination.js';
 import { cloudinaryService } from './cloudinary.service.js';
-import { cloudinary } from '../config/cloudinary.js';
+import { cloudinary } from '@/config/cloudinary.js';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -89,6 +89,12 @@ export class AdminService {
         avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
+        completedPujas: sql<number>`COALESCE((
+          SELECT COUNT(*)::int
+          FROM ${bookings}
+          WHERE ${bookings.priestId} = ${priestProfiles.id}
+            AND ${bookings.status} = 'COMPLETED'
+        ), 0)`.mapWith(Number),
         createdAt: priestProfiles.createdAt,
       })
       .from(priestProfiles)
@@ -105,6 +111,7 @@ export class AdminService {
       ...p,
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
+      completedPujas: Number(p.completedPujas || 0),
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
     }));
   }
@@ -144,6 +151,7 @@ export class AdminService {
       ...p,
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
+      completedPujas: 0,
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
     }));
   }

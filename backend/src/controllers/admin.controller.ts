@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '../views/response.view.js';
-import { adminService } from '../services/admin.service.js';
-import { getPagination } from '../utils/pagination.js';
+import { sendSuccess, sendError } from '@/views/response.view.js';
+import { adminService } from '@/services/admin.service.js';
+import { getPagination } from '@/utils/pagination.js';
 
 // Controller managing platform admin oversight, priest approvals, user moderation, and ceremony logs
 export class AdminController {

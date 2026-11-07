@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as schema from '../models/index.js';
-import { env } from '../config/env.js';
+import * as schema from '@/models/index.js';
+import { env } from '@/config/env.js';
 
 /**
  * PostgreSQL Connection Pool via postgres.js

@@ -1,9 +1,9 @@
 import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { pujaCatalog, NewPujaCatalog } from '../models/catalog.model.js';
-import { priestServices, priestProfiles, users, bookings } from '../models/index.js';
+import { db } from '@/db/index.js';
+import { pujaCatalog, NewPujaCatalog } from '@/models/catalog.model.js';
+import { priestServices, priestProfiles, users, bookings } from '@/models/index.js';
 import { cloudinaryService } from './cloudinary.service.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '@/utils/AppError.js';
 
 /**
  * [SERVICE] Catalog Service
@@ -70,7 +70,7 @@ export class CatalogService {
       ...e,
       priestCount: Number(e.priestCount || 0),
       startingPrice: e.startingPrice !== null ? Number(e.startingPrice) : null,
-      coverImage: e.coverImage || '/images/hero_vedic_puja.jpg',
+      coverImage: e.coverImage || '/images/hero_vedic_puja.webp',
     }));
 
     if (withPriestsOnly) {
@@ -93,7 +93,7 @@ export class CatalogService {
 
     return {
       ...entry,
-      coverImage: entry.coverImage || '/images/hero_vedic_puja.jpg',
+      coverImage: entry.coverImage || '/images/hero_vedic_puja.webp',
     };
   }
 

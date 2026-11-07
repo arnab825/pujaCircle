@@ -403,24 +403,25 @@ export const AdminCatalogPage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200 pb-5">
-        <div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-start gap-3.5">
+          <div className="h-11 w-11 rounded-lg bg-amber-100 border border-amber-300 text-[#780016] flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
             <Layers className="w-5 h-5 text-[#780016]" />
-            <h1 className="font-serif text-2xl font-bold text-[#780016]">
+          </div>
+          <div className="space-y-1">
+            <h1 className="font-serif text-xl sm:text-2xl font-bold text-[#780016] leading-tight">
               Puja Catalog Management Console
             </h1>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Curate and moderate sacred rituals, deities, and samagri requirements across the platform
+            </p>
           </div>
-          <p className="text-xs text-stone-500 mt-1">
-            Curate and moderate sacred rituals, deities, and samagri
-            requirements across the platform
-          </p>
         </div>
 
         <motion.button
           type="button"
           whileTap={buttonPress}
           onClick={handleOpenAddModal}
-          className="inline-flex items-center gap-2 rounded-md bg-[#780016] hover:bg-[#600012] text-white border border-amber-400 px-4 py-2 text-xs font-bold transition-colors shadow-xs cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-[#780016] hover:bg-[#600012] text-white border border-amber-400 px-4 py-2.5 text-xs font-bold transition-colors shadow-xs cursor-pointer shrink-0 w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Catalog Entry</span>
@@ -570,12 +571,12 @@ export const AdminCatalogPage: React.FC = () => {
                       <div className="flex items-center gap-3.5">
                         <div className="relative w-16 h-12 rounded-lg overflow-hidden border-2 border-amber-300 shadow-2xs shrink-0 group">
                           <img
-                            src={entry.coverImage || "/images/hero_vedic_puja.jpg"}
+                            src={entry.coverImage || "/images/hero_vedic_puja.webp"}
                             alt={entry.name}
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 bg-stone-100"
                             onError={(e) => {
                               (e.target as HTMLImageElement).src =
-                                "/images/hero_vedic_puja.jpg";
+                                "/images/hero_vedic_puja.webp";
                             }}
                           />
                         </div>
@@ -671,16 +672,16 @@ export const AdminCatalogPage: React.FC = () => {
 
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
             <motion.div
               variants={modalTransition}
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border-2 border-amber-300 bg-white p-6 shadow-2xl space-y-4 text-xs"
+              className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-2xl space-y-4 text-xs"
             >
-              <div className="flex items-center justify-between border-b border-amber-200 pb-3">
-                <h3 className="font-serif text-lg font-bold text-[#780016]">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-3 pr-1">
+                <h3 className="font-serif text-base sm:text-lg font-bold text-[#780016] pr-2 truncate">
                   {editingEntry
                     ? "Edit Catalog Entry"
                     : "Create New Puja Catalog Entry"}
@@ -688,9 +689,10 @@ export const AdminCatalogPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="rounded-full p-1.5 text-stone-400 hover:text-stone-700 hover:bg-amber-100 transition-colors cursor-pointer"
+                  className="rounded-full p-1.5 text-stone-400 hover:text-stone-700 hover:bg-amber-100 transition-colors cursor-pointer shrink-0"
+                  aria-label="Close modal"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
@@ -937,18 +939,18 @@ export const AdminCatalogPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-amber-200">
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 sm:gap-3 pt-4 border-t border-amber-200">
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="border-2 border-amber-300 text-stone-800 hover:bg-amber-50 rounded-md px-4 py-2 text-xs font-semibold cursor-pointer transition-colors"
+                    className="w-full sm:w-auto border-2 border-amber-300 text-stone-800 hover:bg-amber-50 rounded-md px-4 py-2 text-xs font-semibold cursor-pointer transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={!isFormValid || isUploading}
-                    className="bg-[#780016] hover:bg-[#600012] text-white border border-amber-400 rounded-md px-5 py-2 text-xs font-bold shadow-xs cursor-pointer transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+                    className="w-full sm:w-auto justify-center bg-[#780016] hover:bg-[#600012] text-white border border-amber-400 rounded-md px-5 py-2 text-xs font-bold shadow-xs cursor-pointer transition-colors disabled:opacity-50 inline-flex items-center gap-2"
                   >
                     {isUploading && (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />

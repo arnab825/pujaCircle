@@ -203,19 +203,19 @@ export const DashboardSidebarShell: React.FC<DashboardSidebarShellProps> = ({
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-72 flex flex-col justify-between bg-white text-stone-900">
                 <div className="flex-1 overflow-y-auto">
-                  <div className="h-16 border-b border-[hsl(var(--border))] flex items-center justify-between px-5 shrink-0">
-                    <div className="flex items-center gap-2.5">
-                      <PujaCircleLogo size={28} />
-                      <div>
-                        <span className="font-serif font-bold text-sm text-[#780016]">
+                  <div className="h-16 border-b border-[hsl(var(--border))] flex items-center justify-between pl-4 pr-12 shrink-0 bg-white">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <PujaCircleLogo size={28} className="shrink-0" />
+                      <div className="min-w-0">
+                        <span className="font-serif font-bold text-sm text-[#780016] block leading-tight">
                           PujaCircle
                         </span>
-                        <span className="block text-[10px] text-stone-500">
+                        <span className="block text-[10px] text-stone-500 leading-tight mt-0.5 truncate">
                           {workspaceLabel}
                         </span>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[10px] uppercase font-bold border-amber-300 bg-amber-50 text-[#780016]">
+                    <Badge variant="outline" className="text-[10px] uppercase font-bold border-amber-300 bg-amber-50 text-[#780016] px-1.5 py-0.5 shrink-0">
                       {roleLabel}
                     </Badge>
                   </div>

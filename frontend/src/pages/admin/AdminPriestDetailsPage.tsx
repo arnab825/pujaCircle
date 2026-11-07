@@ -45,6 +45,7 @@ import { priestApi } from "@/api/priest.api";
 import { adminApi } from "@/api/admin.api";
 import { Priest, PriestApprovalStatus } from "@/types/priest.types";
 import { Booking } from "@/types/booking.types";
+import { formatDate } from "@/lib/utils";
 
 /**
  * AdminPriestDetailsPage
@@ -285,30 +286,30 @@ export const AdminPriestDetailsPage: React.FC = () => {
   const ratingValue = Number(priest.rating || 0);
 
   return (
-    <div className="container max-w-5xl py-8 space-y-6 pb-16 text-stone-900">
+    <div className="container max-w-5xl py-4 sm:py-8 px-2 sm:px-6 space-y-4 sm:space-y-6 pb-16 text-stone-900">
       {/* Top Back Navigation */}
       <Link
         to="/admin/priests"
         className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#780016] font-bold transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Manage Priests Directory
+        <ArrowLeft className="w-4 h-4 shrink-0" />
+        <span>Back to Manage Priests Directory</span>
       </Link>
 
       {/* Main Scholar Header Profile Card */}
-      <div className="border-2 border-amber-400 bg-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-7 relative">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+      <div className="border-2 border-amber-400 bg-white shadow-md rounded-xl sm:rounded-2xl overflow-hidden p-4 sm:p-7 relative">
+        <div className="flex flex-col sm:flex-row items-center sm:items-center text-center sm:text-left justify-between gap-4 sm:gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-3.5 sm:gap-4 min-w-0 w-full sm:w-auto">
             <div className="relative shrink-0">
               <div className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm">
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}
                     alt={priest.fullName}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-xs shrink-0 bg-amber-50"
+                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-white shadow-xs shrink-0 bg-amber-50"
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-[#780016] text-amber-300 border-2 border-white flex items-center justify-center font-bold text-2xl font-serif shrink-0 shadow-xs">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#780016] text-amber-300 border-2 border-white flex items-center justify-center font-bold text-xl sm:text-2xl font-serif shrink-0 shadow-xs">
                     {priest.fullName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -318,13 +319,13 @@ export const AdminPriestDetailsPage: React.FC = () => {
                   className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
                   title="Approved Vedic Scholar"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                 </div>
               )}
             </div>
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950">
+            <div className="space-y-1 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h1 className="text-xl sm:text-3xl font-extrabold font-serif text-stone-950 wrap-break-word">
                   {priest.fullName}
                 </h1>
                 {getStatusBadge(priest.approvalStatus, priest.accountStatus)}
@@ -335,7 +336,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
                   {priest.displayName || priest.fullName}
                 </span>
               </p>
-              <p className="text-[11px] text-stone-500 font-mono">
+              <p className="text-[11px] text-stone-500 font-mono break-all">
                 Scholar ID: {priest.id} • Registered:{" "}
                 {new Date(priest.createdAt).toLocaleDateString("en-IN", {
                   day: "numeric",
@@ -346,10 +347,10 @@ export const AdminPriestDetailsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex sm:flex-col justify-between items-center sm:items-end gap-2 text-xs">
+          <div className="sm:text-right border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto flex flex-col sm:flex-col justify-center items-center sm:items-end gap-2 text-xs">
             {ratingValue > 0 ? (
               <div className="flex items-center gap-1.5 font-bold text-amber-950 bg-amber-100 px-3 py-1 rounded-md border border-amber-300">
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                <Star className="w-4 h-4 fill-amber-500 text-amber-500 shrink-0" />
                 <span>{ratingValue.toFixed(1)}</span>
                 <span className="text-[11px] font-normal text-stone-600">
                   ({priest.reviewCount || 0} reviews)
@@ -399,78 +400,78 @@ export const AdminPriestDetailsPage: React.FC = () => {
       )}
 
       {/* Quick Stats Metrics Row */}
-      <div className="flex flex-wrap gap-4 w-full">
-        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4 w-full">
+        <div className="p-3.5 sm:p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500">
             Rituals Offered
           </span>
-          <p className="text-2xl font-bold font-serif text-stone-900 mt-1">
+          <p className="text-xl sm:text-2xl font-bold font-serif text-stone-900 mt-1">
             {priest.services?.length || 0} Pujas
           </p>
         </div>
 
-        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+        <div className="p-3.5 sm:p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500">
             Assigned Bookings
           </span>
-          <p className="text-2xl font-bold font-serif text-stone-900 mt-1">
+          <p className="text-xl sm:text-2xl font-bold font-serif text-stone-900 mt-1">
             {priestBookings.length}
           </p>
         </div>
 
-        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+        <div className="p-3.5 sm:p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500">
             Experience
           </span>
-          <p className="text-2xl font-bold font-serif text-stone-900 mt-1">
+          <p className="text-xl sm:text-2xl font-bold font-serif text-stone-900 mt-1">
             {priest.experienceYears} Yrs
           </p>
         </div>
 
-        <div className="w-full sm:w-[calc(25%-12px)] p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500">
+        <div className="p-3.5 sm:p-4 rounded-xl border-2 border-amber-300 bg-white shadow-xs">
+          <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500">
             Primary Hub
           </span>
-          <p className="text-base font-bold font-serif text-stone-900 mt-2 truncate">
+          <p className="text-sm sm:text-base font-bold font-serif text-stone-900 mt-1 sm:mt-2 truncate">
             {priest.city || "Kolkata"}
           </p>
         </div>
       </div>
 
       {/* Details Flexbox Deck */}
-      <div className="flex flex-col md:flex-row gap-6 w-full">
+      <div className="flex flex-col md:flex-row gap-4 sm:gap-6 w-full">
         {/* Contact & Verification Info */}
-        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white shadow-sm rounded-xl p-6 space-y-4">
+        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white shadow-sm rounded-xl p-4 sm:p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-amber-200">
-            <Phone className="w-4 h-4 text-[#780016]" />
+            <Phone className="w-4 h-4 text-[#780016] shrink-0" />
             <h3 className="text-base font-serif font-bold text-stone-950">
               Contact & Direct Verification
             </h3>
           </div>
           <div className="space-y-3 text-xs">
-            <div className="flex items-center justify-between border-b pb-2 border-stone-100">
+            <div className="flex items-center justify-between border-b pb-2 border-stone-100 gap-2">
               <span className="text-stone-600 font-medium">Mobile Phone:</span>
-              <span className="font-mono font-bold text-stone-900">
+              <span className="font-mono font-bold text-stone-900 break-all">
                 {priest.phoneNumber}
               </span>
             </div>
-            <div className="flex items-center justify-between border-b pb-2 border-stone-100">
+            <div className="flex items-center justify-between border-b pb-2 border-stone-100 gap-2">
               <span className="text-stone-600 font-medium">Email Address:</span>
-              <span className="font-medium text-stone-900">
+              <span className="font-medium text-stone-900 break-all text-right">
                 {priest.email || "—"}
               </span>
             </div>
-            <div className="flex items-center justify-between border-b pb-2 border-stone-100">
+            <div className="flex items-center justify-between border-b pb-2 border-stone-100 gap-2">
               <span className="text-stone-600 font-medium">City & State:</span>
-              <span className="font-bold text-stone-900">
+              <span className="font-bold text-stone-900 text-right">
                 {priest.city}, {priest.state}
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-stone-600 font-medium">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-stone-600 font-medium shrink-0">
                 Service Localities:
               </span>
-              <span className="font-medium text-stone-900 max-w-[60%] text-right truncate">
+              <span className="font-medium text-stone-900 text-right truncate">
                 {priest.serviceAreas?.join(", ") || priest.city}
               </span>
             </div>
@@ -478,9 +479,9 @@ export const AdminPriestDetailsPage: React.FC = () => {
         </div>
 
         {/* Vedic Credentials & Lineage */}
-        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white shadow-sm rounded-xl p-6 space-y-4">
+        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white shadow-sm rounded-xl p-4 sm:p-6 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-amber-200">
-            <Award className="w-4 h-4 text-amber-700" />
+            <Award className="w-4 h-4 text-amber-700 shrink-0" />
             <h3 className="text-base font-serif font-bold text-stone-950">
               Vedic Bio & Lineage
             </h3>
@@ -508,18 +509,18 @@ export const AdminPriestDetailsPage: React.FC = () => {
       </div>
 
       {/* Offered Ceremonies & Shastric Dakshina Rates Card */}
-      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-600" />
-            <div>
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Offered Ceremonies & Shastric Dakshina Rates ({priest.services?.length || 0})
-              </h3>
-              <p className="text-xs text-stone-500">
-                Active ritual offerings curated by this Purohit with transparent dakshina pricing.
-              </p>
-            </div>
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-3.5 sm:p-7 space-y-4">
+        <div className="flex items-start gap-2.5 pb-3 border-b border-amber-200">
+          <div className="h-8 w-8 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+            <Sparkles className="w-4 h-4 text-amber-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug break-words">
+              Offered Ceremonies & Shastric Dakshina Rates ({priest.services?.length || 0})
+            </h3>
+            <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 leading-relaxed">
+              Active ritual offerings curated by this Purohit with transparent dakshina pricing.
+            </p>
           </div>
         </div>
 
@@ -582,18 +583,18 @@ export const AdminPriestDetailsPage: React.FC = () => {
       </div>
 
       {/* Ceremony Appointments & Track Record */}
-      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-amber-200">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-amber-600" />
-            <div>
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Assigned Ceremony Appointments ({priestBookings.length})
-              </h3>
-              <p className="text-xs text-stone-500">
-                Family appointments, scheduled dates, and completion status.
-              </p>
-            </div>
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-3.5 sm:p-7 space-y-4">
+        <div className="flex items-start gap-2.5 pb-3 border-b border-amber-200">
+          <div className="h-8 w-8 rounded-lg bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0 mt-0.5">
+            <Calendar className="w-4 h-4 text-amber-700" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug break-words">
+              Assigned Ceremony Appointments ({priestBookings.length})
+            </h3>
+            <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 leading-relaxed">
+              Family appointments, scheduled dates, and completion status.
+            </p>
           </div>
         </div>
 
@@ -602,16 +603,16 @@ export const AdminPriestDetailsPage: React.FC = () => {
             {priestBookings.map((b) => (
               <div
                 key={b.id}
-                className="p-4 rounded-xl border border-stone-200 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                className="p-3.5 sm:p-4 rounded-xl border border-stone-200 bg-stone-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-serif font-bold text-stone-950 text-sm">
+                <div className="space-y-1.5 min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+                    <span className="font-serif font-bold text-stone-950 text-sm break-words">
                       {b.serviceName}
                     </span>
                     <Badge
                       variant="outline"
-                      className={`text-[10px] font-bold ${
+                      className={`text-[10px] font-bold shrink-0 ${
                         b.status === "CONFIRMED"
                           ? "bg-emerald-50 text-emerald-800 border-emerald-300"
                           : b.status === "COMPLETED"
@@ -624,19 +625,24 @@ export const AdminPriestDetailsPage: React.FC = () => {
                       {b.status}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap items-center gap-3 text-stone-600">
-                    <span>
-                      Muhurat: <strong className="text-stone-800">{b.bookingDate || (b as any).scheduledDate}</strong>{" "}
-                      ({b.startTime} - {b.endTime})
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-stone-600">
+                    <span className="flex items-center gap-1 font-medium">
+                      <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <span>{b.bookingDate ? formatDate(b.bookingDate) : (b as any).scheduledDate ? formatDate((b as any).scheduledDate) : "—"}</span>
+                      {b.startTime && (
+                        <span className="font-mono text-stone-700">
+                          ({b.startTime} - {b.endTime})
+                        </span>
+                      )}
                     </span>
-                    <span>
+                    <span className="truncate">
                       Devotee: <strong className="text-stone-800">{b.userName || "Devotee"}</strong>
                     </span>
                   </div>
                 </div>
 
-                <div className="text-right">
-                  <div className="text-sm font-bold text-[#780016]">
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-stone-200/80 shrink-0">
+                  <div className="text-base sm:text-sm font-bold text-[#780016] font-serif">
                     ₹{Number(b.totalPrice || 0).toLocaleString("en-IN")}
                   </div>
                   <span className="text-[10px] text-stone-500 font-mono">
@@ -654,7 +660,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
       </div>
 
       {/* Administrative Decision Action Bar */}
-      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-6 sm:p-7 space-y-3">
+      <div className="border-2 border-amber-400 bg-white shadow-sm rounded-xl p-4 sm:p-7 space-y-3">
         <div>
           <h3 className="text-base font-serif font-bold text-stone-950">
             Administrative Actions & Lifecycle Control
@@ -665,15 +671,15 @@ export const AdminPriestDetailsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-amber-200">
-          <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-amber-200">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             {/* If PENDING: Approve / Reject */}
             {priest.approvalStatus === "PENDING" && (
               <>
                 <Button
                   size="sm"
                   onClick={handleApprove}
-                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 shadow-xs cursor-pointer puja-btn-tap"
+                  className="w-full sm:w-auto text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 shadow-xs cursor-pointer puja-btn-tap"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Approve Application
@@ -683,7 +689,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => setIsRejectDialogOpen(true)}
-                  className="text-xs text-red-700 hover:bg-red-50 border-red-200 font-bold h-10 px-4 rounded-md gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto text-xs text-red-700 hover:bg-red-50 border-red-200 font-bold h-10 px-4 rounded-md gap-1.5 cursor-pointer"
                 >
                   <XCircle className="w-4 h-4" />
                   Reject Application
@@ -697,7 +703,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
                 size="sm"
                 variant="destructive"
                 onClick={() => setIsBanDialogOpen(true)}
-                className="text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700"
+                className="w-full sm:w-auto text-xs h-10 px-4 rounded-md font-bold gap-1.5 cursor-pointer bg-rose-600 hover:bg-rose-700"
               >
                 <Ban className="w-4 h-4" />
                 Ban Priest Account
@@ -709,7 +715,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               <Button
                 size="sm"
                 onClick={handleLiftBan}
-                className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 cursor-pointer"
+                className="w-full sm:w-auto text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-10 px-5 rounded-md gap-1.5 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 Lift Ban & Reactivate
@@ -722,7 +728,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
                 size="sm"
                 variant="outline"
                 onClick={handleReopen}
-                className="text-xs gap-1.5 h-10 px-4 rounded-md font-bold border-stone-300"
+                className="w-full sm:w-auto text-xs gap-1.5 h-10 px-4 rounded-md font-bold border-stone-300"
               >
                 <RotateCcw className="w-4 h-4" />
                 Re-open Application
@@ -735,7 +741,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
             size="sm"
             variant="ghost"
             onClick={() => setIsDeleteDialogOpen(true)}
-            className="text-xs text-red-700 hover:bg-red-50 gap-1.5 h-10 px-3 rounded-md font-bold cursor-pointer"
+            className="w-full sm:w-auto text-xs text-red-700 hover:bg-red-50 gap-1.5 h-10 px-3 rounded-md font-bold cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
             Delete Priest Profile
@@ -745,8 +751,8 @@ export const AdminPriestDetailsPage: React.FC = () => {
 
       {/* Reject Application Dialog */}
       <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl bg-white border-2 border-amber-300 shadow-xl">
+          <DialogHeader className="pr-8 sm:pr-10 text-left">
             <DialogTitle className="text-base font-bold font-serif text-red-700">
               Reject Priest Application
             </DialogTitle>
@@ -772,12 +778,12 @@ export const AdminPriestDetailsPage: React.FC = () => {
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex flex-col-reverse sm:flex-row">
+          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsRejectDialogOpen(false)}
-              className="text-xs rounded-md h-10 px-4"
+              className="text-xs rounded-md h-10 px-4 w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -785,7 +791,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmReject}
-              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white w-full sm:w-auto"
             >
               Confirm Rejection
             </Button>
@@ -795,8 +801,8 @@ export const AdminPriestDetailsPage: React.FC = () => {
 
       {/* Ban Account Dialog */}
       <Dialog open={isBanDialogOpen} onOpenChange={setIsBanDialogOpen}>
-        <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl bg-white border-2 border-amber-300 shadow-xl">
+          <DialogHeader className="pr-8 sm:pr-10 text-left">
             <DialogTitle className="text-base font-bold font-serif text-red-700">
               Ban Priest Account
             </DialogTitle>
@@ -822,12 +828,12 @@ export const AdminPriestDetailsPage: React.FC = () => {
             />
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 flex flex-col-reverse sm:flex-row">
+          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsBanDialogOpen(false)}
-              className="text-xs rounded-md h-10 px-4"
+              className="text-xs rounded-md h-10 px-4 w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -835,7 +841,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               variant="destructive"
               size="sm"
               onClick={handleConfirmBan}
-              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white"
+              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white w-full sm:w-auto"
             >
               Confirm Ban
             </Button>

@@ -21,6 +21,7 @@ export interface PriestViewModel {
   avatarUrl?: string | null;
   rating: number;
   reviewCount: number;
+  completedPujas?: number;
   defaultStartTime?: string | null;
   defaultEndTime?: string | null;
   createdAt: string;

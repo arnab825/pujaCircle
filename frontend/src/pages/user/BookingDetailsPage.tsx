@@ -234,10 +234,10 @@ export const BookingDetailsPage: React.FC = () => {
   const bookingRef = booking.bookingReference || booking.id;
 
   return (
-    <div className="w-full text-stone-900 py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full text-stone-900 py-3 sm:py-8 px-2 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto space-y-3.5 sm:space-y-6">
         {/* Top Navigation Bar with Quick Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           <Link
             to="/user/bookings"
             className="inline-flex items-center gap-2 text-xs font-bold text-stone-700 hover:text-[#780016] transition-colors group"
@@ -253,7 +253,7 @@ export const BookingDetailsPage: React.FC = () => {
               <Button
                 size="sm"
                 onClick={() => setIsRatingModalOpen(true)}
-                className="gap-1.5 text-xs bg-amber-400 hover:bg-amber-500 text-stone-950 font-bold rounded-lg shadow-sm h-9 px-4 cursor-pointer active:scale-95 transition-transform"
+                className="w-full sm:w-auto justify-center gap-1.5 text-xs bg-amber-400 hover:bg-amber-500 text-stone-950 font-bold rounded-lg shadow-sm h-9 px-4 cursor-pointer active:scale-95 transition-transform"
               >
                 <Star className="w-3.5 h-3.5 fill-stone-950" /> Rate Ceremony
               </Button>
@@ -264,7 +264,7 @@ export const BookingDetailsPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCancelModalOpen(true)}
-                className="gap-1.5 text-xs text-red-700 hover:text-red-800 border-red-200 hover:bg-red-50 rounded-lg h-9 px-4 cursor-pointer active:scale-95 transition-transform"
+                className="w-full sm:w-auto justify-center gap-1.5 text-xs text-red-700 hover:text-red-800 border-red-200 hover:bg-red-50 rounded-lg h-9 px-4 cursor-pointer active:scale-95 transition-transform"
               >
                 <Ban className="w-3.5 h-3.5" /> Cancel Appointment
               </Button>
@@ -273,17 +273,17 @@ export const BookingDetailsPage: React.FC = () => {
         </div>
 
         {/* Master Sacred Pass Container */}
-        <div className="w-full bg-white border border-amber-300 rounded-2xl shadow-md overflow-hidden">
+        <div className="w-full bg-white border border-amber-300 rounded-xl sm:rounded-2xl shadow-md overflow-hidden">
           {/* Grand Regal Header Banner */}
-          <div className="relative p-6 sm:p-8 bg-linear-to-r from-[#50000e] via-[#780016] to-[#45000c] text-white border-b-2 border-amber-400">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-              <div className="flex items-start gap-4 sm:gap-5">
+          <div className="relative p-4 sm:p-7 md:p-8 bg-linear-to-r from-[#50000e] via-[#780016] to-[#45000c] text-white border-b-2 border-amber-400">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+              <div className="flex items-start gap-3 sm:gap-5 min-w-0">
                 {/* ॐ Sacred Medallion */}
-                <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-xl bg-linear-to-br from-amber-300 via-amber-400 to-amber-500 text-stone-950 flex items-center justify-center font-serif font-black text-3xl sm:text-4xl shadow-lg border-2 border-amber-200 shrink-0 select-none">
+                <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-xl bg-linear-to-br from-amber-300 via-amber-400 to-amber-500 text-stone-950 flex items-center justify-center font-serif font-black text-2xl sm:text-4xl shadow-lg border-2 border-amber-200 shrink-0 select-none">
                   ॐ
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     {/* Booking Reference Pill */}
                     <button
@@ -292,8 +292,8 @@ export const BookingDetailsPage: React.FC = () => {
                       className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold px-2.5 py-0.5 bg-black/30 hover:bg-black/50 text-amber-200 rounded-md border border-amber-400/40 transition-colors cursor-pointer"
                       title="Click to copy booking reference"
                     >
-                      <span>Ref: {bookingRef}</span>
-                      {copiedRef ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-amber-300" />}
+                      <span className="truncate max-w-[200px] sm:max-w-none">Ref: {bookingRef}</span>
+                      {copiedRef ? <Check className="w-3 h-3 text-emerald-400 shrink-0" /> : <Copy className="w-3 h-3 text-amber-300 shrink-0" />}
                     </button>
 
                     <span className="text-[11px] text-amber-200/90 font-medium">
@@ -301,19 +301,19 @@ export const BookingDetailsPage: React.FC = () => {
                     </span>
                   </div>
 
-                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-serif text-white tracking-tight flex items-center gap-2">
-                    <span>{booking.serviceName || 'Sacred Puja Ceremony'}</span>
-                    <Sparkles className="w-5 h-5 text-amber-300 shrink-0 inline-block" />
+                  <h1 className="text-xl sm:text-3xl lg:text-4xl font-extrabold font-serif text-white tracking-tight flex items-center gap-2 flex-wrap">
+                    <span className="break-words">{booking.serviceName || 'Sacred Puja Ceremony'}</span>
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 shrink-0 inline-block" />
                   </h1>
 
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-amber-100 font-medium pt-0.5">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs text-amber-100 font-medium pt-0.5">
                     <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-amber-300" />
+                      <Calendar className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                       {formattedFullCeremonyDate}
                     </span>
                     <span className="text-amber-400">•</span>
                     <span className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-amber-300" />
+                      <Clock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                       {muhuratTimeRange} (Shubh Muhurat)
                     </span>
                   </div>
@@ -321,7 +321,7 @@ export const BookingDetailsPage: React.FC = () => {
               </div>
 
               {/* Status Badge */}
-              <div className="shrink-0 self-start lg:self-center">
+              <div className="shrink-0 self-start lg:self-center pt-1 lg:pt-0">
                 <BookingStatusBadge
                   status={booking.status}
                   cancelledBy={booking.cancelledBy}
@@ -332,7 +332,7 @@ export const BookingDetailsPage: React.FC = () => {
           </div>
 
           {/* Main Content Body */}
-          <div className="p-5 sm:p-7 space-y-6 bg-white">
+          <div className="p-3 sm:p-6 lg:p-7 space-y-3.5 sm:space-y-6 bg-white">
             {/* Sequential 3-Step Ceremony Progress Pipeline */}
             <BookingTimelineCard
               status={booking.status}
@@ -399,74 +399,74 @@ export const BookingDetailsPage: React.FC = () => {
             )}
 
             {/* Core Appointment Overview Deck (Flexbox 2-Column Grid) */}
-            <div className="flex flex-col md:flex-row items-stretch gap-6 w-full">
+            <div className="flex flex-col md:flex-row items-stretch gap-3.5 sm:gap-6 w-full">
               {/* Left Column: Auspicious Muhurat & Sanctum Venue */}
-              <div className="flex-1 space-y-4 p-5 rounded-xl border border-amber-300 bg-linear-to-b from-amber-50/30 to-white shadow-xs">
-                <div className="flex items-center justify-between pb-1 border-b border-amber-200">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#780016]" />
+              <div className="flex-1 space-y-3 p-3 sm:p-5 rounded-xl border border-amber-300 bg-linear-to-b from-amber-50/30 to-white shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-amber-200">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-[#780016] shrink-0" />
                     <span>Auspicious Muhurat & Venue</span>
                   </h3>
-                  <span className="text-[10px] font-semibold text-stone-600 bg-white px-2 py-0.5 rounded border border-amber-200">
+                  <span className="text-[10px] font-semibold text-stone-600 bg-white px-2 py-0.5 rounded border border-amber-200 shrink-0">
                     Sanctum Details
                   </span>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="space-y-2.5 sm:space-y-3 text-xs">
                   {/* Date Card */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white border border-amber-200 shadow-2xs">
-                    <div className="h-10 w-10 rounded-lg bg-amber-100 text-[#780016] flex items-center justify-center shrink-0">
-                      <Calendar className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-white border border-amber-200 shadow-2xs">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-amber-100 text-[#780016] flex items-center justify-center shrink-0">
+                      <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-[10px] text-stone-500 uppercase font-bold block">Ceremony Date</span>
-                      <strong className="text-stone-900 text-xs sm:text-sm font-serif">
+                      <strong className="text-stone-900 text-xs sm:text-sm font-serif block truncate">
                         {formattedFullCeremonyDate}
                       </strong>
                     </div>
                   </div>
 
                   {/* Time Window Card */}
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-white border border-amber-200 shadow-2xs">
-                    <div className="h-10 w-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5" />
+                  <div className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-lg bg-white border border-amber-200 shadow-2xs">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <span className="text-[10px] text-stone-500 uppercase font-bold block">Shubh Muhurat Window</span>
-                      <strong className="text-stone-900 text-xs sm:text-sm font-serif">
+                      <strong className="text-stone-900 text-xs sm:text-sm font-serif block truncate">
                         {muhuratTimeRange}
                       </strong>
                     </div>
                   </div>
 
                   {/* Venue Address Card */}
-                  <div className="p-3.5 rounded-lg bg-white border border-amber-200 shadow-2xs space-y-2">
-                    <div className="flex items-center justify-between">
+                  <div className="p-2.5 sm:p-3.5 rounded-lg bg-white border border-amber-200 shadow-2xs space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-1.5">
                       <div className="flex items-center gap-1.5 text-stone-900 font-bold text-xs">
-                        <MapPin className="w-4 h-4 text-[#780016]" />
+                        <MapPin className="w-4 h-4 text-[#780016] shrink-0" />
                         <span>Ceremony Venue (Sanctum)</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleCopyText(addressString, 'Sanctum address')}
-                        className="text-[11px] text-[#780016] hover:text-red-800 font-bold flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 transition-colors"
+                        className="text-[11px] text-[#780016] hover:text-red-800 font-bold flex items-center gap-1 cursor-pointer bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 transition-colors shrink-0"
                       >
                         <Copy className="w-3 h-3" /> Copy Address
                       </button>
                     </div>
-                    <p className="text-stone-800 text-xs leading-relaxed font-medium pl-1">
+                    <p className="text-stone-800 text-xs leading-relaxed font-medium pl-1 break-words">
                       {addressString}
                     </p>
                   </div>
 
                   {/* Special Devotee Instructions & Gotra Card */}
-                  <div className="p-3.5 rounded-lg bg-amber-50/70 border border-amber-200 space-y-1.5">
+                  <div className="p-2.5 sm:p-3.5 rounded-lg bg-amber-50/70 border border-amber-200 space-y-1.5">
                     <div className="flex items-center gap-1.5 text-stone-900 font-bold text-xs">
-                      <FileText className="w-4 h-4 text-[#780016]" />
+                      <FileText className="w-4 h-4 text-[#780016] shrink-0" />
                       <span>Special Instructions & Gotra</span>
                     </div>
                     {booking.specialInstructions || booking.notes || booking.userNotes ? (
-                      <p className="text-stone-800 text-xs leading-relaxed font-serif italic pl-1 border-l-2 border-amber-400">
+                      <p className="text-stone-800 text-xs leading-relaxed font-serif italic pl-1 border-l-2 border-amber-400 break-words">
                         "{booking.specialInstructions || booking.notes || booking.userNotes}"
                       </p>
                     ) : (
@@ -479,22 +479,22 @@ export const BookingDetailsPage: React.FC = () => {
               </div>
 
               {/* Right Column: Appointed Purohit & Cash Dakshina */}
-              <div className="flex-1 space-y-4 p-5 rounded-xl border border-amber-300 bg-linear-to-b from-amber-50/30 to-white shadow-xs">
-                <div className="flex items-center justify-between pb-1 border-b border-amber-200">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-[#780016]" />
+              <div className="flex-1 space-y-3 p-3 sm:p-5 rounded-xl border border-amber-300 bg-linear-to-b from-amber-50/30 to-white shadow-xs">
+                <div className="flex flex-wrap items-center justify-between gap-1.5 pb-1 border-b border-amber-200">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-[#780016] shrink-0" />
                     <span>Appointed Purohit & Dakshina</span>
                   </h3>
-                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
                     Vedic Verified
                   </span>
                 </div>
 
-                <div className="space-y-3 text-xs">
+                <div className="space-y-2.5 sm:space-y-3 text-xs">
                   {/* Resilient Priest Profile Card */}
-                  <div className="p-4 rounded-lg bg-white border border-amber-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3.5">
-                      <div className="relative h-12 w-12 rounded-xl bg-linear-to-br from-[#780016] to-[#50000e] text-amber-300 flex items-center justify-center font-serif font-black text-lg border-2 border-amber-400 shadow-sm shrink-0 overflow-hidden">
+                  <div className="p-3 sm:p-4 rounded-lg bg-white border border-amber-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+                      <div className="relative h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-linear-to-br from-[#780016] to-[#50000e] text-amber-300 flex items-center justify-center font-serif font-black text-base sm:text-lg border-2 border-amber-400 shadow-sm shrink-0 overflow-hidden">
                         {priestAvatar ? (
                           <img
                             src={priestAvatar}
@@ -515,19 +515,19 @@ export const BookingDetailsPage: React.FC = () => {
                           {priestInitial}
                         </div>
                       </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-extrabold text-stone-900 text-sm sm:text-base font-serif">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-extrabold text-stone-900 text-sm sm:text-base font-serif truncate">
                             {priestDisplayName}
                           </span>
                           <BadgeCheck className="w-4 h-4 text-emerald-600 fill-emerald-100 shrink-0" />
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-stone-600">
-                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Gurukul Trained Lineage
+                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold truncate">
+                            <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Gurukul Trained Lineage
                           </span>
                         </div>
-                        <span className="text-[11px] text-stone-500 block">
+                        <span className="text-[11px] text-stone-500 block truncate">
                           Languages: Sanskrit, Bengali, Hindi
                         </span>
                       </div>
@@ -536,7 +536,7 @@ export const BookingDetailsPage: React.FC = () => {
                     {booking.status === 'CONFIRMED' && priestPhone && (
                       <a
                         href={`tel:${priestPhone}`}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-transform shrink-0"
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-transform shrink-0 w-full sm:w-auto"
                       >
                         <Phone className="w-3.5 h-3.5" /> Call Pandit Ji
                       </a>
@@ -544,15 +544,15 @@ export const BookingDetailsPage: React.FC = () => {
                   </div>
 
                   {/* Cash Dakshina Transparent Pricing Card */}
-                  <div className="p-4 rounded-xl bg-linear-to-br from-amber-50 to-white border-2 border-amber-300 shadow-2xs space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="p-3.5 sm:p-4 rounded-xl bg-linear-to-br from-amber-50 to-white border-2 border-amber-300 shadow-2xs space-y-3">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
                         <span className="text-[10px] uppercase font-bold text-stone-500 block">
                           Shastric Cash Dakshina
                         </span>
                         <span className="text-xs font-semibold text-stone-700">Pay directly after puja</span>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <span className="text-2xl sm:text-3xl font-extrabold font-serif text-[#780016]">
                           {formatINR(booking.servicePrice || booking.totalPrice || booking.dakshinaAmount || 2500)}
                         </span>
@@ -580,14 +580,14 @@ export const BookingDetailsPage: React.FC = () => {
             </div>
 
             {/* Sacred Samagri Preparation Checklist Section (Rendered Single, Elegant) */}
-            <div className="w-full p-5 sm:p-6 rounded-xl border border-amber-300 bg-linear-to-b from-amber-50/20 via-white to-amber-50/20 shadow-xs space-y-4">
+            <div className="w-full p-3.5 sm:p-6 rounded-xl border border-amber-300 bg-linear-to-b from-amber-50/20 via-white to-amber-50/20 shadow-xs space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-200">
                 <div className="space-y-0.5">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2 font-serif">
-                    <Flame className="w-4 h-4 text-amber-600" />
+                  <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2 font-serif">
+                    <Flame className="w-4 h-4 text-amber-600 shrink-0" />
                     <span>Sacred Samagri Preparation Checklist</span>
                   </h3>
-                  <p className="text-xs text-stone-600">
+                  <p className="text-[11px] sm:text-xs text-stone-600">
                     Please keep the following sacred articles prepared in your home sanctum before Pandit Ji arrives:
                   </p>
                 </div>
@@ -597,45 +597,47 @@ export const BookingDetailsPage: React.FC = () => {
               </div>
 
               {/* Samagri Grid */}
-              <div className="flex flex-wrap gap-2.5 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 pt-1">
                 {samagriItems.map((item: string, idx: number) => (
                   <div
                     key={idx}
-                    className="w-full sm:w-[calc(50%-5px)] flex items-start gap-2.5 p-3 rounded-lg border border-amber-200/90 bg-white hover:border-amber-400 hover:bg-amber-50/30 text-xs text-stone-800 font-medium transition-colors shadow-2xs"
+                    className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-lg border border-amber-200/90 bg-white hover:border-amber-400 hover:bg-amber-50/30 text-xs text-stone-800 font-medium transition-colors shadow-2xs"
                   >
                     <div className="h-4 w-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
                       <Check className="w-3 h-3 stroke-[2.5]" />
                     </div>
-                    <span className="leading-snug">{item}</span>
+                    <span className="leading-snug break-words">{item}</span>
                   </div>
                 ))}
               </div>
 
               <div className="p-3 rounded-lg bg-amber-50/60 border border-amber-200/80 text-[11px] text-stone-700 flex items-center gap-2 font-medium">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>Tip: Pandit Ji will bring the sacred Havan Kund and Vedic Samidha herbs. Devotees are requested to keep fruits, flowers, and milk ready.</span>
+                <span className="leading-relaxed">
+                  Tip: Pandit Ji will bring the sacred Havan Kund and Vedic Samidha herbs. Devotees are requested to keep fruits, flowers, and milk ready.
+                </span>
               </div>
             </div>
 
             {/* Manual Ceremony Review & Rating Section (For Completed Appointments) */}
             {booking.status === 'COMPLETED' && isDevoteeOwner && (
-              <div className="w-full p-5 sm:p-6 rounded-xl border-2 border-amber-400 bg-amber-50/40 space-y-4">
-                <div className="flex items-center justify-between">
+              <div className="w-full p-4 sm:p-6 rounded-xl border-2 border-amber-400 bg-amber-50/40 space-y-3 sm:space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-stone-900 flex items-center gap-2 font-serif">
-                    <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                    <Star className="w-4 h-4 fill-amber-500 text-amber-500 shrink-0" />
                     <span>Ceremony Rating & Devotee Review</span>
                   </h3>
                   {booking.rating && (
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded border border-emerald-300">
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded border border-emerald-300 self-start sm:self-center">
                       ✓ Review Recorded
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-3 p-4 bg-white rounded-lg border border-amber-200 shadow-2xs">
+                <div className="space-y-3 p-3.5 sm:p-4 bg-white rounded-lg border border-amber-200 shadow-2xs">
                   {booking.rating && (
                     <div className="p-3 bg-amber-50/60 rounded-md border border-amber-200 space-y-1.5 mb-2">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
@@ -647,7 +649,7 @@ export const BookingDetailsPage: React.FC = () => {
                         </span>
                       </div>
                       {booking.review && (
-                        <p className="text-xs text-stone-700 italic border-l-2 border-amber-400 pl-2.5 py-0.5 font-serif">
+                        <p className="text-xs text-stone-700 italic border-l-2 border-amber-400 pl-2.5 py-0.5 font-serif break-words">
                           "{booking.review}"
                         </p>
                       )}
@@ -658,7 +660,7 @@ export const BookingDetailsPage: React.FC = () => {
                     <label className="text-xs font-bold text-stone-800 block mb-1.5">
                       {booking.rating ? 'Update Your Star Rating:' : 'Select Star Rating:'}
                     </label>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
@@ -671,7 +673,7 @@ export const BookingDetailsPage: React.FC = () => {
                           />
                         </button>
                       ))}
-                      <span className="text-xs font-bold text-stone-700 ml-2">
+                      <span className="text-xs font-bold text-stone-700 sm:ml-2 w-full sm:w-auto mt-1 sm:mt-0">
                         {manualRating === 5 && 'Outstanding & Divine (5/5)'}
                         {manualRating === 4 && 'Very Good (4/5)'}
                         {manualRating === 3 && 'Satisfactory (3/5)'}
@@ -701,7 +703,7 @@ export const BookingDetailsPage: React.FC = () => {
                       size="sm"
                       disabled={isSubmittingReview || (!manualRating && !booking.rating)}
                       onClick={handleManualReviewSubmit}
-                      className="text-xs font-bold bg-[#780016] hover:bg-red-800 text-white rounded-lg h-9 px-5 shadow-xs cursor-pointer border border-amber-400 disabled:opacity-50"
+                      className="w-full sm:w-auto text-xs font-bold bg-[#780016] hover:bg-red-800 text-white rounded-lg h-9 px-5 shadow-xs cursor-pointer border border-amber-400 disabled:opacity-50"
                     >
                       {isSubmittingReview ? 'Submitting Review...' : booking.rating || booking.review ? 'Update Review & Rating' : 'Submit Review'}
                     </Button>

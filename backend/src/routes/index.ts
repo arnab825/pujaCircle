@@ -10,7 +10,7 @@ import { geoRoutes } from './geo.routes.js';
 import { ritualRoutes } from './ritual.routes.js';
 import { availabilityRoutes } from './availability.routes.js';
 import { mediaRoutes } from './media.routes.js';
-import { sendSuccess } from '../views/response.view.js';
+import { sendSuccess } from '@/views/response.view.js';
 
 const apiRouter = Router();
 

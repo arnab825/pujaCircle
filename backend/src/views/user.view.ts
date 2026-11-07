@@ -1,5 +1,5 @@
-import { User } from '../models/user.model.js';
-import { AuthUserContext } from '../types/express.js';
+import { User } from '@/models/user.model.js';
+import { AuthUserContext } from '@/types/express.js';
 
 export interface UserViewModel {
   id: string;

@@ -28,72 +28,83 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-2 pr-4">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <DialogTitle className="text-lg font-serif">Ceremony Appointment</DialogTitle>
+      <DialogContent className="sm:max-w-lg bg-white border-2 border-amber-300">
+        <DialogHeader className="space-y-1.5 text-left pr-8 sm:pr-10">
+          <div className="flex items-start gap-2.5">
+            <div className="h-9 w-9 rounded-md bg-amber-100 border border-amber-300 text-primary flex items-center justify-center shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-[#780016]" />
             </div>
-            <BookingStatusBadge status={booking.status} cancelledBy={booking.cancelledBy} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogTitle className="text-base sm:text-lg font-serif font-bold text-stone-900 leading-tight">
+                  Ceremony Appointment
+                </DialogTitle>
+                <BookingStatusBadge status={booking.status} cancelledBy={booking.cancelledBy} />
+              </div>
+              <DialogDescription className="text-[11px] font-mono text-stone-500 mt-0.5 text-left">
+                Ref: {booking.bookingReference || booking.id}
+              </DialogDescription>
+            </div>
           </div>
-          <DialogDescription className="text-xs font-mono">
-            Ref: {booking.bookingReference || booking.id}
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 text-xs">
+        <div className="space-y-3.5 py-1 text-xs">
           {/* Puja & Price Banner */}
-          <div className="p-3.5 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-between">
-            <div>
-              <p className="font-bold text-sm text-foreground">{booking.serviceName || 'Puja Ceremony'}</p>
-              <p className="text-muted-foreground text-[11px]">Cash on completion</p>
+          <div className="p-3 sm:p-3.5 rounded-lg bg-amber-50/80 border border-amber-200/90 flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-sm text-stone-900 truncate">{booking.serviceName || 'Puja Ceremony'}</p>
+              <p className="text-stone-500 text-[11px]">Cash on completion</p>
             </div>
-            <span className="text-xl font-bold font-serif text-primary">
+            <span className="text-lg sm:text-xl font-bold font-serif text-[#780016] shrink-0">
               {formatINR(booking.servicePrice || booking.dakshinaAmount || 2100)}
             </span>
           </div>
 
           {/* Schedule Flex Row */}
-          <div className="flex items-center justify-between gap-4 p-3.5 rounded-md bg-amber-50/60 border border-amber-200">
-            <div className="flex-1 space-y-1">
-              <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-primary" />
+          <div className="grid grid-cols-2 gap-3 p-3 sm:p-3.5 rounded-lg bg-amber-50/50 border border-amber-200">
+            <div className="space-y-1">
+              <span className="text-stone-500 text-[11px] flex items-center gap-1.5 font-medium">
+                <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 Date
               </span>
-              <p className="font-medium text-foreground">{formatDate(booking.bookingDate)}</p>
+              <p className="font-bold text-stone-900 text-xs sm:text-sm">{formatDate(booking.bookingDate)}</p>
             </div>
             <div className="space-y-1">
-              <span className="text-muted-foreground text-[11px] flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-primary" />
+              <span className="text-stone-500 text-[11px] flex items-center gap-1.5 font-medium">
+                <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 Muhurat Time
               </span>
-              <p className="font-medium text-foreground">
+              <p className="font-bold text-stone-900 text-xs sm:text-sm truncate">
                 {booking.slot ? `${booking.slot.startTime} - ${booking.slot.endTime}` : 'Morning Slot'}
               </p>
             </div>
           </div>
 
           {/* Devotee Info & Address */}
-          <div className="space-y-2 p-3 rounded-lg bg-muted/40 border">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-primary" />
+          <div className="space-y-2 p-3 sm:p-3.5 rounded-lg bg-stone-50 border border-stone-200">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold text-stone-900 flex items-center gap-1.5 text-xs">
+                <User className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 {booking.user?.name || 'Devotee'}
               </span>
               {booking.user?.phoneNumber && (
-                <span className="font-mono text-muted-foreground flex items-center gap-1">
-                  <Phone className="w-3 h-3 text-primary" />
+                <a
+                  href={`tel:${booking.user.phoneNumber}`}
+                  className="font-mono text-stone-700 hover:text-[#780016] flex items-center gap-1 text-[11px] font-semibold"
+                >
+                  <Phone className="w-3 h-3 text-emerald-600 shrink-0" />
                   {booking.user.phoneNumber}
-                </span>
+                </a>
               )}
             </div>
 
             {booking.address && (
-              <div className="flex items-start gap-1.5 text-muted-foreground pt-1 border-t border-border/50">
-                <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+              <div className="flex items-start gap-1.5 text-stone-600 pt-2 border-t border-stone-200/80 text-[11px] leading-relaxed">
+                <MapPin className="w-3.5 h-3.5 text-[#780016] shrink-0 mt-0.5" />
                 <span>
                   {booking.address.houseNo && `${booking.address.houseNo}, `}
+                  {booking.address.street && `${booking.address.street}, `}
+                  {booking.address.locality && `${booking.address.locality}, `}
                   {booking.address.villageTown && `${booking.address.villageTown}, `}
                   {booking.address.city}, {booking.address.state} - {booking.address.pincode}
                 </span>
@@ -146,8 +157,13 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose}>
+        <DialogFooter className="sm:justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            className="w-full sm:w-auto h-10 sm:h-9 border-amber-300 hover:bg-amber-50 text-stone-700 font-bold"
+          >
             Close
           </Button>
         </DialogFooter>

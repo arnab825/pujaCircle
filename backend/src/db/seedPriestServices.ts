@@ -1,5 +1,5 @@
 import { db, queryClient } from './index';
-import { priestProfiles, priestServices, pujaCatalog, users } from '../models/index';
+import { priestProfiles, priestServices, pujaCatalog, users } from '@/models/index';
 import { eq, and } from 'drizzle-orm';
 
 async function seedServices() {

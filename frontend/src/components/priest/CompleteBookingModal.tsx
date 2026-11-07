@@ -56,16 +56,16 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md bg-white border-2 border-amber-300">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
+          <DialogHeader className="pr-8 sm:pr-10 text-left">
+            <div className="flex items-center gap-2 min-w-0">
               <div className="h-9 w-9 rounded-md bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center shrink-0">
                 <KeyRound className="w-5 h-5" />
               </div>
-              <div>
-                <DialogTitle className="text-base font-serif font-bold text-stone-900">
+              <div className="min-w-0">
+                <DialogTitle className="text-base font-serif font-bold text-stone-900 truncate">
                   Verify & Complete Ceremony
                 </DialogTitle>
-                <DialogDescription className="text-xs text-stone-600">
+                <DialogDescription className="text-xs text-stone-600 truncate">
                   {booking.serviceName || "Puja Ceremony"} • Ref:{" "}
                   {booking.bookingReference || booking.id}
                 </DialogDescription>
@@ -128,14 +128,14 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-stone-100">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
               disabled={isProcessing}
-              className="text-xs h-9"
+              className="w-full sm:w-auto text-xs h-9 cursor-pointer"
             >
               Cancel
             </Button>
@@ -143,7 +143,7 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
               type="submit"
               size="sm"
               disabled={isProcessing || code.trim().length !== 4}
-              className="text-xs font-bold bg-[#780016] hover:bg-red-800 text-white h-9 px-4 cursor-pointer"
+              className="w-full sm:w-auto text-xs font-bold bg-[#780016] hover:bg-red-800 text-white h-9 px-4 cursor-pointer"
             >
               {isProcessing ? "Verifying..." : "Confirm Completion"}
             </Button>

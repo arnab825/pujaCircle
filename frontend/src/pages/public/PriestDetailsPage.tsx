@@ -35,6 +35,7 @@ import {
   Moon,
   ShieldCheck,
   Award,
+  Flame,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -266,7 +267,7 @@ export const PriestDetailsPage: React.FC = () => {
     : 'Click to choose your home ceremony location';
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+    <div className="max-w-6xl mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
       {/* Back Link */}
       <Link
         to="/priests"
@@ -277,16 +278,16 @@ export const PriestDetailsPage: React.FC = () => {
       </Link>
 
       {/* Priest Header Profile Card */}
-      <div className="bg-white border-2 border-amber-300 rounded-xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row gap-6 items-start relative">
+      <div className="bg-white border-2 border-amber-300 rounded-xl p-4 sm:p-7 shadow-xs flex flex-col md:flex-row gap-4 sm:gap-6 items-start relative">
         <div className="relative shrink-0 mx-auto md:mx-0">
           {priest.profileImageUrl ? (
             <img
               src={priest.profileImageUrl}
               alt={priest.fullName}
-              className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg object-cover ring-2 ring-amber-400 ring-offset-2 shrink-0 bg-amber-50 shadow-xs"
+              className="h-24 w-24 sm:h-32 sm:w-32 rounded-lg object-cover ring-2 ring-amber-400 ring-offset-2 shrink-0 bg-amber-50 shadow-xs"
             />
           ) : (
-            <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-lg bg-[#780016] text-amber-100 flex items-center justify-center font-serif text-3xl sm:text-4xl font-bold ring-2 ring-amber-400 ring-offset-2 shadow-xs select-none">
+            <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-lg bg-[#780016] text-amber-100 flex items-center justify-center font-serif text-2xl sm:text-4xl font-bold ring-2 ring-amber-400 ring-offset-2 shadow-xs select-none">
               {getInitials(priest.displayName || priest.fullName)}
             </div>
           )}
@@ -298,20 +299,20 @@ export const PriestDetailsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="space-y-3 flex-1 min-w-0">
+        <div className="space-y-3 flex-1 min-w-0 w-full">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl sm:text-3xl font-bold font-serif text-stone-900">
+                <h1 className="text-xl sm:text-3xl font-bold font-serif text-stone-900 break-words">
                   {priest.displayName || priest.fullName}
                 </h1>
-                <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-sm bg-red-700 text-white text-xs font-semibold shadow-2xs">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-red-700 text-white text-[11px] font-semibold shadow-2xs shrink-0">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>Vedic Verified</span>
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600 mt-2">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600 mt-2">
                 <span className="inline-flex items-center gap-1 font-bold text-stone-900 bg-amber-100 px-2.5 py-0.5 rounded-sm border border-amber-300">
                   <Star className={`h-3.5 w-3.5 ${priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? 'fill-amber-500 text-amber-500' : 'text-stone-400'}`} />
                   {priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? (
@@ -324,8 +325,12 @@ export const PriestDetailsPage: React.FC = () => {
                   <Award className="h-3 w-3 text-stone-950" />
                   {priest.experienceYears}+ Yrs Shastric Exp
                 </span>
+                <span className="inline-flex items-center gap-1 font-bold text-white bg-red-950 px-2.5 py-0.5 rounded-sm">
+                  <Flame className="h-3 w-3 text-amber-400" />
+                  {(priest.completedPujas ?? 0)} {(priest.completedPujas ?? 0) === 1 ? 'Puja Conducted' : 'Pujas Conducted'}
+                </span>
                 <span className="flex items-center gap-1 font-semibold text-stone-700">
-                  <MapPin className="h-3.5 w-3.5 text-red-700" /> {priest.city},{" "}
+                  <MapPin className="h-3.5 w-3.5 text-red-700 shrink-0" /> {priest.city},{" "}
                   {priest.state}
                 </span>
               </div>
@@ -333,7 +338,7 @@ export const PriestDetailsPage: React.FC = () => {
 
             <Button
               onClick={() => bookingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="gap-2 text-xs font-bold bg-[#780016] hover:bg-red-800 text-white rounded-md shadow-xs h-10 px-5 cursor-pointer shrink-0"
+              className="gap-2 text-xs font-bold bg-[#780016] hover:bg-red-800 text-white rounded-md shadow-xs h-10 px-5 cursor-pointer shrink-0 w-full sm:w-auto"
             >
               <Calendar className="h-4 w-4" />
               <span>Book Ceremony</span>
@@ -342,7 +347,7 @@ export const PriestDetailsPage: React.FC = () => {
 
           <p className="text-xs text-stone-600 leading-relaxed font-sans">{priest.bio || "Experienced Purohit offering authentic Vedic Vidhi rituals and sacred mantra chanting across Kolkata."}</p>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs pt-2 border-t border-amber-100">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs pt-2 border-t border-amber-100">
             <div>
               <span className="text-stone-500 font-medium">Languages: </span>
               <strong className="text-stone-900">
@@ -363,22 +368,22 @@ export const PriestDetailsPage: React.FC = () => {
       </div>
 
       {/* Main Booking Section: Left Cohesive Sanctum + Right Sticky Summary */}
-      <div ref={bookingSectionRef} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+      <div ref={bookingSectionRef} className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start w-full">
         {/* Left Column (8 cols): Single Unified Flow Panel */}
-        <div className="lg:col-span-8 bg-white border-2 border-amber-300 rounded-2xl p-6 sm:p-7 shadow-xs space-y-7">
+        <div className="lg:col-span-8 bg-white border-2 border-amber-300 rounded-xl sm:rounded-2xl p-4 sm:p-7 shadow-xs space-y-5 sm:space-y-7">
           
           {/* STEP 1: Choose Ritual Ceremony */}
           <div className="space-y-3.5">
-            <div className="flex items-center justify-between pb-2 border-b border-amber-100">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pb-2 border-b border-amber-100">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs">
+                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs shrink-0">
                   1
                 </span>
-                <h2 className="text-base font-bold font-serif text-stone-900">
+                <h2 className="text-sm sm:text-base font-bold font-serif text-stone-900">
                   Select Sacred Ceremony & Dakshina Rate
                 </h2>
               </div>
-              <span className="text-[11px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+              <span className="text-[10px] sm:text-[11px] text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shrink-0">
                 Direct Cash After Puja
               </span>
             </div>
@@ -434,22 +439,22 @@ export const PriestDetailsPage: React.FC = () => {
 
           {/* STEP 2: Choose Auspicious Date */}
           <div className="space-y-3.5">
-            <div className="flex items-center justify-between pb-2 border-b border-amber-100">
+            <div className="flex flex-wrap items-center justify-between gap-1.5 pb-2 border-b border-amber-100">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs">
+                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs shrink-0">
                   2
                 </span>
-                <h2 className="text-base font-bold font-serif text-stone-900">
+                <h2 className="text-sm sm:text-base font-bold font-serif text-stone-900">
                   Select Auspicious Ceremony Date
                 </h2>
               </div>
-              <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-sm">
+              <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-sm shrink-0">
                 Verified Calendar
               </span>
             </div>
 
             {/* Quick Date Pills & Date Input */}
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -461,7 +466,7 @@ export const PriestDetailsPage: React.FC = () => {
                   }
                 }}
                 disabled={isTodayConcluded}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                   selectedDate === istDate
                     ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
                     : isTodayConcluded
@@ -479,7 +484,7 @@ export const PriestDetailsPage: React.FC = () => {
                   setSelectedDate(tomorrowStr);
                   setSelectedSlot(null);
                 }}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                   selectedDate === tomorrowStr
                     ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
                     : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
@@ -494,7 +499,7 @@ export const PriestDetailsPage: React.FC = () => {
                   setSelectedDate(dayAfterTomorrowStr);
                   setSelectedSlot(null);
                 }}
-                className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer ${
                   selectedDate === dayAfterTomorrowStr
                     ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
                     : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
@@ -503,7 +508,7 @@ export const PriestDetailsPage: React.FC = () => {
                 <span>In 2 Days ({dayAfterTomorrowStr.slice(5)})</span>
               </button>
 
-              <div className="flex items-center gap-1.5 ml-auto">
+              <div className="flex items-center gap-1.5 w-full sm:w-auto sm:ml-auto pt-1 sm:pt-0">
                 <Calendar className="h-4 w-4 text-[#780016] shrink-0" />
                 <Input
                   type="date"
@@ -514,7 +519,7 @@ export const PriestDetailsPage: React.FC = () => {
                     setSelectedDate(newDate);
                     setSelectedSlot(null);
                   }}
-                  className="text-xs h-9 w-38 rounded-lg border-amber-300 focus-visible:ring-red-700 font-mono"
+                  className="text-xs h-9 flex-1 sm:w-38 rounded-lg border-amber-300 focus-visible:ring-red-700 font-mono"
                 />
               </div>
             </div>
@@ -550,16 +555,16 @@ export const PriestDetailsPage: React.FC = () => {
 
           {/* STEP 3: Choose Shubh Muhurat Slot */}
           <div className="space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-amber-100">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 pb-2 border-b border-amber-100">
               <div className="flex items-center gap-2">
-                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs">
+                <span className="flex items-center justify-center h-6 w-6 rounded-full bg-[#780016] text-white font-bold text-xs shrink-0">
                   3
                 </span>
-                <h2 className="text-base font-bold font-serif text-stone-900">
+                <h2 className="text-sm sm:text-base font-bold font-serif text-stone-900">
                   Choose Auspicious Muhurat Slot
                 </h2>
               </div>
-              <span className="text-xs text-stone-500 font-medium">
+              <span className="text-xs text-stone-500 font-medium pl-8 sm:pl-0">
                 {formatFullDate(selectedDate)}
               </span>
             </div>
@@ -638,13 +643,13 @@ export const PriestDetailsPage: React.FC = () => {
                 <p className="text-[11px] text-stone-500">Try switching to 'All Slots' or pick another auspicious date.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5">
                 {filteredSlots.map((slot) => {
                   if (slot.isBlocked) {
                     return (
                       <div
                         key={slot.id}
-                        className="p-3 rounded-lg border border-stone-200 bg-stone-50/70 text-stone-400 cursor-not-allowed select-none flex flex-col items-center justify-center text-center gap-1 opacity-70"
+                        className="p-2.5 sm:p-3 rounded-lg border border-stone-200 bg-stone-50/70 text-stone-400 cursor-not-allowed select-none flex flex-col items-center justify-center text-center gap-1 opacity-70"
                       >
                         <span className="font-mono text-xs font-semibold line-through">
                           {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
@@ -665,14 +670,14 @@ export const PriestDetailsPage: React.FC = () => {
                       key={slot.id}
                       type="button"
                       onClick={() => setSelectedSlot(slot)}
-                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center gap-1 cursor-pointer ${
+                      className={`p-2.5 sm:p-3 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center gap-1 cursor-pointer ${
                         isSlotSelected
                           ? "border-[#780016] bg-amber-50/70 text-[#780016] font-bold shadow-xs ring-2 ring-red-700/20"
                           : "border-amber-200 hover:border-amber-400 bg-white hover:bg-amber-50/30 text-stone-900"
                       }`}
                     >
                       <div className="flex items-center gap-1 font-mono text-xs font-bold">
-                        <Clock className="w-3 h-3 text-[#780016]" />
+                        <Clock className="w-3 h-3 text-[#780016] shrink-0" />
                         <span>{formatTime(slot.startTime)} – {formatTime(slot.endTime)}</span>
                       </div>
                       <span className="text-[10px] text-stone-500 font-medium">
@@ -808,8 +813,8 @@ export const PriestDetailsPage: React.FC = () => {
 
       {/* Clean Address Selector Modal (Replaces clunky HTML dropdown) */}
       <Dialog open={isAddressPickerOpen} onOpenChange={setIsAddressPickerOpen}>
-        <DialogContent className="sm:max-w-md w-[94vw] p-5 bg-white border-2 border-amber-300 rounded-xl shadow-2xl">
-          <DialogHeader className="space-y-1 text-left">
+        <DialogContent className="sm:max-w-md w-[calc(100%-2rem)] max-w-lg p-4 sm:p-5 bg-white border-2 border-amber-300 rounded-xl shadow-2xl">
+          <DialogHeader className="pr-8 sm:pr-10 space-y-1 text-left">
             <DialogTitle className="font-serif text-lg font-bold text-stone-900">
               Choose Sanctum Venue Address
             </DialogTitle>
@@ -896,9 +901,9 @@ export const PriestDetailsPage: React.FC = () => {
           onOpenAutoFocus={(e) => {
             e.preventDefault();
           }}
-          className="sm:max-w-md w-[94vw] max-h-[85vh] flex flex-col p-4 sm:p-5 bg-white border-2 border-amber-300 rounded-xl shadow-2xl gap-3.5"
+          className="sm:max-w-md w-[calc(100%-2rem)] max-w-lg max-h-[88vh] flex flex-col p-4 sm:p-5 bg-white border-2 border-amber-300 rounded-xl shadow-2xl gap-3.5"
         >
-          <DialogHeader className="shrink-0 space-y-1 text-left">
+          <DialogHeader className="shrink-0 pr-8 sm:pr-10 space-y-1 text-left">
             <DialogTitle className="font-serif text-lg sm:text-xl font-bold text-stone-900">
               Confirm Ceremony Request
             </DialogTitle>

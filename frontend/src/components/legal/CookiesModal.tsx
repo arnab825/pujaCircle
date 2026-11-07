@@ -18,8 +18,8 @@ export interface CookiesModalProps {
 export const CookiesModal: React.FC<CookiesModalProps> = ({ isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto p-6 bg-white text-stone-900 border-2 border-amber-300 shadow-2xl sm:rounded-lg space-y-4">
-        <DialogHeader className="space-y-1 text-left pb-2 border-b border-stone-200">
+      <DialogContent className="max-w-xl max-h-[88vh] overflow-y-auto p-4 sm:p-6 bg-white text-stone-900 border-2 border-amber-300 shadow-2xl rounded-xl space-y-4">
+        <DialogHeader className="pr-8 sm:pr-10 space-y-1 text-left pb-2 border-b border-stone-200">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-sm bg-amber-100 text-[#780016] text-[11px] font-bold w-fit">
             <Cookie className="w-3.5 h-3.5" />
             <span>Browser Preferences</span>

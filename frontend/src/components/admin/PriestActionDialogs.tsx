@@ -43,12 +43,12 @@ export const RejectPriestDialog: React.FC<RejectPriestDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="pr-8 sm:pr-10 text-left">
           <DialogTitle className="text-base flex items-center gap-2 text-destructive">
-            <XCircle className="w-4 h-4" />
-            Reject Purohit Application
+            <XCircle className="w-4 h-4 shrink-0" />
+            <span>Reject Purohit Application</span>
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-xs break-words">
             Provide specific feedback for <strong>{priest?.fullName}</strong>.
           </DialogDescription>
         </DialogHeader>
@@ -62,8 +62,8 @@ export const RejectPriestDialog: React.FC<RejectPriestDialogProps> = ({
           />
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button
@@ -71,6 +71,7 @@ export const RejectPriestDialog: React.FC<RejectPriestDialogProps> = ({
             size="sm"
             onClick={handleSubmit}
             disabled={!reason.trim() || isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Rejecting...' : 'Confirm Rejection'}
           </Button>
@@ -111,12 +112,12 @@ export const BanPriestDialog: React.FC<BanPriestDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="pr-8 sm:pr-10 text-left">
           <DialogTitle className="text-base flex items-center gap-2 text-destructive">
-            <Ban className="w-4 h-4" />
-            Ban Purohit Account
+            <Ban className="w-4 h-4 shrink-0" />
+            <span>Ban Purohit Account</span>
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription className="text-xs break-words leading-relaxed">
             Banning <strong>{priest?.fullName}</strong> will hide their profile from public searches and block incoming bookings.
           </DialogDescription>
         </DialogHeader>
@@ -130,8 +131,8 @@ export const BanPriestDialog: React.FC<BanPriestDialogProps> = ({
           />
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button
@@ -139,6 +140,7 @@ export const BanPriestDialog: React.FC<BanPriestDialogProps> = ({
             size="sm"
             onClick={handleSubmit}
             disabled={!reason.trim() || isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Banning...' : 'Confirm Account Ban'}
           </Button>
@@ -178,18 +180,18 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+        <DialogHeader className="pr-8 sm:pr-10 text-left">
           <DialogTitle className="text-base flex items-center gap-2 text-destructive">
-            <Trash2 className="w-4 h-4" />
-            {title}
+            <Trash2 className="w-4 h-4 shrink-0" />
+            <span>{title}</span>
           </DialogTitle>
-          <DialogDescription className="text-xs leading-relaxed">
+          <DialogDescription className="text-xs leading-relaxed break-words">
             {description}
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting}>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+          <Button variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button
@@ -197,6 +199,7 @@ export const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({
             size="sm"
             onClick={handleSubmit}
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {isSubmitting ? 'Deleting...' : 'Delete Permanently'}
           </Button>

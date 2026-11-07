@@ -91,34 +91,35 @@ export const EditWorkingHoursModal: React.FC<EditWorkingHoursModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-150">
-      <div className="bg-white rounded-xl border-2 border-amber-300 w-full max-w-lg overflow-hidden shadow-2xl space-y-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 animate-in fade-in duration-150">
+      <div className="bg-white rounded-xl border-2 border-amber-300 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden shadow-2xl space-y-0">
         {/* Header */}
-        <div className="bg-[#780016] text-white p-5 flex items-center justify-between border-b-2 border-amber-400">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-md bg-amber-400 text-stone-950 flex items-center justify-center font-serif font-black text-base shrink-0 shadow-xs">
+        <div className="bg-[#780016] text-white p-4 sm:p-5 flex items-center justify-between border-b-2 border-amber-400 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 pr-2 min-w-0">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-md bg-amber-400 text-stone-950 flex items-center justify-center font-serif font-black text-sm sm:text-base shrink-0 shadow-xs">
               ॐ
             </div>
-            <div>
-              <h3 className="font-serif font-bold text-base sm:text-lg text-white">
+            <div className="min-w-0">
+              <h3 className="font-serif font-bold text-sm sm:text-lg text-white truncate">
                 Configure Standard Daily Hours
               </h3>
-              <p className="text-xs text-amber-200/90 font-medium">
-                Applied automatically across your 90-day rolling calendar
+              <p className="text-[11px] sm:text-xs text-amber-200/90 font-medium truncate">
+                Applied across your 90-day rolling calendar
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-amber-200 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10 cursor-pointer"
+            className="text-amber-200 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10 cursor-pointer shrink-0"
             title="Close dialog"
+            aria-label="Close dialog"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
           <p className="text-xs text-stone-600 leading-relaxed font-medium">
             Define your daily standard availability window. Devotees booking rituals can select muhurat slots only within these hours unless you mark a day off or block specific hours.
           </p>

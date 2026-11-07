@@ -1,6 +1,6 @@
 import { and, eq, ilike, or, gte, sql } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog, bookings } from '../models/index.js';
+import { db } from '@/db/index.js';
+import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog, bookings } from '@/models/index.js';
 import {
   UpdatePriestProfileInput,
   CreatePriestServiceInput,
@@ -8,13 +8,13 @@ import {
   PriestFilterParams,
   UpdatePriestAvailabilityExceptionInput,
   PriestWorkingHoursInput,
-} from '../schemas/priest.schema.js';
+} from '@/schemas/priest.schema.js';
 import { cloudinaryService } from './cloudinary.service.js';
 import { toISTDateString, toISTTimeString } from './availability.service.js';
-import { AppError } from '../utils/AppError.js';
-import { resolvePriestProfileId } from '../repositories/priest.repository.js';
-import { PriestViewModel, PriestServiceViewModel } from '../views/priest.view.js';
-import { getPagination } from '../utils/pagination.js';
+import { AppError } from '@/utils/AppError.js';
+import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
+import { PriestViewModel, PriestServiceViewModel } from '@/views/priest.view.js';
+import { getPagination } from '@/utils/pagination.js';
 
 // Service managing verified Purohit directory, profile configurations, ritual catalog offerings, and working hours
 export class PriestService {
@@ -156,6 +156,12 @@ export class PriestService {
         avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
+        completedPujas: sql<number>`COALESCE((
+          SELECT COUNT(*)::int
+          FROM ${bookings}
+          WHERE ${bookings.priestId} = ${priestProfiles.id}
+            AND ${bookings.status} = 'COMPLETED'
+        ), 0)`.mapWith(Number),
         defaultStartTime: priestProfiles.defaultStartTime,
         defaultEndTime: priestProfiles.defaultEndTime,
         createdAt: priestProfiles.createdAt,
@@ -175,6 +181,7 @@ export class PriestService {
       ...p,
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
+      completedPujas: Number(p.completedPujas || 0),
       createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
     }));
   }
@@ -205,6 +212,12 @@ export class PriestService {
         avatarUrl: sql<string | null>`COALESCE(NULLIF(${users.avatarUrl}, ''), NULLIF(${priestProfiles.profileImageUrl}, ''))`,
         rating: priestProfiles.rating,
         reviewCount: priestProfiles.reviewCount,
+        completedPujas: sql<number>`COALESCE((
+          SELECT COUNT(*)::int
+          FROM ${bookings}
+          WHERE ${bookings.priestId} = ${priestProfiles.id}
+            AND ${bookings.status} = 'COMPLETED'
+        ), 0)`.mapWith(Number),
         defaultStartTime: priestProfiles.defaultStartTime,
         defaultEndTime: priestProfiles.defaultEndTime,
         createdAt: priestProfiles.createdAt,
@@ -240,6 +253,7 @@ export class PriestService {
       ...record,
       isPhoneVerified: true,
       rating: Number(record.rating || 0),
+      completedPujas: Number(record.completedPujas || 0),
       createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
       services: services.map((s) => ({
         id: s.id,

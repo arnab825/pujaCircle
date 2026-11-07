@@ -215,13 +215,13 @@ export const AdminProfilePage: React.FC = () => {
       />
 
       {/* Page Header (100% Flexbox) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-md bg-amber-400 text-stone-950 flex items-center justify-center font-serif font-black text-2xl shadow-md shrink-0 select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 p-4 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
+        <div className="flex items-start gap-3 sm:gap-4 min-w-0">
+          <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-md bg-amber-400 text-stone-950 flex items-center justify-center font-serif font-black text-xl sm:text-2xl shadow-md shrink-0 select-none">
             ॐ
           </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-3xl font-extrabold font-serif text-stone-950 break-words">
               Admin Profile & Platform Credentials
             </h1>
             <p className="text-xs text-stone-600 mt-1 leading-relaxed">
@@ -233,8 +233,8 @@ export const AdminProfilePage: React.FC = () => {
       </div>
 
       {/* Admin Profile Overview Card */}
-      <div className="border-2 border-amber-300 bg-white rounded-xl p-6 sm:p-7 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5">
+      <div className="border-2 border-amber-300 bg-white rounded-xl p-4 sm:p-7 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 sm:gap-5">
           <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
             <div className="relative group shrink-0">
               <button
@@ -244,7 +244,7 @@ export const AdminProfilePage: React.FC = () => {
                 className="relative block rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer disabled:cursor-not-allowed disabled:opacity-80"
                 title="Click to choose a new profile photo"
               >
-                <Avatar className="w-20 h-20 border-2 border-white">
+                <Avatar className="w-16 h-16 sm:w-20 sm:h-20 border-2 border-white">
                   {avatarUrl ? (
                     <AvatarImage
                       src={avatarUrl}
@@ -280,37 +280,37 @@ export const AdminProfilePage: React.FC = () => {
             )}
           </div>
 
-          <div className="space-y-1.5 flex-1">
+          <div className="space-y-1.5 flex-1 min-w-0 w-full">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-              <h2 className="text-xl font-bold font-serif text-stone-950">
+              <h2 className="text-lg sm:text-xl font-bold font-serif text-stone-950 break-words">
                 {fullName}
               </h2>
-              <Badge className="bg-[#450A0A] text-amber-300 border border-amber-400/40 text-[10px] font-bold tracking-wider uppercase">
+              <Badge className="bg-[#450A0A] text-amber-300 border border-amber-400/40 text-[10px] font-bold tracking-wider uppercase shrink-0">
                 PLATFORM AUTHORITY
               </Badge>
             </div>
-            <p className="text-xs font-mono text-stone-600 font-medium">
+            <p className="text-xs font-mono text-stone-600 font-medium break-all">
               {adminEmail}
             </p>
-            <div className="flex items-center justify-center sm:justify-start gap-2 text-xs text-stone-500 pt-1 font-medium">
-              <Calendar className="w-3.5 h-3.5 text-stone-400" />
-              <span>Console Account Created: {joinedDate}</span>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 text-xs text-stone-500 pt-1 font-medium">
+              <Calendar className="w-3.5 h-3.5 text-stone-400 shrink-0" />
+              <span className="text-center sm:text-left">Console Account Created: {joinedDate}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Profile Details Deck (100% Flexbox, Zero CSS Grids) */}
-      <div className="flex flex-col md:flex-row gap-6 w-full">
+      <div className="flex flex-col md:flex-row gap-4 sm:gap-6 w-full">
         {/* Edit Personal Profile Information Card */}
-        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white rounded-xl p-6 shadow-sm space-y-4">
+        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white rounded-xl p-4 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <User className="w-4 h-4 text-red-700" />
+            <User className="w-4 h-4 text-red-700 shrink-0" />
             <h3 className="text-base font-bold font-serif text-stone-950">
               Account Details
             </h3>
           </div>
-          <p className="text-xs text-stone-600">
+          <p className="text-xs text-stone-600 leading-relaxed">
             Update your full name. Email address and phone number are locked for
             administrative security.
           </p>
@@ -398,14 +398,14 @@ export const AdminProfilePage: React.FC = () => {
         </div>
 
         {/* Change Security Password Card */}
-        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white rounded-xl p-6 shadow-sm space-y-4">
+        <div className="w-full md:w-1/2 border-2 border-amber-300 bg-white rounded-xl p-4 sm:p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <KeyRound className="w-4 h-4 text-amber-600" />
+            <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
             <h3 className="text-base font-bold font-serif text-stone-950">
               Security & Credentials
             </h3>
           </div>
-          <p className="text-xs text-stone-600">
+          <p className="text-xs text-stone-600 leading-relaxed">
             Update your administrator console login password regularly to
             protect system records.
           </p>

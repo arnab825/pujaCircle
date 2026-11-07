@@ -1,5 +1,5 @@
 import { Address, CreateAddressRequest, UpdateAddressRequest, PincodeLookupResponse, PincodeLocation } from '@/types/address.types';
-import { apiClient } from './client';
+import { apiClient } from '@/api/client';
 import { useAuthStore } from '@/store/auth.store';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 

@@ -1,4 +1,4 @@
-import { AccountStatus } from './auth.types';
+import { AccountStatus } from '@/types/auth.types';
 
 export type PriestApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -42,6 +42,7 @@ export interface Priest {
   avatarUrl?: string;
   rating?: number;
   reviewCount?: number;
+  completedPujas?: number;
   defaultStartTime?: string;
   defaultEndTime?: string;
   services?: PriestService[];

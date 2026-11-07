@@ -129,9 +129,9 @@
   --brand-secondary: 340 55% 22%;
   --brand-accent: 42 50% 55%;
   --brand-accent-soft: 42 50% 88%;
-  --background: 40 40% 96%;
+  --background: 40 33% 97.5%;
   --surface: 0 0% 100%;
-  --surface-alt: 40 33% 91%;
+  --surface-alt: 40 25% 93%;
   --foreground: 220 12% 12%;
   --foreground-muted: 30 5% 40%;
 
@@ -388,21 +388,21 @@
 
 @keyframes float-diya-sparkle {
   0% {
-    transform: translateY(100vh) translateX(0) scale(0.5);
+    transform: translateY(100vh) translateX(0) scale(0.6);
     opacity: 0;
   }
-  15% {
-    opacity: 0.85;
+  20% {
+    opacity: 0.65;
   }
   50% {
-    transform: translateY(50vh) translateX(24px) scale(1);
-    opacity: 0.95;
+    transform: translateY(50vh) translateX(18px) scale(1);
+    opacity: 0.8;
   }
-  85% {
-    opacity: 0.75;
+  80% {
+    opacity: 0.6;
   }
   100% {
-    transform: translateY(-10vh) translateX(-18px) scale(0.4);
+    transform: translateY(-10vh) translateX(-14px) scale(0.5);
     opacity: 0;
   }
 }
@@ -468,6 +468,13 @@
    Replaces default OS scrollbars with a sleek, rounded amber-gold hairline
    ========================================================================== */
 html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
+html,
 body,
 * {
   scrollbar-width: thin;
@@ -505,4 +512,3 @@ body,
 }
 
 
-

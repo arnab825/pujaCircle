@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { availabilityService } from '../services/availability.service.js';
-import { sendSuccess, sendError } from '../views/response.view.js';
+import { availabilityService } from '@/services/availability.service.js';
+import { sendSuccess, sendError } from '@/views/response.view.js';
 
 export class AvailabilityController {
   /**
