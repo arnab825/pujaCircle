@@ -67,7 +67,6 @@ export const PriestListingPage: React.FC = () => {
   // Devotee Saved Address State for automatic locality & PIN matching
   const [userAddresses, setUserAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
-  const [isFilterByAddress, setIsFilterByAddress] = useState<boolean>(true);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState<boolean>(false);
 
   // Search & Filter States
@@ -103,13 +102,14 @@ export const PriestListingPage: React.FC = () => {
   const activeDevoteePin = activeAddress
     ? (activeAddress.pincode || activeAddress.pinCode || '').trim().replace(/\D/g, '')
     : '';
-  const effectivePincode = isFilterByAddress && activeDevoteePin.length === 6 ? activeDevoteePin : undefined;
+  // Devotees strictly see Purohits matching their active address location PIN
+  const effectivePincode = activeDevoteePin.length === 6 ? activeDevoteePin : undefined;
 
+  // Only user-selected search criteria count as applied filters (location is the mandatory base scope)
   const appliedFiltersCount =
     (activeLanguage !== 'All' ? 1 : 0) +
     (activeMinExp > 0 ? 1 : 0) +
-    (activeCatalogId ? 1 : 0) +
-    (effectivePincode ? 1 : 0);
+    (activeCatalogId ? 1 : 0);
   const hasActiveFilters = searchQuery !== '' || appliedFiltersCount > 0 || activeCatalogId !== '';
 
   // Live debounced search & filter reaction with AbortController to eliminate race conditions
@@ -166,7 +166,6 @@ export const PriestListingPage: React.FC = () => {
     setActiveServiceName('');
     setActiveLanguage('All');
     setActiveMinExp(0);
-    setIsFilterByAddress(false);
     setSearchParams({});
   };
 
@@ -255,35 +254,27 @@ export const PriestListingPage: React.FC = () => {
             <div className="flex items-center gap-2 text-stone-800 min-w-0">
               <MapPin className="h-4 w-4 text-red-700 shrink-0" />
               <span className="truncate">
-                {isFilterByAddress && effectivePincode ? (
-                  <>
-                    Matching Purohits serving your location PIN:{" "}
-                    <strong className="text-stone-950 font-bold font-mono">
-                      {activeDevoteePin}
-                    </strong>
-                    {activeAddress.city
-                      ? ` (${[
-                          activeAddress.villageTown && activeAddress.villageTown.toLowerCase() !== activeAddress.city.toLowerCase()
-                            ? activeAddress.villageTown
-                            : activeAddress.locality && !activeAddress.locality.includes("Post Office") && activeAddress.locality.toLowerCase() !== activeAddress.city.toLowerCase()
-                            ? activeAddress.locality
-                            : null,
-                          activeAddress.city,
-                          activeAddress.state,
-                        ].filter(Boolean).join(", ")})`
-                      : activeAddress.state
-                      ? ` (${activeAddress.state})`
-                      : ""}
-                    {activeAddress.label && (
-                      <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-200 text-stone-800 font-bold uppercase">
-                        {activeAddress.label}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    Showing <strong className="text-stone-900 font-bold">all regions</strong> (Outside your saved address)
-                  </>
+                Matching Purohits serving your location PIN:{" "}
+                <strong className="text-stone-950 font-bold font-mono">
+                  {activeDevoteePin}
+                </strong>
+                {activeAddress.city
+                  ? ` (${[
+                      activeAddress.villageTown && activeAddress.villageTown.toLowerCase() !== activeAddress.city.toLowerCase()
+                        ? activeAddress.villageTown
+                        : activeAddress.locality && !activeAddress.locality.includes("Post Office") && activeAddress.locality.toLowerCase() !== activeAddress.city.toLowerCase()
+                        ? activeAddress.locality
+                        : null,
+                      activeAddress.city,
+                      activeAddress.state,
+                    ].filter(Boolean).join(", ")})`
+                  : activeAddress.state
+                  ? ` (${activeAddress.state})`
+                  : ""}
+                {activeAddress.label && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-200 text-stone-800 font-bold uppercase">
+                    {activeAddress.label}
+                  </span>
                 )}
               </span>
             </div>
@@ -292,10 +283,7 @@ export const PriestListingPage: React.FC = () => {
               {userAddresses.length > 1 && (
                 <select
                   value={selectedAddressId}
-                  onChange={(e) => {
-                    setSelectedAddressId(e.target.value);
-                    setIsFilterByAddress(true);
-                  }}
+                  onChange={(e) => setSelectedAddressId(e.target.value)}
                   className="text-xs h-7 px-2 py-0.5 rounded border border-amber-300 bg-white font-medium text-stone-800 cursor-pointer"
                   title="Switch Puja Location"
                 >
@@ -306,16 +294,9 @@ export const PriestListingPage: React.FC = () => {
                   ))}
                 </select>
               )}
-              <button
-                type="button"
-                onClick={() => setIsFilterByAddress(!isFilterByAddress)}
-                className="text-xs font-bold text-red-700 hover:text-red-900 underline underline-offset-2 cursor-pointer"
-              >
-                {isFilterByAddress ? "Show all Purohits" : `Filter by my PIN (${activeDevoteePin})`}
-              </button>
               <Link
                 to="/user/addresses"
-                className="text-xs font-semibold text-stone-600 hover:text-stone-900 ml-1"
+                className="text-xs font-semibold text-stone-600 hover:text-stone-900 ml-1 underline underline-offset-2"
               >
                 Manage Addresses
               </Link>
@@ -496,19 +477,21 @@ export const PriestListingPage: React.FC = () => {
             </h2>
             <p className="text-xs text-stone-600 leading-relaxed">
               {effectivePincode
-                ? `No verified Acharyas currently list PIN code ${effectivePincode} in their active service areas. You can view all available Purohits across regions or update your saved puja venue address.`
+                ? `No verified Acharyas currently list PIN code ${effectivePincode} in their active service areas. You can update your saved puja venue address or adjust your ceremony filters.`
                 : 'No verified priests matched your search criteria. Try selecting another ceremony or resetting your filters.'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               {effectivePincode && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsFilterByAddress(false)}
-                  className="text-xs gap-1.5 border-2 border-amber-300 rounded-md cursor-pointer bg-white text-stone-800"
-                >
-                  <span>View All Available Purohits</span>
-                </Button>
+                <Link to="/user/addresses">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs gap-1.5 border-2 border-amber-300 rounded-md cursor-pointer bg-white text-stone-800"
+                  >
+                    <MapPin className="h-3.5 w-3.5 text-red-700" />
+                    <span>Manage Puja Locations</span>
+                  </Button>
+                </Link>
               )}
               <Button
                 variant="outline"
@@ -517,7 +500,7 @@ export const PriestListingPage: React.FC = () => {
                 className="text-xs gap-1.5 border-2 border-amber-300 rounded-md cursor-pointer"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
-                <span>Clear All Filters</span>
+                <span>Reset Filters</span>
               </Button>
             </div>
           </div>
