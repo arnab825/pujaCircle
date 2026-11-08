@@ -15,6 +15,7 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   phoneNumber: varchar('phone_number', { length: 20 }).notNull().unique(),
   email: varchar('email', { length: 255 }).unique(),
+  password: text('password'), // Salted Bcrypt password hash ($2a$10$...)
   role: roleEnum('role').default('USER').notNull(),
   accountStatus: accountStatusEnum('account_status').default('ACTIVE').notNull(),
   banReason: text('ban_reason'),

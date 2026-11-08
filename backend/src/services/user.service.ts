@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import bcrypt from 'bcryptjs';
 import { db } from '../db/index.js';
 import { users } from '../models/user.model.js';
 import { priestProfiles } from '../models/priest.model.js';
@@ -143,6 +144,9 @@ export class UserService {
     if (updateError) {
       throw new AppError(400, updateError.message || 'Failed to update credentials. Please try again.');
     }
+
+    const passwordHash = await bcrypt.hash(data.newPassword, 10);
+    await db.update(users).set({ password: passwordHash }).where(eq(users.id, userId));
   }
 }
 

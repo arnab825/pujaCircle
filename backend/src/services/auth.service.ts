@@ -1,6 +1,7 @@
 import { randomInt } from 'crypto';
 import { eq, or, gt, and, sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { env } from '../config/env.js';
 import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { db } from '../db/index.js';
@@ -193,6 +194,7 @@ export class AuthService {
 
     const userId = authUser.user.id;
     let createdUser: typeof users.$inferSelect | undefined;
+    const passwordHash = await bcrypt.hash(input.password, 10);
 
     try {
       createdUser = await db.transaction(async (tx) => {
@@ -203,6 +205,7 @@ export class AuthService {
             name: input.fullName,
             email: input.email,
             phoneNumber: input.phoneNumber,
+            password: passwordHash,
             role: 'USER',
           })
           .returning();
@@ -277,6 +280,7 @@ export class AuthService {
 
     const userId = authUser.user.id;
     let createdUser: typeof users.$inferSelect | undefined;
+    const passwordHash = await bcrypt.hash(targetPassword, 10);
 
     try {
       createdUser = await db.transaction(async (tx) => {
@@ -287,6 +291,7 @@ export class AuthService {
             name: input.fullName,
             email: targetEmail,
             phoneNumber: input.phoneNumber,
+            password: passwordHash,
             role: 'PRIEST',
             avatarUrl: null,
           })
@@ -458,6 +463,9 @@ export class AuthService {
       if (updateError) {
         throw new AppError(400, updateError.message || 'Failed to update credentials.');
       }
+
+      const passwordHash = await bcrypt.hash(input.newPassword, 10);
+      await db.update(users).set({ password: passwordHash }).where(eq(users.id, dbUser.id));
     }
 
     return { message: 'Email verified successfully.' };
@@ -511,6 +519,9 @@ export class AuthService {
     if (updateError) {
       throw new AppError(400, updateError.message || 'Failed to update credentials. Please try again.');
     }
+
+    const passwordHash = await bcrypt.hash(input.newPassword, 10);
+    await db.update(users).set({ password: passwordHash }).where(eq(users.id, dbUser.id));
 
     return {
       message: 'Password updated successfully. You may now sign in with your new credentials.',
