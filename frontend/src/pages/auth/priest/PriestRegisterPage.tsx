@@ -725,12 +725,14 @@ export const PriestRegisterPage: React.FC = () => {
                     {[
                       "Sanskrit",
                       "Hindi",
-                      "Marathi",
                       "Bengali",
+                      "English",
+                      "Marathi",
                       "Kannada",
                       "Tamil",
                       "Telugu",
                       "Gujarati",
+                      "Odia",
                     ].map((lang) => {
                       const checked = languages.includes(lang);
                       return (

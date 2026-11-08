@@ -33,15 +33,23 @@ import {
 import { toast } from "sonner";
 import { formatINR } from "@/lib/utils";
 
-const POPULAR_LANGUAGES = [
+const AVAILABLE_LANGUAGES = [
   "Sanskrit",
   "Hindi",
-  "Marathi",
   "Bengali",
+  "English",
+  "Marathi",
   "Gujarati",
   "Kannada",
   "Telugu",
   "Tamil",
+  "Malayalam",
+  "Odia",
+  "Punjabi",
+  "Maithili",
+  "Bhojpuri",
+  "Assamese",
+  "Marwari",
 ];
 
 /**
@@ -72,8 +80,7 @@ export const PriestProfilePage: React.FC = () => {
   const [languages, setLanguages] = useState<string[]>([]);
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
 
-  // Inputs for adding custom items
-  const [customLanguage, setCustomLanguage] = useState("");
+  // Inputs for adding custom localities
   const [newAreaInput, setNewAreaInput] = useState("");
   const [areaPinSuggestions, setAreaPinSuggestions] = useState<
     Array<{ name: string; city: string; state: string; district?: string; pincode: string }>
@@ -246,20 +253,6 @@ export const PriestProfilePage: React.FC = () => {
       updated = [...languages, lang];
     }
     setLanguages(updated);
-    syncProfileField({ languages: updated });
-  };
-
-  const handleAddCustomLanguage = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = customLanguage.trim();
-    if (!trimmed) return;
-    if (languages.some((l) => l.toLowerCase() === trimmed.toLowerCase())) {
-      toast.error("Language already added.");
-      return;
-    }
-    const updated = [...languages, trimmed];
-    setLanguages(updated);
-    setCustomLanguage("");
     syncProfileField({ languages: updated });
   };
 
@@ -903,7 +896,7 @@ export const PriestProfilePage: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {POPULAR_LANGUAGES.map((lang) => {
+            {AVAILABLE_LANGUAGES.map((lang) => {
               const isSelected = languages.includes(lang);
               return (
                 <button
@@ -917,31 +910,25 @@ export const PriestProfilePage: React.FC = () => {
                   }`}
                 >
                   {isSelected && <Check className="w-3 h-3 text-amber-300" />}
-                  {lang}
+                  <span>{lang}</span>
                 </button>
               );
             })}
+            {languages
+              .filter((l) => !AVAILABLE_LANGUAGES.includes(l))
+              .map((extraLang) => (
+                <button
+                  key={extraLang}
+                  type="button"
+                  onClick={() => toggleLanguage(extraLang)}
+                  className="px-3.5 py-1.5 rounded-sm text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer bg-[#780016] text-white border-amber-400 shadow-xs"
+                >
+                  <Check className="w-3 h-3 text-amber-300" />
+                  <span>{extraLang}</span>
+                  <X className="w-3 h-3 text-amber-200 hover:text-white ml-0.5" />
+                </button>
+              ))}
           </div>
-
-          <form
-            onSubmit={handleAddCustomLanguage}
-            className="flex gap-2 pt-2 border-t border-stone-200"
-          >
-            <Input
-              placeholder="Add other language (e.g. Odia)..."
-              value={customLanguage}
-              onChange={(e) => setCustomLanguage(e.target.value)}
-              className="h-10 text-xs flex-1 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-            />
-            <Button
-              type="submit"
-              size="sm"
-              variant="outline"
-              className="h-10 text-xs gap-1 rounded-md border-amber-300 font-bold"
-            >
-              <Plus className="w-3.5 h-3.5 text-amber-600" /> Add
-            </Button>
-          </form>
         </div>
 
         {/* Active Puja Services */}
