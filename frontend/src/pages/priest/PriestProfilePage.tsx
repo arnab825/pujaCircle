@@ -21,6 +21,7 @@ import {
   Phone,
   Mail,
   User,
+  Lock,
   Loader2,
   Camera,
   Trash2,
@@ -374,53 +375,32 @@ export const PriestProfilePage: React.FC = () => {
         className="hidden"
       />
 
-      {/* 1. Header & Primary Action (100% Flexbox) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
-        <div>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="text-amber-900 border-amber-400 bg-amber-100 text-[11px] font-bold"
-            >
-              Vedic Acharya Dossier
+      {/* 1. Header Banner (100% Flexbox) */}
+      <div className="p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className="text-amber-900 border-amber-400 bg-amber-100 text-[11px] font-bold"
+          >
+            Vedic Acharya Dossier
+          </Badge>
+          {priest?.approvalStatus === "APPROVED" ? (
+            <Badge className="bg-emerald-600 text-white text-[11px] font-bold gap-1">
+              <ShieldCheck className="h-3 w-3" /> Verified Purohit
             </Badge>
-            {priest?.approvalStatus === "APPROVED" ? (
-              <Badge className="bg-emerald-600 text-white text-[11px] font-bold gap-1">
-                <ShieldCheck className="h-3 w-3" /> Verified Purohit
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-[11px] font-bold">
-                {priest?.approvalStatus}
-              </Badge>
-            )}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950 mt-1">
-            Vedic Profile & Credentials
-          </h1>
-          <p className="text-xs text-stone-600">
-            Manage your credentials, Gurukul lineage, languages, service
-            localities, and puja offerings.
-          </p>
-        </div>
-
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="gap-2 text-xs font-bold px-6 h-11 bg-[#780016] hover:bg-red-800 text-white border border-amber-400 rounded-md shadow-xs shrink-0 cursor-pointer puja-btn-tap"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving Changes...
-            </>
           ) : (
-            <>
-              <Check className="w-4 h-4" />
-              Save Profile Changes
-            </>
+            <Badge variant="secondary" className="text-[11px] font-bold">
+              {priest?.approvalStatus}
+            </Badge>
           )}
-        </Button>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950 mt-1">
+          Vedic Profile & Credentials
+        </h1>
+        <p className="text-xs text-stone-600">
+          Manage your credentials, Gurukul lineage, languages, service
+          localities, and puja offerings.
+        </p>
       </div>
 
       {/* 2. Top Summary Card with Interactive Avatar Trigger (Pure White, Haldi Gold Border) */}
@@ -614,16 +594,16 @@ export const PriestProfilePage: React.FC = () => {
                 </span>
                 <Badge
                   variant="outline"
-                  className="text-emerald-800 bg-emerald-100 border-emerald-300 text-[10px] font-bold gap-1"
+                  className="text-stone-700 bg-stone-100 border-stone-300 text-[10px] font-bold gap-1"
                 >
-                  <Check className="w-3 h-3 text-emerald-700" /> Phone Verified
+                  <Lock className="w-3 h-3 text-stone-500" /> Registered
                 </Badge>
               </div>
               <p className="font-mono text-sm font-bold text-stone-950">
                 {priest?.phoneNumber || user?.phoneNumber || "Phone pending"}
               </p>
               <p className="text-[11px] text-stone-600">
-                Devotees contact you on this verified number for ritual
+                Devotees contact you on this registered number for ritual
                 coordination.
               </p>
             </div>

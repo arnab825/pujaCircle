@@ -158,16 +158,19 @@ export const PriestDetailsPage: React.FC = () => {
     const selectedAddress = userAddresses.find(
       (a) => a.id === selectedAddressId,
     );
-    if (
-      priest.city &&
-      selectedAddress &&
-      selectedAddress.city.trim().toLowerCase() !==
-        priest.city.trim().toLowerCase()
-    ) {
-      toast.error(
-        `This priest only conducts ceremonies in ${priest.city}. Please choose an address in ${priest.city}.`,
-      );
-      return;
+    if (selectedAddress) {
+      const selectedPin = (selectedAddress.pincode || selectedAddress.pinCode || '').trim().replace(/\D/g, '');
+      const priestHomePin = (priest?.pincode || '').trim().replace(/\D/g, '');
+      const priestAreasStr = (priest?.serviceAreas || []).join(' ');
+      const hasLocationRules = Boolean(priestHomePin || (priest?.serviceAreas && priest.serviceAreas.length > 0));
+      const isServed = (priestHomePin && priestHomePin === selectedPin) || (selectedPin && priestAreasStr.includes(selectedPin));
+
+      if (hasLocationRules && !isServed) {
+        toast.error(
+          `This Purohit does not provide puja ceremonies in PIN code ${selectedAddress.pincode || selectedAddress.pinCode}. Please select a venue address within their service localities.`,
+        );
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -254,10 +257,17 @@ export const PriestDetailsPage: React.FC = () => {
   const eveningCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) >= 17).length;
 
   const selectedAddress = userAddresses.find((a) => a.id === selectedAddressId);
+  const isPincodeServed = (pincodeStr?: string) => {
+    if (!pincodeStr) return true;
+    const cleanPin = pincodeStr.trim().replace(/\D/g, '');
+    const priestHomePin = (priest?.pincode || '').trim().replace(/\D/g, '');
+    const priestAreasStr = (priest?.serviceAreas || []).join(' ');
+    const hasRules = Boolean(priestHomePin || (priest?.serviceAreas && priest.serviceAreas.length > 0));
+    if (!hasRules) return true;
+    return (priestHomePin && priestHomePin === cleanPin) || priestAreasStr.includes(cleanPin);
+  };
   const isAddressOutside = Boolean(
-    priest?.city &&
-    selectedAddress &&
-    selectedAddress.city.trim().toLowerCase() !== priest.city.trim().toLowerCase()
+    selectedAddress && !isPincodeServed(selectedAddress.pincode || selectedAddress.pinCode)
   );
   const selectedAddressSummary = selectedAddress
     ? [selectedAddress.houseNo || selectedAddress.houseBuilding, selectedAddress.villageTown || selectedAddress.locality].filter(Boolean).join(', ') || selectedAddress.city
@@ -760,8 +770,8 @@ export const PriestDetailsPage: React.FC = () => {
                     <span className="truncate">{selectedAddressSummary}</span>
                   </span>
                   {isAddressOutside && (
-                    <span className="text-[9px] text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.2 rounded font-bold shrink-0">
-                      Outside {priest.city}
+                    <span className="text-[9px] text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.5 rounded font-bold shrink-0">
+                      Outside Service PIN
                     </span>
                   )}
                 </div>
@@ -784,10 +794,10 @@ export const PriestDetailsPage: React.FC = () => {
 
             {/* Booking CTA Button */}
             <Button
-              disabled={isSubmitting || !selectedService || !selectedSlot || !selectedAddressId}
+              disabled={isSubmitting || !selectedService || !selectedSlot || !selectedAddressId || isAddressOutside}
               onClick={() => handleStartBooking()}
               className={`w-full h-11 text-xs font-bold gap-2 rounded-lg shadow-sm cursor-pointer ${
-                !selectedService || !selectedSlot || !selectedAddressId
+                !selectedService || !selectedSlot || !selectedAddressId || isAddressOutside
                   ? "bg-stone-300 text-stone-600 cursor-not-allowed"
                   : "bg-[#780016] hover:bg-red-800 text-white"
               }`}
@@ -800,6 +810,8 @@ export const PriestDetailsPage: React.FC = () => {
                   ? "2. Pick a Muhurat Slot"
                   : !selectedAddressId
                   ? "3. Choose Venue Address"
+                  : isAddressOutside
+                  ? "Venue Outside Purohit Service PIN"
                   : "Confirm Ceremony Request →"}
               </span>
             </Button>
@@ -836,7 +848,7 @@ export const PriestDetailsPage: React.FC = () => {
             ) : (
               userAddresses.map((addr) => {
                 const isSelected = selectedAddressId === addr.id;
-                const isOutside = priest?.city && addr.city.trim().toLowerCase() !== priest.city.trim().toLowerCase();
+                const isOutside = !isPincodeServed(addr.pincode || addr.pinCode);
                 const line1 = [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality].filter(Boolean).join(', ') || addr.city;
                 const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
 
@@ -858,8 +870,8 @@ export const PriestDetailsPage: React.FC = () => {
                         <MapPin className="h-3.5 w-3.5 text-[#780016] shrink-0" />
                         <span className="truncate">{line1}</span>
                         {isOutside && (
-                          <span className="text-[10px] text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.2 rounded font-semibold shrink-0">
-                            Outside {priest?.city}
+                          <span className="text-[10px] text-red-700 bg-red-100 border border-red-200 px-1.5 py-0.5 rounded font-bold shrink-0">
+                            Outside Service PIN
                           </span>
                         )}
                       </div>
@@ -979,7 +991,7 @@ export const PriestDetailsPage: React.FC = () => {
                   {userAddresses.map((addr) => {
                     const line1 = [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality].filter(Boolean).join(', ') || addr.city;
                     const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
-                    const isOutside = priest.city && addr.city.trim().toLowerCase() !== priest.city.trim().toLowerCase();
+                    const isOutside = !isPincodeServed(addr.pincode || addr.pinCode);
 
                     return (
                       <div
@@ -995,8 +1007,8 @@ export const PriestDetailsPage: React.FC = () => {
                           <div className="font-semibold text-stone-900 flex items-center gap-1.5">
                             <span>{line1}</span>
                             {isOutside && (
-                              <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.2 rounded border border-red-200">
-                                Outside {priest.city}
+                              <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200 font-bold">
+                                Outside Service PIN
                               </span>
                             )}
                           </div>

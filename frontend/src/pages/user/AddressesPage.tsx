@@ -150,6 +150,7 @@ export const AddressesPage: React.FC = () => {
             id: editingAddress.id,
             pincode: pinCode,
             houseNo: houseNo.trim(),
+            locality: selectedVillageTown || city || district,
             villageTown: selectedVillageTown,
             city: city || district,
             district,
@@ -171,6 +172,7 @@ export const AddressesPage: React.FC = () => {
           {
             pincode: pinCode,
             houseNo: houseNo.trim(),
+            locality: selectedVillageTown || city || district,
             villageTown: selectedVillageTown,
             city: city || district,
             district,

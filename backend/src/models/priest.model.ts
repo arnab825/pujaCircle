@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, integer, numeric, timestamp, pgEnum, jsonb, boolean, time } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, numeric, timestamp, pgEnum, jsonb, boolean, time, index } from 'drizzle-orm/pg-core';
 import { users } from './user.model.js';
 import { pujaCatalog } from './catalog.model.js';
 
@@ -26,7 +26,10 @@ export const priestProfiles = pgTable('priest_profiles', {
   defaultEndTime: time('default_end_time').default('21:00:00'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
-});
+}, (table) => [
+  index('priest_profiles_approval_status_idx').on(table.approvalStatus),
+  index('priest_profiles_city_idx').on(table.city),
+]);
 
 // Model for individual ritual offerings and custom prices configured by Purohits
 export const priestServices = pgTable('priest_services', {

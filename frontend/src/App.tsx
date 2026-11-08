@@ -8,13 +8,15 @@ import { useAuthStore } from '@/store/auth.store';
 
 export const App: React.FC = () => {
   const { isAuthenticated, checkSession } = useAuthStore();
+  const hasCheckedRef = React.useRef(false);
 
   useEffect(() => {
     // Silently synchronize session with backend HTTP-only cookie on startup
-    if (isAuthenticated) {
+    if (!hasCheckedRef.current && isAuthenticated) {
+      hasCheckedRef.current = true;
       checkSession();
     }
-  }, []);
+  }, [isAuthenticated, checkSession]);
 
   return (
     <ErrorBoundary>

@@ -22,7 +22,7 @@ import {
 } from '@/schemas/auth.schema.js';
 
 export interface AuthResult {
-  user: UserViewModel;
+  user?: UserViewModel;
   token?: string;
   verified?: boolean;
   requiresRegistration?: boolean;
@@ -77,15 +77,17 @@ const verifyOtp = async (destination: string, code: string): Promise<boolean> =>
     return false;
   }
 
-  await db
-    .update(otpCodes)
-    .set({ attempts: record.attempts + 1 })
-    .where(eq(otpCodes.id, record.id));
-
+  // Verify code match first
   if (record.code === code.trim()) {
     await db.delete(otpCodes).where(eq(otpCodes.id, record.id)); // Single-use consumption
     return true;
   }
+
+  // Only increment attempt counter on incorrect code entry
+  await db
+    .update(otpCodes)
+    .set({ attempts: record.attempts + 1 })
+    .where(eq(otpCodes.id, record.id));
 
   return false;
 };
@@ -145,63 +147,14 @@ export class AuthService {
       userRecord.avatarUrl = effectiveAvatar;
     }
 
-    // Self-healing synchronization for admin@pujacircle.com credentials
-    if (userRecord.role === 'ADMIN' && targetEmail === 'admin@pujacircle.com') {
-      try {
-        const { data: listData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
-        const supaAdmin = listData?.users?.find((u) => u.email?.toLowerCase() === 'admin@pujacircle.com');
-        if (supaAdmin) {
-          await supabaseAdmin.auth.admin.updateUserById(supaAdmin.id, {
-            password: input.password,
-            email_confirm: true,
-          });
-        } else {
-          await supabaseAdmin.auth.admin.createUser({
-            id: userRecord.id,
-            email: 'admin@pujacircle.com',
-            password: input.password,
-            email_confirm: true,
-          });
-        }
-      } catch (err) {
-        console.warn('Admin Supabase auth sync notice:', err);
-      }
-    }
-
     // 2. Validate credentials with Supabase Auth
-    let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email: targetEmail,
       password: input.password,
     });
 
     if (authError || !authData.user) {
-      // If admin password was just updated or user ID was misaligned, retry with admin auth
-      if (userRecord.role === 'ADMIN' && targetEmail === 'admin@pujacircle.com') {
-        try {
-          const { data: listData } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 100 });
-          const supaAdmin = listData?.users?.find((u) => u.email?.toLowerCase() === 'admin@pujacircle.com');
-          if (supaAdmin) {
-            await supabaseAdmin.auth.admin.updateUserById(supaAdmin.id, {
-              password: input.password,
-              email_confirm: true,
-            });
-            const retry = await supabase.auth.signInWithPassword({
-              email: targetEmail,
-              password: input.password,
-            });
-            if (retry.data?.user) {
-              authData = retry.data;
-              authError = null;
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      if (authError || !authData.user) {
-        throw new AppError(401, 'Invalid password. Please check your password and try again.');
-      }
+      throw new AppError(401, 'Invalid password. Please check your password and try again.');
     }
 
     return {
@@ -419,13 +372,7 @@ export class AuthService {
     const cleanPhone = phoneNumber.trim();
     const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
 
-    const code = await generateAndStoreOtp(cleanPhone);
-    await db.delete(otpCodes).where(eq(otpCodes.destination, formattedPhone.toLowerCase()));
-    await db.insert(otpCodes).values({
-      destination: formattedPhone.toLowerCase(),
-      code,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    });
+    await generateAndStoreOtp(formattedPhone);
 
     return {
       message: `Verification code dispatched successfully to ${formattedPhone}.`,
@@ -437,7 +384,7 @@ export class AuthService {
     const cleanPhone = input.phoneNumber.trim();
     const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
 
-    const isDynamicValid = (await verifyOtp(cleanPhone, input.otp)) || (await verifyOtp(formattedPhone, input.otp));
+    const isDynamicValid = (await verifyOtp(formattedPhone, input.otp)) || (await verifyOtp(cleanPhone, input.otp));
 
     let supabaseSuccess = false;
     if (!isDynamicValid) {
@@ -460,7 +407,7 @@ export class AuthService {
     const [dbUser] = await db
       .select()
       .from(users)
-      .where(eq(users.phoneNumber, input.phoneNumber))
+      .where(or(eq(users.phoneNumber, cleanPhone), eq(users.phoneNumber, formattedPhone)))
       .limit(1);
 
     if (dbUser) {
@@ -471,7 +418,7 @@ export class AuthService {
       verified: true,
       requiresRegistration: true,
       phoneNumber: input.phoneNumber,
-    } as any;
+    };
   }
 
   // Dispatch email verification OTP via Brevo REST API

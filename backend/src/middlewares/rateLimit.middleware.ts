@@ -1,5 +1,11 @@
 import rateLimit from 'express-rate-limit';
 
+/**
+ * Rate Limiting Middleware
+ * NOTE: express-rate-limit uses in-memory storage, optimal for single-instance free-tier
+ * deployment (e.g. Render / Railway). For multi-instance horizontal scaling, swap store to Redis (rate-limit-redis).
+ */
+
 // Standard general rate limiter for general API endpoints
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

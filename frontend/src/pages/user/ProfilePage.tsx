@@ -24,9 +24,7 @@ import {
   Calendar,
   Lock,
   KeyRound,
-  Edit3,
   Save,
-  X,
   ChevronRight,
   BookOpen,
   Camera,
@@ -52,7 +50,6 @@ export const ProfilePage: React.FC = () => {
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [fullName, setFullName] = useState<string>(
     user?.name || "Devotee",
   );
@@ -185,7 +182,6 @@ export const ProfilePage: React.FC = () => {
           ...user!,
           name: res.data.name,
         });
-        setIsEditing(false);
         toast.success("Your profile name has been updated successfully!");
       } else {
         toast.error(res.message || "Failed to update profile.");
@@ -195,11 +191,6 @@ export const ProfilePage: React.FC = () => {
     } finally {
       setIsSavingProfile(false);
     }
-  };
-
-  const handleCancelEdit = () => {
-    setFullName(user?.name || "");
-    setIsEditing(false);
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -293,9 +284,8 @@ export const ProfilePage: React.FC = () => {
 
         {/* Hero User Profile Card (Pure White, Zero Gradients, Zero Blurs) */}
         <div className="rounded-xl border-2 border-amber-300 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto text-center sm:text-left">
-              {/* Clickable Avatar to Change Photo */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-5 w-full">
+            {/* Clickable Avatar to Change Photo */}
               <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
                 <div className="relative group shrink-0">
                   <button
@@ -364,17 +354,16 @@ export const ProfilePage: React.FC = () => {
                   </Badge>
                 </div>
 
-                {/* Verified Contact Badges */}
+                {/* Contact Badges */}
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-stone-600 pt-1">
                   <div
                     className="flex items-center gap-1.5 bg-stone-100 px-2.5 py-1 rounded-sm border border-stone-200"
-                    title="Verified Mobile"
+                    title="Registered Mobile"
                   >
                     <Phone className="w-3.5 h-3.5 text-amber-600" />
                     <span className="font-mono font-bold text-stone-900">
                       {phoneNumber}
                     </span>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 ml-0.5" />
                   </div>
 
                   <div
@@ -396,32 +385,7 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Action Button - Symmetrically aligned to right */}
-            <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end shrink-0">
-              {!isEditing ? (
-                <Button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="bg-[#780016] hover:bg-red-800 text-white font-bold border border-amber-400 shadow-xs w-full sm:w-auto text-xs h-11 px-6 rounded-md cursor-pointer transition-all hover:shadow-md"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  <span>Edit Profile</span>
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancelEdit}
-                  className="w-full sm:w-auto text-xs h-11 px-6 rounded-md border-stone-300"
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  <span>Cancel Editing</span>
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Devotee Quick Stats Row (100% Flexbox, Zero CSS Grids) */}
+            {/* Devotee Quick Stats Row (100% Flexbox, Zero CSS Grids) */}
           <div className="flex flex-col sm:flex-row items-stretch justify-between gap-3 pt-6 mt-6 border-t border-amber-200">
             <div className="flex-1 p-4 rounded-lg bg-white border-2 border-amber-200 shadow-xs flex flex-col justify-center">
               <span className="text-xs text-stone-600 flex items-center gap-1 font-semibold">
@@ -499,24 +463,19 @@ export const ProfilePage: React.FC = () => {
                       htmlFor="fullName"
                       className="text-xs font-bold uppercase tracking-wider text-stone-700"
                     >
-                      Full Name{" "}
-                      {isEditing && <span className="text-red-700">*</span>}
+                      Full Name <span className="text-red-700">*</span>
                     </Label>
-                    {isEditing ? (
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-3.5 h-4 w-4 text-stone-400" />
                       <Input
                         id="fullName"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         placeholder="e.g. Aditi Sharma"
-                        className="h-11 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs font-medium"
+                        className="pl-10 h-11 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs font-medium text-stone-900"
                         required
                       />
-                    ) : (
-                      <div className="p-3.5 bg-stone-50 rounded-md border border-stone-200 text-sm font-bold text-stone-900 flex items-center justify-between">
-                        <span>{fullName}</span>
-                        <User className="w-4 h-4 text-stone-400" />
-                      </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Email Address (Read-Only) */}
@@ -543,9 +502,8 @@ export const ProfilePage: React.FC = () => {
                     <Label className="text-xs font-bold uppercase tracking-wider text-stone-700">
                       Primary Mobile Number
                     </Label>
-                    <span className="text-[11px] text-emerald-700 font-bold flex items-center gap-0.5">
-                      <ShieldCheck className="w-3 h-3 text-emerald-600" /> OTP
-                      Verified
+                    <span className="text-[11px] text-stone-500 font-bold flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-stone-400" /> Registered
                     </span>
                   </div>
                   <div className="p-3.5 bg-stone-100 rounded-md border border-stone-200 text-sm font-mono font-bold text-stone-900 flex items-center justify-between cursor-not-allowed">
@@ -554,28 +512,20 @@ export const ProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                {isEditing && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-stone-200">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      className="w-full sm:w-auto h-10 px-5 text-xs rounded-md"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSavingProfile}
-                      className="bg-[#780016] hover:bg-red-800 text-white font-bold border border-amber-400 w-full sm:w-auto h-10 px-6 text-xs rounded-md shadow-xs cursor-pointer puja-btn-tap"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5 pt-4 border-t border-stone-200">
+                  <Button
+                    type="submit"
+                    disabled={isSavingProfile}
+                    className="bg-[#780016] hover:bg-red-800 text-white font-bold border border-amber-400 w-full sm:w-auto h-10 px-6 text-xs rounded-md shadow-xs cursor-pointer puja-btn-tap flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>
                       {isSavingProfile
                         ? "Saving Changes..."
-                        : "Save Profile Changes"}
-                    </Button>
-                  </div>
-                )}
+                        : "Save Name Changes"}
+                    </span>
+                  </Button>
+                </div>
               </form>
             </div>
           </TabsContent>

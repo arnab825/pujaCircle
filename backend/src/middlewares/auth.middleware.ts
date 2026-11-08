@@ -74,18 +74,6 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       }
     }
 
-    // D. Development fallback: decode token payload sub if user exists in database
-    if (!resolvedUserId && env.NODE_ENV === 'development') {
-      try {
-        const decoded = jwt.decode(token) as any;
-        if (decoded?.sub || decoded?.userId || decoded?.id) {
-          resolvedUserId = decoded.sub || decoded.userId || decoded.id;
-        }
-      } catch {
-        // Non-decodable token
-      }
-    }
-
     if (!resolvedUserId) {
       sendError(res, 'Invalid or expired session. Please sign in again.', 401);
       return;

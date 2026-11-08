@@ -48,6 +48,7 @@ export class PriestService {
         conditions.push(
           or(
             eq(priestProfiles.pincode, cleanPin),
+            sql`REPLACE(COALESCE(${priestProfiles.pincode}, ''), ' ', '') = ${cleanPin}`,
             sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanPin + '%'}`
           )!
         );
@@ -285,19 +286,11 @@ export class PriestService {
     // Destructure profileImageUrl separately so we control its persistence
     const { fullName, displayName, name, profileImageUrl, ...profileUpdates } = updates as any;
     const newName = fullName || displayName || name;
+    let finalImageUrl: string | null = null;
 
-    // 1. Persist priest display name to users table
-    if (newName && typeof newName === 'string' && newName.trim()) {
-      await db
-        .update(users)
-        .set({ name: newName.trim(), updatedAt: new Date() })
-        .where(eq(users.id, existing.userId));
-    }
-
-    // 2. Handle Cloudinary Upload & Avatar Sync for users + priestProfiles tables
+    // 1. Handle Cloudinary Upload & Avatar Sync for users + priestProfiles tables
     if (profileImageUrl !== undefined) {
       const oldImageUrl = existing.profileImageUrl || existing.avatarUrl;
-      let finalImageUrl: string | null = null;
 
       if (typeof profileImageUrl === 'string' && profileImageUrl.trim().length > 0) {
         const trimmed = profileImageUrl.trim();
@@ -333,24 +326,37 @@ export class PriestService {
         finalImageUrl = null;
       }
 
-      // Sync to users table (users.avatar_url is nullable)
-      await db
-        .update(users)
-        .set({ avatarUrl: finalImageUrl, updatedAt: new Date() })
-        .where(eq(users.id, existing.userId));
-
       // Sync to priest_profiles table (profile_image_url defaults to empty string)
       profileUpdates.profileImageUrl = finalImageUrl || '';
     }
 
-    // 3. Persist other profile fields to priest_profiles table
-    await db
-      .update(priestProfiles)
-      .set({
-        ...profileUpdates,
-        updatedAt: new Date(),
-      })
-      .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
+    // 2. Wrap multi-table database updates in a transaction for atomic integrity
+    await db.transaction(async (tx) => {
+      // A. Persist priest display name to users table
+      if (newName && typeof newName === 'string' && newName.trim()) {
+        await tx
+          .update(users)
+          .set({ name: newName.trim(), updatedAt: new Date() })
+          .where(eq(users.id, existing.userId));
+      }
+
+      // B. Sync avatar to users table (users.avatar_url is nullable)
+      if (profileImageUrl !== undefined) {
+        await tx
+          .update(users)
+          .set({ avatarUrl: finalImageUrl, updatedAt: new Date() })
+          .where(eq(users.id, existing.userId));
+      }
+
+      // C. Persist other profile fields to priest_profiles table
+      await tx
+        .update(priestProfiles)
+        .set({
+          ...profileUpdates,
+          updatedAt: new Date(),
+        })
+        .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
+    });
 
     return this.getPriestById(id);
   }

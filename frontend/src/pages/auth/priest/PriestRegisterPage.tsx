@@ -309,7 +309,7 @@ export const PriestRegisterPage: React.FC = () => {
                   >
                     {step > 2 ? "✓" : "2"}
                   </span>
-                  <span>Contact Verification (OTP)</span>
+                  <span>Email Verification (OTP)</span>
                 </div>
                 <div
                   className={`flex items-center gap-2 ${step >= 3 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
@@ -593,7 +593,7 @@ export const PriestRegisterPage: React.FC = () => {
                     onClick={handleResendOtp}
                     className="text-[11px] font-semibold text-[#780016] hover:underline cursor-pointer"
                   >
-                    Didn't receive code? Resend OTP
+                    Didn't receive code? Resend Email OTP
                   </button>
                 </div>
 

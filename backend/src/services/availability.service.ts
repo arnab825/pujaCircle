@@ -1,4 +1,4 @@
-import { eq, and, or, gte, lte } from 'drizzle-orm';
+import { eq, and, or, gte, lte, lt, gt } from 'drizzle-orm';
 import { db } from '@/db/index.js';
 import { priestAvailabilityExceptions, priestProfiles } from '@/models/priest.model.js';
 import { bookings } from '@/models/booking.model.js';
@@ -237,19 +237,19 @@ export class AvailabilityService {
     startAt: Date,
     endAt: Date
   ): Promise<boolean> {
-    const exceptions = await db
-      .select({
-        startAt: priestAvailabilityExceptions.startAt,
-        endAt: priestAvailabilityExceptions.endAt,
-      })
+    const [overlap] = await db
+      .select({ id: priestAvailabilityExceptions.id })
       .from(priestAvailabilityExceptions)
-      .where(eq(priestAvailabilityExceptions.priestId, priestId));
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.priestId, priestId),
+          lt(priestAvailabilityExceptions.startAt, endAt),
+          gt(priestAvailabilityExceptions.endAt, startAt)
+        )
+      )
+      .limit(1);
 
-    return exceptions.some((ex) => {
-      const exStart = new Date(ex.startAt);
-      const exEnd = new Date(ex.endAt);
-      return startAt < exEnd && endAt > exStart;
-    });
+    return !!overlap;
   }
 
   // Check if a requested time range overlaps with any confirmed ceremony booking
@@ -312,16 +312,7 @@ export class AvailabilityService {
     });
 
     // 1. Check Full Day Leave
-    const isFullDayOff = dayExceptions.some((e) => {
-      if (e.isFullDay) return true;
-      const s = toISTTimeString(new Date(e.startAt));
-      const en = toISTTimeString(new Date(e.endAt));
-      return (
-        e.reason?.includes('Full Day') ||
-        (s === '07:00' && en === '21:00') ||
-        (s === '00:00' && en === '23:59')
-      );
-    });
+    const isFullDayOff = dayExceptions.some((e) => e.isFullDay === true);
     if (isFullDayOff) {
       return { available: false, reason: 'The priest has marked this date as a full day off.' };
     }
@@ -375,11 +366,19 @@ export class AvailabilityService {
 
     const start = startDate ? new Date(startDate) : new Date();
     const end = endDate ? new Date(endDate) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const endLimitDate = new Date(end);
+    endLimitDate.setUTCHours(23, 59, 59, 999);
 
     const exceptions = await db
       .select()
       .from(priestAvailabilityExceptions)
-      .where(eq(priestAvailabilityExceptions.priestId, targetPriestId));
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.priestId, targetPriestId),
+          gte(priestAvailabilityExceptions.endAt, start),
+          lte(priestAvailabilityExceptions.startAt, endLimitDate)
+        )
+      );
 
     const confirmedBookings = await db
       .select({
@@ -396,10 +395,8 @@ export class AvailabilityService {
     const result: DayAvailability[] = [];
     const current = new Date(start);
     current.setUTCHours(0, 0, 0, 0);
-    const endLimit = new Date(end);
-    endLimit.setUTCHours(23, 59, 59, 999);
 
-    while (current <= endLimit) {
+    while (current <= endLimitDate) {
       const dateStr = toISTDateString(current);
 
       const dayExceptions = exceptions.filter((e) => {
@@ -407,18 +404,7 @@ export class AvailabilityService {
         return eDate === dateStr;
       });
 
-      const isFullDayOff = dayExceptions.some((e) => {
-        if (e.isFullDay) return true;
-        const s = new Date(e.startAt);
-        const en = new Date(e.endAt);
-        const sTime = toISTTimeString(s);
-        const eTime = toISTTimeString(en);
-        return (
-          e.reason?.includes('Full Day') ||
-          (sTime === '07:00' && eTime === '21:00') ||
-          (sTime === '00:00' && eTime === '23:59')
-        );
-      });
+      const isFullDayOff = dayExceptions.some((e) => e.isFullDay === true);
 
       const hasCustomHours = dayExceptions.some((e) => e.exceptionType === 'CUSTOM_HOURS');
 

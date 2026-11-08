@@ -29,6 +29,7 @@ export class AddressService {
       .values({
         userId,
         ...data,
+        locality: data.locality || data.villageTown || data.city,
       })
       .returning();
 
@@ -48,12 +49,19 @@ export class AddressService {
         .where(eq(addresses.userId, userId));
     }
 
+    const updatePayload: Record<string, any> = {
+      ...data,
+      updatedAt: new Date(),
+    };
+    if (data.villageTown && !data.locality) {
+      updatePayload.locality = data.villageTown;
+    } else if (data.city && !data.locality && !data.villageTown) {
+      updatePayload.locality = data.city;
+    }
+
     const [updated] = await db
       .update(addresses)
-      .set({
-        ...data,
-        updatedAt: new Date(),
-      })
+      .set(updatePayload)
       .where(and(eq(addresses.id, addressId), eq(addresses.userId, userId)))
       .returning();
 

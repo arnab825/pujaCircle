@@ -280,7 +280,7 @@ export const AdminUserDetailsPage: React.FC = () => {
         <div className="flex-1 p-4 sm:p-5 rounded-xl border-2 border-amber-300 bg-white shadow-xs space-y-1 min-w-0">
           <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
             <Phone className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-            Verified Mobile
+            Registered Mobile
           </span>
           <p className="text-base sm:text-lg font-mono font-bold text-stone-900 mt-1 break-all">
             {devotee.phoneNumber}

@@ -1,4 +1,4 @@
-import { pgTable, uuid, integer, timestamp, pgEnum, text, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, integer, timestamp, pgEnum, text, varchar, index } from 'drizzle-orm/pg-core';
 import { users } from './user.model.js';
 import { priestProfiles, priestServices } from './priest.model.js';
 import { addresses } from './address.model.js';
@@ -30,17 +30,17 @@ export const bookings = pgTable('bookings', {
   pujaCatalogId: uuid('puja_catalog_id').references(() => pujaCatalog.id, { onDelete: 'set null' }),
   addressId: uuid('address_id').references(() => addresses.id, { onDelete: 'set null' }),
   serviceName: varchar('service_name', { length: 255 }).default('Puja Ceremony').notNull(),
-  servicePrice: integer('service_price').notNull(), // INR amount in rupees (?)
-  totalPrice: integer('total_price').notNull(), // INR amount in rupees (?)
-  bookingDate: varchar('booking_date', { length: 10 }).notNull(), // YYYY-MM-DD
+  servicePrice: integer('service_price').notNull(), // Stored in whole Indian Rupees (INR). e.g. ₹1001 -> 1001
+  totalPrice: integer('total_price').notNull(), // Stored in whole Indian Rupees (INR). e.g. ₹1001 -> 1001
+  bookingDate: varchar('booking_date', { length: 10 }).notNull(), // Canonical ceremony calendar date in IST (YYYY-MM-DD)
   startTime: varchar('start_time', { length: 10 }).default('').notNull(), // HH:mm
   endTime: varchar('end_time', { length: 10 }).default('').notNull(), // HH:mm
-  scheduledDate: timestamp('scheduled_date').defaultNow().notNull(),
+  scheduledDate: timestamp('scheduled_date').defaultNow().notNull(), // Timestamp snapshot for chronological ordering & range querying
   status: bookingStatusEnum('status').default('PENDING').notNull(),
   paymentMethod: paymentMethodEnum('payment_method').default('OFFLINE_CASH').notNull(),
   paymentStatus: paymentStatusEnum('payment_status').default('PENDING').notNull(),
   specialInstructions: text('special_instructions'),
-  notes: text('notes'),
+  notes: text('notes'), // Legacy column retained for schema compatibility
   completionCode: varchar('completion_code', { length: 10 }),
   rejectionReason: text('rejection_reason'),
   cancellationReason: text('cancellation_reason'),
@@ -51,7 +51,12 @@ export const bookings = pgTable('bookings', {
   review: text('review'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull().$onUpdateFn(() => new Date()),
-});
+}, (table) => [
+  index('bookings_user_id_idx').on(table.userId),
+  index('bookings_priest_id_idx').on(table.priestId),
+  index('bookings_status_idx').on(table.status),
+  index('bookings_booking_date_idx').on(table.bookingDate),
+]);
 
 export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
