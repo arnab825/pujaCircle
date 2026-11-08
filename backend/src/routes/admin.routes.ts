@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { adminController } from '@/controllers/admin.controller.js';
-import { requireAuth } from '@/middlewares/auth.middleware.js';
-import { requireAdmin } from '@/middlewares/role.middleware.js';
-import { validate } from '@/middlewares/validate.middleware.js';
-import { adminActionReasonSchema, updateAdminProfileSchema } from '@/schemas/admin.schema.js';
-import { uuidParamSchema } from '@/schemas/common.schema.js';
+import { adminController } from '../controllers/admin.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
+import { requireAdmin } from '../middlewares/role.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { adminActionReasonSchema, updateAdminProfileSchema } from '../schemas/admin.schema.js';
+import { uuidParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 

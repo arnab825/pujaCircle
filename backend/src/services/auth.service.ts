@@ -1,16 +1,16 @@
 import { randomInt } from 'crypto';
 import { eq, or, gt, and, sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
-import { env } from '@/config/env.js';
-import { supabase, supabaseAdmin } from '@/config/supabase.js';
-import { db } from '@/db/index.js';
-import { users } from '@/models/user.model.js';
-import { priestProfiles } from '@/models/priest.model.js';
-import { addresses } from '@/models/address.model.js';
-import { otpCodes } from '@/models/otp.model.js';
-import { toUserView, UserViewModel } from '@/views/user.view.js';
+import { env } from '../config/env.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
+import { db } from '../db/index.js';
+import { users } from '../models/user.model.js';
+import { priestProfiles } from '../models/priest.model.js';
+import { addresses } from '../models/address.model.js';
+import { otpCodes } from '../models/otp.model.js';
+import { toUserView, UserViewModel } from '../views/user.view.js';
 import { brevoEmailService } from './email.service.js';
-import { AppError } from '@/utils/AppError.js';
+import { AppError } from '../utils/AppError.js';
 import {
   LoginInput,
   RegisterUserInput,
@@ -19,7 +19,7 @@ import {
   VerifyEmailOtpInput,
   ForgotPasswordInput,
   ResetPasswordInput,
-} from '@/schemas/auth.schema.js';
+} from '../schemas/auth.schema.js';
 
 export interface AuthResult {
   user?: UserViewModel;

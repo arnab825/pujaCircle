@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { bookingController } from '@/controllers/booking.controller.js';
-import { requireAuth } from '@/middlewares/auth.middleware.js';
-import { validate } from '@/middlewares/validate.middleware.js';
+import { bookingController } from '../controllers/booking.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
 import {
   createBookingSchema,
   bookingActionReasonSchema,
   ratingSchema,
   bookingQuerySchema,
-} from '@/schemas/booking.schema.js';
-import { uuidParamSchema } from '@/schemas/common.schema.js';
+} from '../schemas/booking.schema.js';
+import { uuidParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 

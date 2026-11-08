@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
-import { sendError } from '@/views/response.view.js';
+import { sendError } from '../views/response.view.js';
 
 /**
  * [MIDDLEWARE] Generic Zod Request Validator

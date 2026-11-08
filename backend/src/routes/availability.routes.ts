@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { availabilityController } from '@/controllers/availability.controller.js';
-import { requireAuth } from '@/middlewares/auth.middleware.js';
-import { validate } from '@/middlewares/validate.middleware.js';
+import { availabilityController } from '../controllers/availability.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
 import {
   markDayOffSchema,
   blockHoursSchema,
   calendarQuerySchema,
-} from '@/schemas/availability.schema.js';
+} from '../schemas/availability.schema.js';
 
 const router = Router();
 
@@ -35,6 +35,12 @@ router.get(
   '/calendar',
   validate(calendarQuerySchema, 'query'),
   availabilityController.getCalendar
+);
+
+// GET /slots: Get available slots for a priest on a date
+router.get(
+  '/slots',
+  availabilityController.getSlots
 );
 
 export const availabilityRoutes = router;

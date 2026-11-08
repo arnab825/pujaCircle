@@ -55,7 +55,7 @@ export const PriestBookingsPage: React.FC = () => {
   const handleAccept = async (bookingId: string) => {
     setIsProcessing(true);
     try {
-      const res = await bookingApi.acceptBooking(bookingId, priestId);
+      const res = await bookingApi.acceptBooking(bookingId);
       if (res.success) {
         toast.success("Booking confirmed! Auspicious preparation begins.");
         fetchBookings();
@@ -71,11 +71,7 @@ export const PriestBookingsPage: React.FC = () => {
     if (!rejectBookingTarget) return;
     setIsProcessing(true);
     try {
-      const res = await bookingApi.rejectBooking(
-        rejectBookingTarget.id,
-        priestId,
-        reason
-      );
+      const res = await bookingApi.rejectBooking(rejectBookingTarget.id, reason);
       if (res.success) {
         toast.success("Booking declined. Slot has been freed.");
         setRejectBookingTarget(null);
@@ -94,7 +90,6 @@ export const PriestBookingsPage: React.FC = () => {
     try {
       const res = await bookingApi.completeBooking(
         completeBookingTarget.id,
-        priestId,
         completionCode
       );
       if (res.success) {

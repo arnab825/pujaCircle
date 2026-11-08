@@ -58,7 +58,7 @@ export const BookingsPage: React.FC = () => {
 
   const handleConfirmCancel = async (reason: string) => {
     if (!bookingToCancel || !user) return;
-    const res = await bookingApi.cancelBooking({ bookingId: bookingToCancel.id, userId: user.id, reason });
+    const res = await bookingApi.cancelBooking(bookingToCancel.id, reason);
     if (res.success) {
       toast.success('Puja appointment cancelled.');
       setCancelModalOpen(false);
@@ -70,13 +70,11 @@ export const BookingsPage: React.FC = () => {
 
   const handleRatingSubmit = async (data: RatingInput) => {
     if (!bookingToRate) return;
-    const activeUserId = user?.id || bookingToRate.userId;
     if (!data.rating || data.rating < 1) {
       toast.error('Please select a star rating.');
       return;
     }
-    const res = await bookingApi.submitRating(activeUserId, {
-      bookingId: bookingToRate.id,
+    const res = await bookingApi.submitRating(bookingToRate.id, {
       rating: data.rating,
       review: data.review,
     });

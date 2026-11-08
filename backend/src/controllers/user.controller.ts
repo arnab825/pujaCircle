@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess } from '@/views/response.view.js';
-import { userService } from '@/services/user.service.js';
+import { sendSuccess } from '../views/response.view.js';
+import { userService } from '../services/user.service.js';
 
 // Controller managing devotee profile details, personal address records, and credentials
 export class UserController {

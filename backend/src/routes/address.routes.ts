@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { addressController } from '@/controllers/address.controller.js';
-import { requireAuth } from '@/middlewares/auth.middleware.js';
-import { validate } from '@/middlewares/validate.middleware.js';
-import { createAddressSchema, updateAddressSchema } from '@/schemas/address.schema.js';
-import { uuidParamSchema } from '@/schemas/common.schema.js';
+import { addressController } from '../controllers/address.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
+import { createAddressSchema, updateAddressSchema } from '../schemas/address.schema.js';
+import { uuidParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 

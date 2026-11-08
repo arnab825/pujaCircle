@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '@/views/response.view.js';
-import { priestService } from '@/services/priest.service.js';
+import { sendSuccess, sendError } from '../views/response.view.js';
+import { priestService } from '../services/priest.service.js';
 
-// Controller managing verified priest directory, profile customizations, service offerings, and slot scheduling
+/**
+ * Controller managing verified priest directory, profile customizations,
+ * ritual services, and availability schedules.
+ */
 export class PriestController {
   // GET /api/v1/priests
   async searchPriests(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -38,70 +41,32 @@ export class PriestController {
     }
   }
 
-  // PUT /api/v1/priests/me/profile
-  async updateMyProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // PUT /api/v1/priests/me/profile or PUT /api/v1/priests/:id
+  async updatePriestProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const updated = await priestService.updatePriestProfile(req.user!.id, req.body);
+      const targetId = req.params.id || req.user!.id;
+      const updated = await priestService.updatePriestProfile(targetId, req.body);
       sendSuccess(res, 'Priest profile updated successfully.', updated);
     } catch (error) {
       next(error);
     }
   }
 
-  // GET /api/v1/priests/me/services
-  async getMyServices(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const services = await priestService.getPriestServices(req.user!.id);
-      sendSuccess(res, 'Priest services retrieved.', services);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // POST /api/v1/priests/me/services
-  async addService(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const service = await priestService.createPriestService(req.user!.id, req.body);
-      sendSuccess(res, 'Service offering added.', service, 201);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // DELETE /api/v1/priests/me/services/:serviceId
-  async deleteService(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      await priestService.deletePriestService(req.user!.id, req.params.serviceId);
-      sendSuccess(res, `Service ${req.params.serviceId} removed.`);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // PUT /api/v1/priests/:id
-  async updatePriestProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const updated = await priestService.updatePriestProfile(req.params.id, req.body);
-      sendSuccess(res, `Priest ${req.params.id} updated.`, updated);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // GET /api/v1/priests/:id/services
+  // GET /api/v1/priests/me/services or GET /api/v1/priests/:id/services
   async getPriestServices(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const services = await priestService.getPriestServices(req.params.id);
+      const priestId = req.params.id || req.user!.id;
+      const services = await priestService.getPriestServices(priestId);
       sendSuccess(res, 'Priest services retrieved.', services);
     } catch (error) {
       next(error);
     }
   }
 
-  // POST /api/v1/priests/:id/services
+  // POST /api/v1/priests/me/services or POST /api/v1/priests/:id/services
   async createPriestService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const priestId = req.user?.id || req.params.id;
+      const priestId = req.params.id || req.user!.id;
       const service = await priestService.createPriestService(priestId, req.body);
       sendSuccess(res, 'Service offering created.', service, 201);
     } catch (error) {
@@ -112,7 +77,7 @@ export class PriestController {
   // PUT /api/v1/priests/:id/services/:serviceId
   async updatePriestService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const priestId = req.user?.id || req.params.id;
+      const priestId = req.params.id || req.user!.id;
       const updated = await priestService.updatePriestService(
         priestId,
         req.params.serviceId,
@@ -124,12 +89,12 @@ export class PriestController {
     }
   }
 
-  // DELETE /api/v1/priests/:id/services/:serviceId
+  // DELETE /api/v1/priests/me/services/:serviceId or DELETE /api/v1/priests/:id/services/:serviceId
   async deletePriestService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const priestId = req.user?.id || req.params.id;
+      const priestId = req.params.id || req.user!.id;
       await priestService.deletePriestService(priestId, req.params.serviceId);
-      sendSuccess(res, 'Service offering removed.');
+      sendSuccess(res, `Service ${req.params.serviceId} removed.`);
     } catch (error) {
       next(error);
     }
@@ -138,7 +103,7 @@ export class PriestController {
   // PATCH /api/v1/priests/:id/services/:serviceId/toggle
   async togglePriestService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const priestId = req.user?.id || req.params.id;
+      const priestId = req.params.id || req.user!.id;
       const result = await priestService.togglePriestService(priestId, req.params.serviceId);
       sendSuccess(res, 'Service status toggled.', result);
     } catch (error) {
@@ -146,30 +111,11 @@ export class PriestController {
     }
   }
 
-  // GET /api/v1/priests/me/exceptions
-  async getMyExceptions(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const exceptions = await priestService.getPriestExceptions(req.user!.id, req.query as any);
-      sendSuccess(res, 'Priest availability exceptions retrieved.', exceptions);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // DELETE /api/v1/priests/me/exceptions/:exceptionId
-  async deleteMyException(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      await priestService.deletePriestException(req.user!.id, req.params.exceptionId);
-      sendSuccess(res, 'Availability exception deleted successfully.');
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // GET /api/v1/priests/:id/exceptions
+  // GET /api/v1/priests/me/exceptions or GET /api/v1/priests/:id/exceptions
   async getPriestExceptions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const exceptions = await priestService.getPriestExceptions(req.params.id, req.query as any);
+      const priestId = req.params.id || req.user!.id;
+      const exceptions = await priestService.getPriestExceptions(priestId, req.query as any);
       sendSuccess(res, 'Priest availability exceptions retrieved.', exceptions);
     } catch (error) {
       next(error);
@@ -179,8 +125,9 @@ export class PriestController {
   // PUT /api/v1/priests/:id/exceptions/:exceptionId
   async updatePriestException(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const priestId = req.params.id || req.user!.id;
       const updated = await priestService.updatePriestException(
-        req.params.id,
+        priestId,
         req.params.exceptionId,
         req.body
       );
@@ -190,50 +137,33 @@ export class PriestController {
     }
   }
 
-  // DELETE /api/v1/priests/:id/exceptions/:exceptionId
+  // DELETE /api/v1/priests/me/exceptions/:exceptionId or DELETE /api/v1/priests/:id/exceptions/:exceptionId
   async deletePriestException(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await priestService.deletePriestException(req.params.id, req.params.exceptionId);
+      const priestId = req.params.id || req.user!.id;
+      await priestService.deletePriestException(priestId, req.params.exceptionId);
       sendSuccess(res, 'Availability exception deleted successfully.');
     } catch (error) {
       next(error);
     }
   }
 
-  // GET /api/v1/priests/me/working-hours
-  async getMyWorkingHours(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const workingHours = await priestService.getWorkingHours(req.user!.id);
-      sendSuccess(res, 'Priest default working hours retrieved.', workingHours);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // PUT /api/v1/priests/me/working-hours
-  async updateMyWorkingHours(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const updated = await priestService.updateWorkingHours(req.user!.id, req.body);
-      sendSuccess(res, 'Priest default working hours updated successfully.', updated);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // GET /api/v1/priests/:id/working-hours
+  // GET /api/v1/priests/me/working-hours or GET /api/v1/priests/:id/working-hours
   async getPriestWorkingHours(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const workingHours = await priestService.getWorkingHours(req.params.id);
+      const priestId = req.params.id || req.user!.id;
+      const workingHours = await priestService.getWorkingHours(priestId);
       sendSuccess(res, 'Priest working hours retrieved.', workingHours);
     } catch (error) {
       next(error);
     }
   }
 
-  // PUT /api/v1/priests/:id/working-hours
+  // PUT /api/v1/priests/me/working-hours or PUT /api/v1/priests/:id/working-hours
   async updatePriestWorkingHours(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const updated = await priestService.updateWorkingHours(req.params.id, req.body);
+      const priestId = req.params.id || req.user!.id;
+      const updated = await priestService.updateWorkingHours(priestId, req.body);
       sendSuccess(res, 'Priest working hours updated successfully.', updated);
     } catch (error) {
       next(error);

@@ -5,7 +5,13 @@ import { priestApi } from "@/api/priest.api";
 import { addressApi } from "@/api/address.api";
 import { bookingApi } from "@/api/booking.api";
 import { Priest, PriestService } from "@/types/priest.types";
-import { CalculatedSlot, PriestException, getISTNow, getISTTomorrow, formatTimeAmPm } from "@/lib/availabilityUtils";
+import {
+  CalculatedSlot,
+  PriestException,
+  getISTNow,
+  getISTTomorrow,
+  formatTimeAmPm,
+} from "@/lib/availabilityUtils";
 import { Address } from "@/types/address.types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -19,7 +25,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { formatCurrency, formatTime, formatFullDate, getInitials } from "@/lib/utils";
+import {
+  formatCurrency,
+  formatTime,
+  formatFullDate,
+  getInitials,
+} from "@/lib/utils";
 import {
   MapPin,
   Star,
@@ -53,23 +64,29 @@ export const PriestDetailsPage: React.FC = () => {
   const { istDate, istMinutes } = getISTNow();
   const tomorrowStr = getISTTomorrow();
   const dayAfterTomorrow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
-  const dayAfterTomorrowStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(dayAfterTomorrow);
+  const dayAfterTomorrowStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+  }).format(dayAfterTomorrow);
 
   // Standard day window concludes around 21:00. Purohits require at least 12 hours advance notice
   // to review prior bookings and prepare samagri. After 9:00 AM IST (540 mins), all remaining slots for today
   // fall within the 12-hour notice buffer, so today is locked for new bookings.
-  const isTodayConcluded = (istMinutes + (12 * 60)) >= (21 * 60);
+  const isTodayConcluded = istMinutes + 12 * 60 >= 21 * 60;
   const initialDate = isTodayConcluded ? tomorrowStr : istDate;
   const [selectedDate, setSelectedDate] = useState<string>(initialDate);
   const [availableSlots, setAvailableSlots] = useState<CalculatedSlot[]>([]);
   const [dayExceptions, setDayExceptions] = useState<PriestException[]>([]);
   const [isSlotsLoading, setIsSlotsLoading] = useState(false);
-  const [timeFilter, setTimeFilter] = useState<'ALL' | 'MORNING' | 'AFTERNOON' | 'EVENING'>('ALL');
+  const [timeFilter, setTimeFilter] = useState<
+    "ALL" | "MORNING" | "AFTERNOON" | "EVENING"
+  >("ALL");
 
   // Booking Flow State
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isAddressPickerOpen, setIsAddressPickerOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<PriestService | null>(null);
+  const [selectedService, setSelectedService] = useState<PriestService | null>(
+    null,
+  );
   const [selectedSlot, setSelectedSlot] = useState<CalculatedSlot | null>(null);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [userNotes, setUserNotes] = useState("");
@@ -151,7 +168,9 @@ export const PriestDetailsPage: React.FC = () => {
       !selectedAddressId ||
       !selectedService
     ) {
-      toast.error("Please select a ceremony, address, and available time slot.");
+      toast.error(
+        "Please select a ceremony, address, and available time slot.",
+      );
       return;
     }
 
@@ -159,11 +178,22 @@ export const PriestDetailsPage: React.FC = () => {
       (a) => a.id === selectedAddressId,
     );
     if (selectedAddress) {
-      const selectedPin = (selectedAddress.pincode || selectedAddress.pinCode || '').trim().replace(/\D/g, '');
-      const priestHomePin = (priest?.pincode || '').trim().replace(/\D/g, '');
-      const priestAreasStr = (priest?.serviceAreas || []).join(' ');
-      const hasLocationRules = Boolean(priestHomePin || (priest?.serviceAreas && priest.serviceAreas.length > 0));
-      const isServed = (priestHomePin && priestHomePin === selectedPin) || (selectedPin && priestAreasStr.includes(selectedPin));
+      const selectedPin = (
+        selectedAddress.pincode ||
+        selectedAddress.pinCode ||
+        ""
+      )
+        .trim()
+        .replace(/\D/g, "");
+      const priestHomePin = (priest?.pincode || "").trim().replace(/\D/g, "");
+      const priestAreasStr = (priest?.serviceAreas || []).join(" ");
+      const hasLocationRules = Boolean(
+        priestHomePin ||
+        (priest?.serviceAreas && priest.serviceAreas.length > 0),
+      );
+      const isServed =
+        (priestHomePin && priestHomePin === selectedPin) ||
+        (selectedPin && priestAreasStr.includes(selectedPin));
 
       if (hasLocationRules && !isServed) {
         toast.error(
@@ -175,23 +205,19 @@ export const PriestDetailsPage: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const res = await bookingApi.createBooking(
-        {
-          priestId: priest.id,
-          priestServiceId: selectedService.id,
-          slotId: selectedSlot.id,
-          availabilitySlotId: selectedSlot.id,
-          addressId: selectedAddressId,
-          bookingDate:
-            selectedSlot.slotDate || selectedSlot.date || selectedDate,
-          startTime: selectedSlot.startTime,
-          endTime: selectedSlot.endTime,
-          specialInstructions: userNotes.trim() || undefined,
-          notes: userNotes.trim() || undefined,
-          userNotes: userNotes.trim() || undefined,
-        },
-        user.id,
-      );
+      const res = await bookingApi.createBooking({
+        priestId: priest.id,
+        priestServiceId: selectedService.id,
+        slotId: selectedSlot.id,
+        availabilitySlotId: selectedSlot.id,
+        addressId: selectedAddressId,
+        bookingDate: selectedSlot.slotDate || selectedSlot.date || selectedDate,
+        startTime: selectedSlot.startTime,
+        endTime: selectedSlot.endTime,
+        specialInstructions: userNotes.trim() || undefined,
+        notes: userNotes.trim() || undefined,
+        userNotes: userNotes.trim() || undefined,
+      });
 
       if (res.success && res.data) {
         toast.success(res.message);
@@ -239,42 +265,67 @@ export const PriestDetailsPage: React.FC = () => {
   }
 
   const blackoutForSelectedDate = dayExceptions.find(
-    (e) => e.date === selectedDate && (e.type === 'PARTIAL_BLACKOUT' || e.exceptionType === 'BLOCK') && e.type !== 'FULL_DAY_LEAVE'
+    (e) =>
+      e.date === selectedDate &&
+      (e.type === "PARTIAL_BLACKOUT" || e.exceptionType === "BLOCK") &&
+      e.type !== "FULL_DAY_LEAVE",
   );
 
   // Filter slots by Time of Day
   const filteredSlots = availableSlots.filter((slot) => {
-    if (timeFilter === 'ALL') return true;
-    const hour = parseInt(slot.startTime.split(':')[0], 10);
-    if (timeFilter === 'MORNING') return hour < 12;
-    if (timeFilter === 'AFTERNOON') return hour >= 12 && hour < 17;
-    if (timeFilter === 'EVENING') return hour >= 17;
+    if (timeFilter === "ALL") return true;
+    const hour = parseInt(slot.startTime.split(":")[0], 10);
+    if (timeFilter === "MORNING") return hour < 12;
+    if (timeFilter === "AFTERNOON") return hour >= 12 && hour < 17;
+    if (timeFilter === "EVENING") return hour >= 17;
     return true;
   });
 
-  const morningCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) < 12).length;
-  const afternoonCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) >= 12 && parseInt(s.startTime.split(':')[0], 10) < 17).length;
-  const eveningCount = availableSlots.filter((s) => s.status === 'AVAILABLE' && parseInt(s.startTime.split(':')[0], 10) >= 17).length;
+  const morningCount = availableSlots.filter(
+    (s) =>
+      s.status === "AVAILABLE" && parseInt(s.startTime.split(":")[0], 10) < 12,
+  ).length;
+  const afternoonCount = availableSlots.filter(
+    (s) =>
+      s.status === "AVAILABLE" &&
+      parseInt(s.startTime.split(":")[0], 10) >= 12 &&
+      parseInt(s.startTime.split(":")[0], 10) < 17,
+  ).length;
+  const eveningCount = availableSlots.filter(
+    (s) =>
+      s.status === "AVAILABLE" && parseInt(s.startTime.split(":")[0], 10) >= 17,
+  ).length;
 
   const selectedAddress = userAddresses.find((a) => a.id === selectedAddressId);
   const isPincodeServed = (pincodeStr?: string) => {
     if (!pincodeStr) return true;
-    const cleanPin = pincodeStr.trim().replace(/\D/g, '');
-    const priestHomePin = (priest?.pincode || '').trim().replace(/\D/g, '');
-    const priestAreasStr = (priest?.serviceAreas || []).join(' ');
-    const hasRules = Boolean(priestHomePin || (priest?.serviceAreas && priest.serviceAreas.length > 0));
+    const cleanPin = pincodeStr.trim().replace(/\D/g, "");
+    const priestHomePin = (priest?.pincode || "").trim().replace(/\D/g, "");
+    const priestAreasStr = (priest?.serviceAreas || []).join(" ");
+    const hasRules = Boolean(
+      priestHomePin || (priest?.serviceAreas && priest.serviceAreas.length > 0),
+    );
     if (!hasRules) return true;
-    return (priestHomePin && priestHomePin === cleanPin) || priestAreasStr.includes(cleanPin);
+    return (
+      (priestHomePin && priestHomePin === cleanPin) ||
+      priestAreasStr.includes(cleanPin)
+    );
   };
   const isAddressOutside = Boolean(
-    selectedAddress && !isPincodeServed(selectedAddress.pincode || selectedAddress.pinCode)
+    selectedAddress &&
+    !isPincodeServed(selectedAddress.pincode || selectedAddress.pinCode),
   );
   const selectedAddressSummary = selectedAddress
-    ? [selectedAddress.houseNo || selectedAddress.houseBuilding, selectedAddress.villageTown || selectedAddress.locality].filter(Boolean).join(', ') || selectedAddress.city
-    : 'Select venue address';
+    ? [
+        selectedAddress.houseNo || selectedAddress.houseBuilding,
+        selectedAddress.villageTown || selectedAddress.locality,
+      ]
+        .filter(Boolean)
+        .join(", ") || selectedAddress.city
+    : "Select venue address";
   const selectedAddressDetail = selectedAddress
-    ? `${selectedAddress.city}, ${selectedAddress.district || ''} - ${selectedAddress.pincode || selectedAddress.pinCode || ''}`
-    : 'Click to choose your home ceremony location';
+    ? `${selectedAddress.city}, ${selectedAddress.district || ""} - ${selectedAddress.pincode || selectedAddress.pinCode || ""}`
+    : "Click to choose your home ceremony location";
 
   return (
     <div className="max-w-6xl mx-auto px-2.5 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
@@ -313,7 +364,7 @@ export const PriestDetailsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-3xl font-bold font-serif text-stone-900 break-words">
+                <h1 className="text-xl sm:text-3xl font-bold font-serif text-stone-900 wrap-break-words">
                   {priest.displayName || priest.fullName}
                 </h1>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-red-700 text-white text-[11px] font-semibold shadow-2xs shrink-0">
@@ -324,12 +375,14 @@ export const PriestDetailsPage: React.FC = () => {
 
               <div className="flex flex-wrap items-center gap-2 text-xs text-stone-600 mt-2">
                 <span className="inline-flex items-center gap-1 font-bold text-stone-900 bg-amber-100 px-2.5 py-0.5 rounded-sm border border-amber-300">
-                  <Star className={`h-3.5 w-3.5 ${priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? 'fill-amber-500 text-amber-500' : 'text-stone-400'}`} />
-                  {priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? (
-                    `${Number(priest.rating).toFixed(1)} (${priest.reviewCount} ${priest.reviewCount === 1 ? 'Review' : 'Reviews'})`
-                  ) : (
-                    'No ratings yet'
-                  )}
+                  <Star
+                    className={`h-3.5 w-3.5 ${priest.reviewCount && priest.rating && Number(priest.rating) > 0 ? "fill-amber-500 text-amber-500" : "text-stone-400"}`}
+                  />
+                  {priest.reviewCount &&
+                  priest.rating &&
+                  Number(priest.rating) > 0
+                    ? `${Number(priest.rating).toFixed(1)} (${priest.reviewCount} ${priest.reviewCount === 1 ? "Review" : "Reviews"})`
+                    : "No ratings yet"}
                 </span>
                 <span className="inline-flex items-center gap-1 font-bold text-stone-900 bg-amber-400 px-2.5 py-0.5 rounded-sm">
                   <Award className="h-3 w-3 text-stone-950" />
@@ -337,17 +390,24 @@ export const PriestDetailsPage: React.FC = () => {
                 </span>
                 <span className="inline-flex items-center gap-1 font-bold text-white bg-red-950 px-2.5 py-0.5 rounded-sm">
                   <Flame className="h-3 w-3 text-amber-400" />
-                  {(priest.completedPujas ?? 0)} {(priest.completedPujas ?? 0) === 1 ? 'Puja Conducted' : 'Pujas Conducted'}
+                  {priest.completedPujas ?? 0}{" "}
+                  {(priest.completedPujas ?? 0) === 1
+                    ? "Puja Conducted"
+                    : "Pujas Conducted"}
                 </span>
                 <span className="flex items-center gap-1 font-semibold text-stone-700">
-                  <MapPin className="h-3.5 w-3.5 text-red-700 shrink-0" /> {priest.city},{" "}
-                  {priest.state}
+                  <MapPin className="h-3.5 w-3.5 text-red-700 shrink-0" />{" "}
+                  {priest.city}, {priest.state}
                 </span>
               </div>
             </div>
 
             <Button
-              onClick={() => bookingSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() =>
+                bookingSectionRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                })
+              }
               className="gap-2 text-xs font-bold bg-[#780016] hover:bg-red-800 text-white rounded-md shadow-xs h-10 px-5 cursor-pointer shrink-0 w-full sm:w-auto"
             >
               <Calendar className="h-4 w-4" />
@@ -355,7 +415,10 @@ export const PriestDetailsPage: React.FC = () => {
             </Button>
           </div>
 
-          <p className="text-xs text-stone-600 leading-relaxed font-sans">{priest.bio || "Experienced Purohit offering authentic Vedic Vidhi rituals and sacred mantra chanting across Kolkata."}</p>
+          <p className="text-xs text-stone-600 leading-relaxed font-sans">
+            {priest.bio ||
+              "Experienced Purohit offering authentic Vedic Vidhi rituals and sacred mantra chanting across Kolkata."}
+          </p>
 
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs pt-2 border-t border-amber-100">
             <div>
@@ -378,10 +441,12 @@ export const PriestDetailsPage: React.FC = () => {
       </div>
 
       {/* Main Booking Section: Left Cohesive Sanctum + Right Sticky Summary */}
-      <div ref={bookingSectionRef} className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start w-full">
+      <div
+        ref={bookingSectionRef}
+        className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start w-full"
+      >
         {/* Left Column (8 cols): Single Unified Flow Panel */}
         <div className="lg:col-span-8 bg-white border-2 border-amber-300 rounded-xl sm:rounded-2xl p-4 sm:p-7 shadow-xs space-y-5 sm:space-y-7">
-          
           {/* STEP 1: Choose Ritual Ceremony */}
           <div className="space-y-3.5">
             <div className="flex flex-wrap items-center justify-between gap-1.5 pb-2 border-b border-amber-100">
@@ -428,12 +493,15 @@ export const PriestDetailsPage: React.FC = () => {
                           )}
                         </div>
                         <p className="text-[11px] text-stone-600 line-clamp-2">
-                          Traditional Shastric Vidhi with complete samagri guidance and auspicious mantras.
+                          Traditional Shastric Vidhi with complete samagri
+                          guidance and auspicious mantras.
                         </p>
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-amber-100 text-xs">
-                        <span className="text-stone-500 font-medium">Dakshina:</span>
+                        <span className="text-stone-500 font-medium">
+                          Dakshina:
+                        </span>
                         <strong className="text-base font-serif font-bold text-[#780016]">
                           {formatCurrency(srv.price)}
                         </strong>
@@ -472,7 +540,9 @@ export const PriestDetailsPage: React.FC = () => {
                     setSelectedDate(istDate);
                     setSelectedSlot(null);
                   } else {
-                    toast.warning("Purohits require 12 hours advance booking notice. Today's slots are within this window; please book for tomorrow.");
+                    toast.warning(
+                      "Purohits require 12 hours advance booking notice. Today's slots are within this window; please book for tomorrow.",
+                    );
                   }
                 }}
                 disabled={isTodayConcluded}
@@ -480,12 +550,16 @@ export const PriestDetailsPage: React.FC = () => {
                   selectedDate === istDate
                     ? "bg-[#780016] text-white border-[#780016] shadow-2xs"
                     : isTodayConcluded
-                    ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-60"
-                    : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
+                      ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed opacity-60"
+                      : "bg-white text-stone-800 border-amber-300 hover:bg-amber-50"
                 }`}
               >
                 <span>Today</span>
-                {isTodayConcluded && <span className="text-[10px] text-amber-700 font-semibold">(12h Notice)</span>}
+                {isTodayConcluded && (
+                  <span className="text-[10px] text-amber-700 font-semibold">
+                    (12h Notice)
+                  </span>
+                )}
               </button>
 
               <button
@@ -539,9 +613,16 @@ export const PriestDetailsPage: React.FC = () => {
               <div className="p-3 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
                 <AlertCircle className="w-4 h-4 text-[#780016] shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[#780016]">12-Hour Advance Notice Required:</strong>
+                  <strong className="text-[#780016]">
+                    12-Hour Advance Notice Required:
+                  </strong>
                   <p className="text-[11px] text-stone-700 mt-0.5">
-                    Purohits require at least 12 hours advance booking notice to review prior commitments, verify schedule availability, and prepare sacred Vedic samagri. Same-day bookings for today are within this preparation window. Please pick tomorrow ({formatFullDate(tomorrowStr)}) or an upcoming auspicious date.
+                    Purohits require at least 12 hours advance booking notice to
+                    review prior commitments, verify schedule availability, and
+                    prepare sacred Vedic samagri. Same-day bookings for today
+                    are within this preparation window. Please pick tomorrow (
+                    {formatFullDate(tomorrowStr)}) or an upcoming auspicious
+                    date.
                   </p>
                 </div>
               </div>
@@ -552,9 +633,14 @@ export const PriestDetailsPage: React.FC = () => {
               <div className="p-3 rounded-lg bg-amber-50/80 border border-amber-300 text-xs text-amber-950 flex items-start gap-2 shadow-2xs">
                 <Clock className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-[#780016]">Purohit Blocked / Break Window:</strong>
+                  <strong className="text-[#780016]">
+                    Purohit Blocked / Break Window:
+                  </strong>
                   <p className="text-[11px] text-stone-700 mt-0.5">
-                    {formatTimeAmPm(blackoutForSelectedDate.startTime || '')} – {formatTimeAmPm(blackoutForSelectedDate.endTime || '')} ({blackoutForSelectedDate.reason || 'Blocked Break'}). All other open slots shown below are fully bookable.
+                    {formatTimeAmPm(blackoutForSelectedDate.startTime || "")} –{" "}
+                    {formatTimeAmPm(blackoutForSelectedDate.endTime || "")} (
+                    {blackoutForSelectedDate.reason || "Blocked Break"}). All
+                    other open slots shown below are fully bookable.
                   </p>
                 </div>
               </div>
@@ -583,7 +669,9 @@ export const PriestDetailsPage: React.FC = () => {
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50/70 border border-amber-200 text-[11px] text-amber-900">
               <Clock className="w-3.5 h-3.5 text-[#780016] shrink-0" />
               <span>
-                <strong>12-Hour Advance Notice Policy:</strong> Purohits require at least 12 hours notice to review existing commitments, verify schedule availability, and prepare authentic puja samagri.
+                <strong>12-Hour Advance Notice Policy:</strong> Purohits require
+                at least 12 hours notice to review existing commitments, verify
+                schedule availability, and prepare authentic puja samagri.
               </span>
             </div>
 
@@ -591,9 +679,9 @@ export const PriestDetailsPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => setTimeFilter('ALL')}
+                onClick={() => setTimeFilter("ALL")}
                 className={`px-3 py-1.5 rounded-md font-bold transition-all border cursor-pointer ${
-                  timeFilter === 'ALL'
+                  timeFilter === "ALL"
                     ? "bg-[#780016] text-white border-[#780016]"
                     : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
                 }`}
@@ -603,9 +691,9 @@ export const PriestDetailsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setTimeFilter('MORNING')}
+                onClick={() => setTimeFilter("MORNING")}
                 className={`px-3 py-1.5 rounded-md font-bold transition-all border flex items-center gap-1 cursor-pointer ${
-                  timeFilter === 'MORNING'
+                  timeFilter === "MORNING"
                     ? "bg-[#780016] text-white border-[#780016]"
                     : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
                 }`}
@@ -616,9 +704,9 @@ export const PriestDetailsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setTimeFilter('AFTERNOON')}
+                onClick={() => setTimeFilter("AFTERNOON")}
                 className={`px-3 py-1.5 rounded-md font-bold transition-all border flex items-center gap-1 cursor-pointer ${
-                  timeFilter === 'AFTERNOON'
+                  timeFilter === "AFTERNOON"
                     ? "bg-[#780016] text-white border-[#780016]"
                     : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
                 }`}
@@ -629,9 +717,9 @@ export const PriestDetailsPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setTimeFilter('EVENING')}
+                onClick={() => setTimeFilter("EVENING")}
                 className={`px-3 py-1.5 rounded-md font-bold transition-all border flex items-center gap-1 cursor-pointer ${
-                  timeFilter === 'EVENING'
+                  timeFilter === "EVENING"
                     ? "bg-[#780016] text-white border-[#780016]"
                     : "bg-white text-stone-700 border-amber-200 hover:bg-amber-50"
                 }`}
@@ -649,8 +737,12 @@ export const PriestDetailsPage: React.FC = () => {
             ) : filteredSlots.length === 0 ? (
               <div className="p-8 text-center space-y-2 border border-dashed border-amber-300 rounded-lg bg-amber-50/30">
                 <Clock className="w-8 h-8 text-amber-600/50 mx-auto" />
-                <p className="text-xs font-bold text-stone-800">No slots available for this filter.</p>
-                <p className="text-[11px] text-stone-500">Try switching to 'All Slots' or pick another auspicious date.</p>
+                <p className="text-xs font-bold text-stone-800">
+                  No slots available for this filter.
+                </p>
+                <p className="text-[11px] text-stone-500">
+                  Try switching to 'All Slots' or pick another auspicious date.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5">
@@ -662,16 +754,17 @@ export const PriestDetailsPage: React.FC = () => {
                         className="p-2.5 sm:p-3 rounded-lg border border-stone-200 bg-stone-50/70 text-stone-400 cursor-not-allowed select-none flex flex-col items-center justify-center text-center gap-1 opacity-70"
                       >
                         <span className="font-mono text-xs font-semibold line-through">
-                          {formatTime(slot.startTime)} – {formatTime(slot.endTime)}
+                          {formatTime(slot.startTime)} –{" "}
+                          {formatTime(slot.endTime)}
                         </span>
                         <span className="text-[9px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-1.5 py-0.2 rounded">
-                          {slot.blockedReason || 'Unavailable'}
+                          {slot.blockedReason || "Unavailable"}
                         </span>
                       </div>
                     );
                   }
 
-                  if (slot.status !== 'AVAILABLE') return null;
+                  if (slot.status !== "AVAILABLE") return null;
 
                   const isSlotSelected = selectedSlot?.id === slot.id;
 
@@ -688,7 +781,10 @@ export const PriestDetailsPage: React.FC = () => {
                     >
                       <div className="flex items-center gap-1 font-mono text-xs font-bold">
                         <Clock className="w-3 h-3 text-[#780016] shrink-0" />
-                        <span>{formatTime(slot.startTime)} – {formatTime(slot.endTime)}</span>
+                        <span>
+                          {formatTime(slot.startTime)} –{" "}
+                          {formatTime(slot.endTime)}
+                        </span>
                       </div>
                       <span className="text-[10px] text-stone-500 font-medium">
                         Shubh Muhurat
@@ -727,14 +823,18 @@ export const PriestDetailsPage: React.FC = () => {
                   {selectedService?.serviceName || "Select a ceremony"}
                 </strong>
                 <span className="font-bold font-serif text-[#780016]">
-                  {selectedService ? formatCurrency(selectedService.price) : "—"}
+                  {selectedService
+                    ? formatCurrency(selectedService.price)
+                    : "—"}
                 </span>
               </div>
             </div>
 
             {/* Selected Muhurat Detail */}
             <div className="space-y-1 text-xs">
-              <span className="text-stone-500 font-medium">Scheduled Muhurat:</span>
+              <span className="text-stone-500 font-medium">
+                Scheduled Muhurat:
+              </span>
               <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200 space-y-0.5">
                 <div className="font-bold text-stone-900">
                   {formatFullDate(selectedDate)}
@@ -750,7 +850,9 @@ export const PriestDetailsPage: React.FC = () => {
             {/* Venue Address Selector (Clean Card with Modal Trigger - No Raw HTML Select) */}
             <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-stone-500 font-medium">Sanctum Venue (Address):</span>
+                <span className="text-stone-500 font-medium">
+                  Sanctum Venue (Address):
+                </span>
                 <button
                   type="button"
                   onClick={() => setIsAddressPickerOpen(true)}
@@ -783,7 +885,9 @@ export const PriestDetailsPage: React.FC = () => {
 
             {/* Optional Notes */}
             <div className="space-y-1 text-xs">
-              <span className="text-stone-500 font-medium">Special Instructions (Optional):</span>
+              <span className="text-stone-500 font-medium">
+                Special Instructions (Optional):
+              </span>
               <Input
                 value={userNotes}
                 onChange={(e) => setUserNotes(e.target.value)}
@@ -794,10 +898,19 @@ export const PriestDetailsPage: React.FC = () => {
 
             {/* Booking CTA Button */}
             <Button
-              disabled={isSubmitting || !selectedService || !selectedSlot || !selectedAddressId || isAddressOutside}
+              disabled={
+                isSubmitting ||
+                !selectedService ||
+                !selectedSlot ||
+                !selectedAddressId ||
+                isAddressOutside
+              }
               onClick={() => handleStartBooking()}
               className={`w-full h-11 text-xs font-bold gap-2 rounded-lg shadow-sm cursor-pointer ${
-                !selectedService || !selectedSlot || !selectedAddressId || isAddressOutside
+                !selectedService ||
+                !selectedSlot ||
+                !selectedAddressId ||
+                isAddressOutside
                   ? "bg-stone-300 text-stone-600 cursor-not-allowed"
                   : "bg-[#780016] hover:bg-red-800 text-white"
               }`}
@@ -807,12 +920,12 @@ export const PriestDetailsPage: React.FC = () => {
                 {!selectedService
                   ? "1. Select Ceremony"
                   : !selectedSlot
-                  ? "2. Pick a Muhurat Slot"
-                  : !selectedAddressId
-                  ? "3. Choose Venue Address"
-                  : isAddressOutside
-                  ? "Venue Outside Purohit Service PIN"
-                  : "Confirm Ceremony Request →"}
+                    ? "2. Pick a Muhurat Slot"
+                    : !selectedAddressId
+                      ? "3. Choose Venue Address"
+                      : isAddressOutside
+                        ? "Venue Outside Purohit Service PIN"
+                        : "Confirm Ceremony Request →"}
               </span>
             </Button>
 
@@ -831,7 +944,8 @@ export const PriestDetailsPage: React.FC = () => {
               Choose Sanctum Venue Address
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-600">
-              Select the residence address where the Purohit will conduct the puja.
+              Select the residence address where the Purohit will conduct the
+              puja.
             </DialogDescription>
           </DialogHeader>
 
@@ -848,8 +962,16 @@ export const PriestDetailsPage: React.FC = () => {
             ) : (
               userAddresses.map((addr) => {
                 const isSelected = selectedAddressId === addr.id;
-                const isOutside = !isPincodeServed(addr.pincode || addr.pinCode);
-                const line1 = [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality].filter(Boolean).join(', ') || addr.city;
+                const isOutside = !isPincodeServed(
+                  addr.pincode || addr.pinCode,
+                );
+                const line1 =
+                  [
+                    addr.houseNo || addr.houseBuilding,
+                    addr.villageTown || addr.locality,
+                  ]
+                    .filter(Boolean)
+                    .join(", ") || addr.city;
                 const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
 
                 return (
@@ -875,7 +997,9 @@ export const PriestDetailsPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-stone-500 truncate">{line2}</p>
+                      <p className="text-[11px] text-stone-500 truncate">
+                        {line2}
+                      </p>
                     </div>
 
                     {isSelected && (
@@ -989,9 +1113,17 @@ export const PriestDetailsPage: React.FC = () => {
               ) : (
                 <div className="space-y-2">
                   {userAddresses.map((addr) => {
-                    const line1 = [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality].filter(Boolean).join(', ') || addr.city;
+                    const line1 =
+                      [
+                        addr.houseNo || addr.houseBuilding,
+                        addr.villageTown || addr.locality,
+                      ]
+                        .filter(Boolean)
+                        .join(", ") || addr.city;
                     const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
-                    const isOutside = !isPincodeServed(addr.pincode || addr.pinCode);
+                    const isOutside = !isPincodeServed(
+                      addr.pincode || addr.pinCode,
+                    );
 
                     return (
                       <div

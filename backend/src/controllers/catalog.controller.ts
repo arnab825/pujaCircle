@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '@/views/response.view.js';
-import { catalogService } from '@/services/catalog.service.js';
+import { sendSuccess, sendError } from '../views/response.view.js';
+import { catalogService } from '../services/catalog.service.js';
 
 /**
  * [CONTROLLER] Catalog Controller

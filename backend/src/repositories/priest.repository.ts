@@ -1,6 +1,6 @@
 import { or, eq } from 'drizzle-orm';
-import { db } from '@/db/index.js';
-import { priestProfiles } from '@/models/priest.model.js';
+import { db } from '../db/index.js';
+import { priestProfiles } from '../models/priest.model.js';
 
 // In-memory cache to eliminate repetitive N+1 database lookups for priest ID resolution
 const profileIdCache = new Map<string, { id: string; timestamp: number }>();

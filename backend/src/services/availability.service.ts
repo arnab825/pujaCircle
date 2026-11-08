@@ -1,9 +1,9 @@
 import { eq, and, or, gte, lte, lt, gt } from 'drizzle-orm';
-import { db } from '@/db/index.js';
-import { priestAvailabilityExceptions, priestProfiles } from '@/models/priest.model.js';
-import { bookings } from '@/models/booking.model.js';
-import { AppError } from '@/utils/AppError.js';
-import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
+import { db } from '../db/index.js';
+import { priestAvailabilityExceptions, priestProfiles } from '../models/priest.model.js';
+import { bookings } from '../models/booking.model.js';
+import { AppError } from '../utils/AppError.js';
+import { resolvePriestProfileId } from '../repositories/priest.repository.js';
 
 // DTO representing an availability exception returned by the API
 export interface FormattedAvailabilityException {
@@ -440,6 +440,112 @@ export class AvailabilityService {
     }
 
     return result;
+  }
+
+  // Calculate Muhurat day slots for a priest on a target date
+  async getDaySlots(
+    priestId: string,
+    date: string,
+    durationMinutes: number = 120
+  ): Promise<any[]> {
+    const targetPriestId = (await resolvePriestProfileId(priestId)) || priestId;
+
+    const [profile] = await db
+      .select({
+        defaultStartTime: priestProfiles.defaultStartTime,
+        defaultEndTime: priestProfiles.defaultEndTime,
+      })
+      .from(priestProfiles)
+      .where(eq(priestProfiles.id, targetPriestId))
+      .limit(1);
+
+    const defaultStartTime = profile?.defaultStartTime?.slice(0, 5) || '07:00';
+    const defaultEndTime = profile?.defaultEndTime?.slice(0, 5) || '21:00';
+
+    const dayStart = parseISTDateTime(date, '00:00');
+    const dayEnd = parseISTDateTime(date, '23:59');
+
+    const exceptions = await db
+      .select()
+      .from(priestAvailabilityExceptions)
+      .where(
+        and(
+          eq(priestAvailabilityExceptions.priestId, targetPriestId),
+          gte(priestAvailabilityExceptions.endAt, dayStart),
+          lte(priestAvailabilityExceptions.startAt, dayEnd)
+        )
+      );
+
+    const hasFullLeave = exceptions.some((e) => e.isFullDay);
+    if (hasFullLeave) return [];
+
+    const activeBookings = await db
+      .select({
+        startTime: bookings.startTime,
+        endTime: bookings.endTime,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.priestId, targetPriestId),
+          eq(bookings.bookingDate, date),
+          or(eq(bookings.status, 'CONFIRMED'), eq(bookings.status, 'PENDING'))
+        )
+      );
+
+    const timeToMins = (t: string) => {
+      const [h = '0', m = '0'] = t.split(':');
+      return parseInt(h, 10) * 60 + parseInt(m, 10);
+    };
+
+    const minsToTime = (mins: number) => {
+      const h = Math.floor(mins / 60).toString().padStart(2, '0');
+      const m = (mins % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const startMin = timeToMins(defaultStartTime);
+    const endMin = timeToMins(defaultEndTime);
+
+    const slots: any[] = [];
+    let currentStart = startMin;
+
+    while (currentStart + durationMinutes <= endMin) {
+      const currentEnd = currentStart + durationMinutes;
+      const startStr = minsToTime(currentStart);
+      const endStr = minsToTime(currentEnd);
+
+      const matchingBlackout = exceptions.find((e) => {
+        const boStart = timeToMins(toISTTimeString(new Date(e.startAt)));
+        const boEnd = timeToMins(toISTTimeString(new Date(e.endAt)));
+        return currentStart < boEnd && currentEnd > boStart;
+      });
+
+      const matchingBooking = activeBookings.find((b) => {
+        const bStart = timeToMins(b.startTime);
+        const bEnd = timeToMins(b.endTime);
+        return currentStart < bEnd && currentEnd > bStart;
+      });
+
+      const isBlocked = Boolean(matchingBlackout);
+      const isBooked = Boolean(matchingBooking);
+
+      slots.push({
+        id: `slot-${date}-${startStr}-${endStr}`,
+        priestId: targetPriestId,
+        date,
+        slotDate: date,
+        startTime: startStr,
+        endTime: endStr,
+        status: isBlocked || isBooked ? 'BOOKED' : 'AVAILABLE',
+        isBlocked,
+        blockedReason: matchingBlackout?.reason || (isBooked ? 'Booked' : undefined),
+      });
+
+      currentStart += durationMinutes;
+    }
+
+    return slots;
   }
 }
 

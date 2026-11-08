@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
-import { sendError } from '@/views/response.view.js';
-import { AppError } from '@/utils/AppError.js';
+import { sendError } from '../views/response.view.js';
+import { AppError } from '../utils/AppError.js';
 
 /**
  * Checks whether an error message is safe to present to end-users without

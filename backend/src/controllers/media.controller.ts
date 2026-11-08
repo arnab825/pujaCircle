@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '@/views/response.view.js';
-import { cloudinaryService } from '@/services/cloudinary.service.js';
+import { sendSuccess, sendError } from '../views/response.view.js';
+import { cloudinaryService } from '../services/cloudinary.service.js';
 
 /**
  * Validates the true binary content (magic bytes) of an image buffer

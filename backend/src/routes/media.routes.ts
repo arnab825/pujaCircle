@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { mediaController } from '@/controllers/media.controller.js';
-import { requireAuth } from '@/middlewares/auth.middleware.js';
-import { validate } from '@/middlewares/validate.middleware.js';
+import { mediaController } from '../controllers/media.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
 import {
   uploadImageSchema,
   deleteMediaSchema,
   uploadSignatureQuerySchema,
-} from '@/schemas/media.schema.js';
+} from '../schemas/media.schema.js';
 
 const router = Router();
 

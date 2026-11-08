@@ -1,13 +1,16 @@
-import { Booking, CreateBookingRequest, CancelBookingRequest, SubmitRatingRequest, Rating } from '@/types/booking.types';
+import { Booking, CreateBookingRequest, Rating } from '@/types/booking.types';
 import { apiClient } from '@/api/client';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data?: T;
+}
+
 // Frontend API service for ceremony reservations, statuses, and devotee ratings
 export const bookingApi = {
-  createBooking: async (
-    data: CreateBookingRequest,
-    _userId?: string
-  ): Promise<{ success: boolean; message: string; data?: Booking }> => {
+  createBooking: async (data: CreateBookingRequest): Promise<ApiResponse<Booking>> => {
     try {
       const res = await apiClient.post('/bookings', data);
       return res as any;
@@ -48,7 +51,7 @@ export const bookingApi = {
     }
   },
 
-  acceptBooking: async (bookingId: string, _priestId?: string) => {
+  acceptBooking: async (bookingId: string): Promise<ApiResponse> => {
     try {
       const res = await apiClient.post(`/bookings/${bookingId}/accept`);
       return res as any;
@@ -61,9 +64,8 @@ export const bookingApi = {
     }
   },
 
-  rejectBooking: async (bookingId: string, priestIdOrReason?: string, maybeReason?: string) => {
+  rejectBooking: async (bookingId: string, reason?: string): Promise<ApiResponse> => {
     try {
-      const reason = maybeReason !== undefined ? maybeReason : priestIdOrReason;
       const res = await apiClient.post(`/bookings/${bookingId}/reject`, { reason });
       return res as any;
     } catch (error) {
@@ -75,17 +77,12 @@ export const bookingApi = {
     }
   },
 
-  cancelBooking: async (
-    bookingIdOrData: string | (CancelBookingRequest & { userId?: string }),
-    reason?: string
-  ) => {
+  cancelBooking: async (bookingId: string, reason?: string): Promise<ApiResponse> => {
     try {
-      const bookingId = typeof bookingIdOrData === 'string' ? bookingIdOrData : bookingIdOrData.bookingId;
-      const cancelReason = typeof bookingIdOrData === 'string' ? reason : bookingIdOrData.reason;
-      const res = await apiClient.post(`/bookings/${bookingId}/cancel`, { reason: cancelReason });
+      const res = await apiClient.post(`/bookings/${bookingId}/cancel`, { reason });
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.cancelBooking', error, { bookingIdOrData });
+      logAppError('bookingApi.cancelBooking', error, { bookingId });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to cancel booking.'),
@@ -93,13 +90,8 @@ export const bookingApi = {
     }
   },
 
-  completeBooking: async (
-    bookingId: string,
-    priestIdOrCode?: string,
-    maybeCode?: string
-  ) => {
+  completeBooking: async (bookingId: string, completionCode: string): Promise<ApiResponse> => {
     try {
-      const completionCode = maybeCode !== undefined ? maybeCode : priestIdOrCode;
       const res = await apiClient.post(`/bookings/${bookingId}/complete`, { completionCode });
       return res as any;
     } catch (error) {
@@ -112,16 +104,17 @@ export const bookingApi = {
   },
 
   submitRating: async (
-    bookingIdOrUserId: string | undefined,
-    dataOrUndefined?: SubmitRatingRequest
-  ): Promise<{ success: boolean; message: string; data?: Rating }> => {
+    bookingId: string,
+    data: { rating: number; review?: string }
+  ): Promise<ApiResponse<Rating>> => {
     try {
-      const data = dataOrUndefined ?? (typeof bookingIdOrUserId === 'object' ? bookingIdOrUserId : undefined);
-      const bookingId = data?.bookingId || (typeof bookingIdOrUserId === 'string' ? bookingIdOrUserId : '');
-      const res = await apiClient.post(`/bookings/${bookingId}/rating`, data);
+      const res = await apiClient.post(`/bookings/${bookingId}/rating`, {
+        ...data,
+        bookingId,
+      });
       return res as any;
     } catch (error) {
-      logAppError('bookingApi.submitRating', error, { bookingIdOrUserId, dataOrUndefined });
+      logAppError('bookingApi.submitRating', error, { bookingId, data });
       return {
         success: false,
         message: getUserFriendlyErrorMessage(error, 'Failed to submit rating.'),

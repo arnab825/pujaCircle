@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { availabilityService } from '@/services/availability.service.js';
-import { sendSuccess, sendError } from '@/views/response.view.js';
+import { availabilityService } from '../services/availability.service.js';
+import { sendSuccess, sendError } from '../views/response.view.js';
 
 export class AvailabilityController {
   /**
@@ -75,6 +75,28 @@ export class AvailabilityController {
         endDate
       );
       sendSuccess(res, 'Availability calendar fetched successfully', calendar);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /slots
+   * Get available slots for a priest on a specific date
+   */
+  async getSlots(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const priestId = (req.query.priestId as string) || req.user?.id;
+      const date = req.query.date as string;
+      const duration = parseInt(req.query.duration as string, 10) || 120;
+
+      if (!priestId || !date) {
+        sendError(res, 'priestId and date query parameters are required', 400);
+        return;
+      }
+
+      const slots = await availabilityService.getDaySlots(priestId, date, duration);
+      sendSuccess(res, 'Slots retrieved successfully', slots);
     } catch (error) {
       next(error);
     }

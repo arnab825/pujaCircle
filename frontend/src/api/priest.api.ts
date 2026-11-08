@@ -6,9 +6,8 @@ import {
 } from '@/types/priest.types';
 import { PincodeLookupResponse } from '@/types/address.types';
 import { apiClient } from '@/api/client';
-import { bookingApi } from '@/api/booking.api';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
-import { calculateDayMuhuratSlots, CalculatedSlot } from '@/lib/availabilityUtils';
+import { CalculatedSlot } from '@/lib/availabilityUtils';
 
 // Frontend API service for Purohit profiles, rituals, services, and availability slots
 export const priestApi = {
@@ -139,20 +138,10 @@ export const priestApi = {
   // Date-Based Muhurat Availability Computations
   getAvailableSlotsForDate: async (priestId: string, date: string, durationMinutes: number = 120): Promise<CalculatedSlot[]> => {
     try {
-      const [exceptions, whData, priestBookings] = await Promise.all([
-        priestApi.getPriestExceptions(priestId),
-        priestApi.getWorkingHours(priestId),
-        bookingApi.getPriestBookings(priestId).catch(() => []),
-      ]);
-      return calculateDayMuhuratSlots(
-        priestId,
-        date,
-        exceptions,
-        priestBookings || [],
-        durationMinutes || 120,
-        whData?.defaultStartTime || '07:00',
-        whData?.defaultEndTime || '21:00'
-      );
+      const res = await apiClient.get('/availability/slots', {
+        params: { priestId, date, duration: durationMinutes },
+      });
+      return (res as any).data || res || [];
     } catch (error) {
       logAppError('priestApi.getAvailableSlotsForDate', error, { priestId, date });
       return [];
@@ -266,7 +255,7 @@ export const priestApi = {
 
   getRituals: async (): Promise<Ritual[]> => {
     try {
-      const res = await apiClient.get('/rituals');
+      const res = await apiClient.get('/catalog');
       return (res as any).data || res;
     } catch (error) {
       logAppError('priestApi.getRituals', error);

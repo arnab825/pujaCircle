@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { PublicLayout } from '@/components/layout/PublicLayout';
 import { PriestLayout } from '@/components/layout/PriestLayout';
 import { AdminLayout } from '@/components/layout/AdminLayout';
@@ -75,7 +75,7 @@ const AdminCatalogPage = lazy(() => import('@/pages/admin/AdminCatalogPage'));
 
 
 
-export const appRouter = createBrowserRouter([
+const appRouter = createBrowserRouter([
   // ==========================================
   // 1. PUBLIC WEBSITE & DEVOTEE (USER) PORTAL
   // ==========================================
@@ -175,3 +175,9 @@ export const appRouter = createBrowserRouter([
   // Catch-all
   { path: '*', element: <Navigate to="/" replace /> },
 ]);
+
+export const AppRouter: React.FC = () => {
+  return <RouterProvider router={appRouter} />;
+};
+
+export default AppRouter;

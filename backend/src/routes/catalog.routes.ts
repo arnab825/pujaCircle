@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { catalogController } from '@/controllers/catalog.controller.js';
-import { requireAuth } from '@/middlewares/auth.middleware.js';
-import { requireAdmin } from '@/middlewares/role.middleware.js';
-import { validate } from '@/middlewares/validate.middleware.js';
+import { catalogController } from '../controllers/catalog.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
+import { requireAdmin } from '../middlewares/role.middleware.js';
+import { validate } from '../middlewares/validate.middleware.js';
 import {
   createCatalogEntrySchema,
   updateCatalogEntrySchema,
   catalogQuerySchema,
-} from '@/schemas/catalog.schema.js';
-import { uuidParamSchema } from '@/schemas/common.schema.js';
+} from '../schemas/catalog.schema.js';
+import { uuidParamSchema } from '../schemas/common.schema.js';
 
 const router = Router();
 
