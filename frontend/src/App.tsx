@@ -6,16 +6,16 @@ import { Toaster } from '@/components/ui/sonner';
 import { useAuthStore } from '@/store/auth.store';
 
 export const App: React.FC = () => {
-  const { isAuthenticated, checkSession } = useAuthStore();
+  const { checkSession } = useAuthStore();
   const hasCheckedRef = React.useRef(false);
 
   useEffect(() => {
-    // Silently synchronize session with backend HTTP-only cookie on startup
-    if (!hasCheckedRef.current && isAuthenticated) {
+    // Synchronize session with backend HTTP-only cookie on startup/reload
+    if (!hasCheckedRef.current) {
       hasCheckedRef.current = true;
       checkSession();
     }
-  }, [isAuthenticated, checkSession]);
+  }, [checkSession]);
 
   return (
     <ErrorBoundary>

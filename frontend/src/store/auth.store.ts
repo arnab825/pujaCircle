@@ -6,6 +6,7 @@ interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
 
   // Actions
@@ -20,6 +21,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
   error: null,
 
   login: async (credentials: LoginCredentials) => {
@@ -29,7 +31,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const response = await authApi.login(credentials);
 
       if (response.success && response.data?.user) {
-        set({ user: response.data.user, isAuthenticated: true, isLoading: false, error: null });
+        set({ user: response.data.user, isAuthenticated: true, isInitialized: true, isLoading: false, error: null });
         return true;
       } else {
         const message = response.message || 'Invalid email or password. Please check your credentials and try again.';
@@ -49,7 +51,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     } catch {
       // Ignore network errors during logout
     } finally {
-      set({ user: null, isAuthenticated: false, error: null });
+      set({ user: null, isAuthenticated: false, isInitialized: true, error: null });
     }
   },
 
@@ -57,17 +59,17 @@ export const useAuthStore = create<AuthState>()((set) => ({
     try {
       const res = await authApi.getMe();
       if (res.success && res.data?.user) {
-        set({ user: res.data.user, isAuthenticated: true });
+        set({ user: res.data.user, isAuthenticated: true, isInitialized: true });
       } else {
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, isInitialized: true });
       }
     } catch {
-      set({ user: null, isAuthenticated: false });
+      set({ user: null, isAuthenticated: false, isInitialized: true });
     }
   },
 
   setUser: (user: AuthUser | null) => {
-    set({ user, isAuthenticated: user !== null });
+    set({ user, isAuthenticated: user !== null, isInitialized: true });
   },
 
   clearError: () => set({ error: null }),

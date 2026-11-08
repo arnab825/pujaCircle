@@ -1,14 +1,19 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
 /**
  * UserRouteGuard
  * Protects Devotee (/user/*) routes strictly for authenticated USER role.
  */
 export const UserRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isInitialized } = useAuthStore();
   const location = useLocation();
+
+  if (!isInitialized) {
+    return <LoadingSpinner fullscreen size="lg" label="Restoring session..." />;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/user/login" state={{ from: location }} replace />;
@@ -31,8 +36,12 @@ export const UserRouteGuard: React.FC<{ children: React.ReactNode }> = ({ childr
  * Handles approval workflow redirection (/priest/pending-approval).
  */
 export const PriestRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isInitialized } = useAuthStore();
   const location = useLocation();
+
+  if (!isInitialized) {
+    return <LoadingSpinner fullscreen size="lg" label="Restoring session..." />;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/priest/login" state={{ from: location }} replace />;
@@ -68,8 +77,12 @@ export const PriestRouteGuard: React.FC<{ children: React.ReactNode }> = ({ chil
  * Protects Admin (/admin/*) console strictly for authenticated ADMIN role.
  */
 export const AdminRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isInitialized } = useAuthStore();
   const location = useLocation();
+
+  if (!isInitialized) {
+    return <LoadingSpinner fullscreen size="lg" label="Restoring session..." />;
+  }
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;

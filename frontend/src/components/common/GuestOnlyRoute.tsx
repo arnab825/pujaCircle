@@ -15,7 +15,11 @@ interface GuestOnlyRouteProps {
  * - ADMIN      -> redirected to /admin/dashboard
  */
 export const GuestOnlyRoute: React.FC<GuestOnlyRouteProps> = ({ children }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return null;
+  }
 
   if (isAuthenticated && user) {
     if (user.role === 'PRIEST') {
