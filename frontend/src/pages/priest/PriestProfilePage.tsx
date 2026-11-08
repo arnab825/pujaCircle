@@ -209,16 +209,44 @@ export const PriestProfilePage: React.FC = () => {
     toast.success("Profile photo removed.");
   };
 
+  const syncProfileField = async (partialUpdates: { languages?: string[]; serviceAreas?: string[] }) => {
+    try {
+      const payload = {
+        fullName: fullName.trim() || priest?.fullName || user?.name || "Purohit",
+        displayName: fullName.trim() || priest?.displayName || user?.name || "Purohit",
+        experienceYears: Number(experienceYears) || priest?.experienceYears || 0,
+        bio: bio.trim() || priest?.bio || "",
+        languages: partialUpdates.languages ?? languages,
+        serviceAreas: partialUpdates.serviceAreas ?? serviceAreas,
+        city: city.trim() || priest?.city || "",
+        state: state.trim() || priest?.state || "",
+        pincode: pincode.trim() || priest?.pincode || "",
+      };
+
+      const res = await priestApi.updatePriestProfile(priestId, payload);
+      if (res && res.success && res.data) {
+        setPriest(res.data);
+      } else if (res && !res.success) {
+        toast.error(res.message || "Failed to sync changes to database.");
+      }
+    } catch (err: any) {
+      console.warn("Auto-sync notice:", err);
+    }
+  };
+
   const toggleLanguage = (lang: string) => {
+    let updated: string[];
     if (languages.includes(lang)) {
       if (languages.length === 1) {
         toast.error("Please keep at least one primary language.");
         return;
       }
-      setLanguages(languages.filter((l) => l !== lang));
+      updated = languages.filter((l) => l !== lang);
     } else {
-      setLanguages([...languages, lang]);
+      updated = [...languages, lang];
     }
+    setLanguages(updated);
+    syncProfileField({ languages: updated });
   };
 
   const handleAddCustomLanguage = (e: React.FormEvent) => {
@@ -229,22 +257,38 @@ export const PriestProfilePage: React.FC = () => {
       toast.error("Language already added.");
       return;
     }
-    setLanguages([...languages, trimmed]);
+    const updated = [...languages, trimmed];
+    setLanguages(updated);
     setCustomLanguage("");
+    syncProfileField({ languages: updated });
   };
 
   // Dynamic district equivalence comparison
+  const normalizeDistrictTokens = (value: string): string => {
+    return value
+      .toLowerCase()
+      .replace(/twenty\s*four/g, "24")
+      .replace(/twentyfour/g, "24")
+      .replace(/\bgurgaon\b/g, "gurugram")
+      .replace(/\bbangalore\b/g, "bengaluru")
+      .replace(/\bcalcutta\b/g, "kolkata")
+      .replace(/\bbombay\b/g, "mumbai")
+      .replace(/\bmadras\b/g, "chennai")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\b(district|city|urban|rural|division|corporation)\b/g, "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .sort()
+      .join("");
+  };
+
   const areDistrictsEquivalent = (firstDistrict: string, secondDistrict: string): boolean => {
     if (!firstDistrict || !secondDistrict) return true;
-    const normalize = (val: string) =>
-      val.toLowerCase().replace(/[^a-z0-9]/g, "").replace("district", "").replace("city", "");
-
-    const normalizedFirst = normalize(firstDistrict);
-    const normalizedSecond = normalize(secondDistrict);
-
-    if (normalizedFirst === normalizedSecond) return true;
-    if (normalizedFirst.includes(normalizedSecond) || normalizedSecond.includes(normalizedFirst)) return true;
-    return false;
+    const n1 = normalizeDistrictTokens(firstDistrict);
+    const n2 = normalizeDistrictTokens(secondDistrict);
+    if (!n1 || !n2) return true;
+    return n1 === n2 || n1.includes(n2) || n2.includes(n1);
   };
 
   const handleAreaInputChange = (value: string) => {
@@ -323,9 +367,11 @@ export const PriestProfilePage: React.FC = () => {
 
     const formatted = `${item.pincode} - ${item.name}`;
     if (!serviceAreas.includes(formatted) && !serviceAreas.includes(item.name)) {
-      setServiceAreas((prev) => [...prev, formatted]);
+      const updated = [...serviceAreas, formatted];
+      setServiceAreas(updated);
       setDistrictWarning(null);
       toast.success(`Added ${formatted} to service localities.`);
+      syncProfileField({ serviceAreas: updated });
     } else {
       toast.info(`${formatted} is already in your service areas.`);
     }
@@ -352,9 +398,11 @@ export const PriestProfilePage: React.FC = () => {
       }
     });
     if (addedCount > 0) {
-      setServiceAreas((prev) => [...prev, ...toAdd]);
+      const updated = [...serviceAreas, ...toAdd];
+      setServiceAreas(updated);
       setDistrictWarning(null);
       toast.success(`Added ${addedCount} localities for PIN ${areaPinQuery}.`);
+      syncProfileField({ serviceAreas: updated });
     } else {
       toast.info("All suggested localities are already in your service areas.");
     }
@@ -375,9 +423,11 @@ export const PriestProfilePage: React.FC = () => {
       }
     });
     if (addedCount > 0) {
-      setServiceAreas((prev) => [...prev, ...toAdd]);
+      const updated = [...serviceAreas, ...toAdd];
+      setServiceAreas(updated);
       setDistrictWarning(null);
       toast.success(`Added ${addedCount} home localities for PIN ${pincode}.`);
+      syncProfileField({ serviceAreas: updated });
     } else {
       toast.info("All residing localities are already in your service areas.");
     }
@@ -416,12 +466,14 @@ export const PriestProfilePage: React.FC = () => {
       return;
     }
 
-    setServiceAreas([...serviceAreas, trimmed]);
+    const updated = [...serviceAreas, trimmed];
+    setServiceAreas(updated);
     setNewAreaInput("");
     setAreaPinSuggestions([]);
     setAreaPinQuery("");
     setDistrictWarning(null);
     toast.success(`Added "${trimmed}" to service localities.`);
+    syncProfileField({ serviceAreas: updated });
   };
 
   const handleRemoveArea = (area: string) => {
@@ -429,7 +481,9 @@ export const PriestProfilePage: React.FC = () => {
       toast.error("Please keep at least one service locality.");
       return;
     }
-    setServiceAreas(serviceAreas.filter((a) => a !== area));
+    const updated = serviceAreas.filter((a) => a !== area);
+    setServiceAreas(updated);
+    syncProfileField({ serviceAreas: updated });
   };
 
   const handleSave = async () => {
@@ -454,7 +508,7 @@ export const PriestProfilePage: React.FC = () => {
       return;
     }
 
-    if (!pincode.trim() || pincode.length !== 6) {
+    if (pincode.trim() && pincode.trim().length !== 6) {
       toast.error("Please enter a valid 6-digit PIN code.");
       return;
     }
@@ -825,11 +879,23 @@ export const PriestProfilePage: React.FC = () => {
       <div className="flex flex-col md:flex-row items-stretch gap-6 w-full">
         {/* Languages Spoken */}
         <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <LanguagesIcon className="w-4 h-4 text-red-700" />
-            <h3 className="text-base font-serif font-bold text-stone-950">
-              Languages Spoken ({languages.length})
-            </h3>
+          <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+            <div className="flex items-center gap-2">
+              <LanguagesIcon className="w-4 h-4 text-red-700" />
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Languages Spoken ({languages.length})
+              </h3>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />}
+              Save Languages
+            </Button>
           </div>
           <p className="text-xs text-stone-600">
             Select all Vedic and regional languages you can perform mantras and
@@ -929,11 +995,23 @@ export const PriestProfilePage: React.FC = () => {
 
       {/* 8. Service Areas / Localities */}
       <div className="rounded-xl border-2 border-amber-300 bg-white p-6 sm:p-8 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-          <MapPin className="w-4 h-4 text-red-700" />
-          <h3 className="text-base font-serif font-bold text-stone-950">
-            Service Localities & Neighborhoods ({serviceAreas.length})
-          </h3>
+        <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-red-700" />
+            <h3 className="text-base font-serif font-bold text-stone-950">
+              Service Localities & Neighborhoods ({serviceAreas.length})
+            </h3>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
+          >
+            {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />}
+            Save Localities
+          </Button>
         </div>
         <p className="text-xs text-stone-600">
           Localities and sectors where you are available to travel for in-home

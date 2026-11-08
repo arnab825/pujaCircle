@@ -48,16 +48,32 @@ async function resolveDistrictFromPincode(pincode: string): Promise<string | nul
   return null;
 }
 
+function normalizeDistrictTokens(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/twenty\s*four/g, '24')
+    .replace(/twentyfour/g, '24')
+    .replace(/\bgurgaon\b/g, 'gurugram')
+    .replace(/\bbangalore\b/g, 'bengaluru')
+    .replace(/\bcalcutta\b/g, 'kolkata')
+    .replace(/\bbombay\b/g, 'mumbai')
+    .replace(/\bmadras\b/g, 'chennai')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\b(district|city|urban|rural|division|corporation)\b/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join('');
+}
+
 function areDistrictsEquivalent(firstDistrict: string, secondDistrict: string): boolean {
   if (!firstDistrict || !secondDistrict) return true;
-  const normalize = (value: string) =>
-    value.toLowerCase().replace(/[^a-z0-9]/g, '').replace('district', '').replace('city', '');
-
-  const normalizedFirst = normalize(firstDistrict);
-  const normalizedSecond = normalize(secondDistrict);
-
-  if (normalizedFirst === normalizedSecond) return true;
-  if (normalizedFirst.includes(normalizedSecond) || normalizedSecond.includes(normalizedFirst)) return true;
+  const norm1 = normalizeDistrictTokens(firstDistrict);
+  const norm2 = normalizeDistrictTokens(secondDistrict);
+  if (!norm1 || !norm2) return true;
+  if (norm1 === norm2) return true;
+  if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
   return false;
 }
 
@@ -401,7 +417,7 @@ export class PriestService {
             if (candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
               throw new AppError(
                 400,
-                `Cannot add '${candidateServiceArea}': This locality is in ${candidateDistrict}, which is outside your residing district (${residingDistrict}).`
+                `Cannot add '${candidateServiceArea}': This locality is in ${candidateDistrict}, which is outside your authorized residing district (${residingDistrict}). Purohits can only serve within their residing district.`
               );
             }
           }
