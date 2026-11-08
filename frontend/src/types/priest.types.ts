@@ -33,7 +33,6 @@ export interface Priest {
   experienceYears: number;
   bio: string;
   languages: string[];
-  specializations: string[];
   serviceAreas: string[];
   city: string;
   state: string;
@@ -113,7 +112,6 @@ export interface PriestRegistrationRequest {
   experienceYears: number;
   bio: string;
   languages: string[];
-  specializations: string[];
   serviceAreas: string[];
   city: string;
   state: string;
@@ -126,7 +124,6 @@ export interface PriestFilterParams {
   serviceName?: string;
   ritualSlug?: string;
   language?: string;
-  specialization?: string;
   searchQuery?: string;
   date?: string;
   status?: PriestApprovalStatus | 'ALL';

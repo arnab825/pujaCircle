@@ -45,7 +45,7 @@ import { priestApi } from "@/api/priest.api";
 import { adminApi } from "@/api/admin.api";
 import { Priest, PriestApprovalStatus } from "@/types/priest.types";
 import { Booking } from "@/types/booking.types";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatLocalityName } from "@/lib/utils";
 
 /**
  * AdminPriestDetailsPage
@@ -83,7 +83,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               (b) =>
                 b.priestId === priestData.id ||
                 b.priestId === priestData.userId ||
-                b.priestId === id
+                b.priestId === id,
             );
             setPriestBookings(matched);
           }
@@ -279,7 +279,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
   const avatarSrc =
     priest.profileImageUrl ||
     (priest as any).avatarUrl ||
-    (typeof window !== 'undefined'
+    (typeof window !== "undefined"
       ? localStorage.getItem(`priest_avatar_${priest.id}`) ||
         localStorage.getItem(`priest_avatar_${(priest as any).userId}`)
       : null);
@@ -310,11 +310,16 @@ export const AdminPriestDetailsPage: React.FC = () => {
                   />
                 ) : (
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#780016] text-amber-300 border-2 border-white flex items-center justify-center font-bold text-xl sm:text-2xl font-serif shrink-0 shadow-xs">
-                    {priest.fullName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                    {priest.fullName
+                      .split(" ")
+                      .map((w) => w[0])
+                      .join("")
+                      .slice(0, 2)
+                      .toUpperCase()}
                   </div>
                 )}
               </div>
-              {priest.approvalStatus === 'APPROVED' && (
+              {priest.approvalStatus === "APPROVED" && (
                 <div
                   className="absolute bottom-0 right-0 bg-emerald-600 text-white rounded-full p-1 border-2 border-white shadow-xs pointer-events-none"
                   title="Approved Vedic Scholar"
@@ -381,12 +386,15 @@ export const AdminPriestDetailsPage: React.FC = () => {
         >
           <AlertTriangle
             className={`w-5 h-5 shrink-0 mt-0.5 ${
-              priest.accountStatus === "BANNED" ? "text-rose-700" : "text-amber-700"
+              priest.accountStatus === "BANNED"
+                ? "text-rose-700"
+                : "text-amber-700"
             }`}
           />
           <div className="space-y-1 text-xs">
             <p className="font-bold">
-              Administrative Status ({priest.approvalStatus} / {priest.accountStatus})
+              Administrative Status ({priest.approvalStatus} /{" "}
+              {priest.accountStatus})
             </p>
             <p className="text-stone-700">
               {priest.banReason ||
@@ -472,7 +480,10 @@ export const AdminPriestDetailsPage: React.FC = () => {
                 Service Localities:
               </span>
               <span className="font-medium text-stone-900 text-right truncate">
-                {priest.serviceAreas?.join(", ") || priest.city}
+                {priest.serviceAreas
+                  ?.map(formatLocalityName)
+                  .filter(Boolean)
+                  .join(", ") || priest.city}
               </span>
             </div>
           </div>
@@ -498,12 +509,6 @@ export const AdminPriestDetailsPage: React.FC = () => {
                 {priest.languages?.join(", ") || "Bengali, Sanskrit, Hindi"}
               </p>
             </div>
-            <div className="border-t border-stone-100 pt-2 space-y-1">
-              <span className="text-stone-600 font-bold">Specializations:</span>
-              <p className="font-bold text-stone-900">
-                {priest.specializations?.join(", ") || "Vedic Rituals, Havan Vidhi"}
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -515,11 +520,13 @@ export const AdminPriestDetailsPage: React.FC = () => {
             <Sparkles className="w-4 h-4 text-amber-700" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug break-words">
-              Offered Ceremonies & Shastric Dakshina Rates ({priest.services?.length || 0})
+            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug wrap-break-word">
+              Offered Ceremonies & Shastric Dakshina Rates (
+              {priest.services?.length || 0})
             </h3>
             <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 leading-relaxed">
-              Active ritual offerings curated by this Purohit with transparent dakshina pricing.
+              Active ritual offerings curated by this Purohit with transparent
+              dakshina pricing.
             </p>
           </div>
         </div>
@@ -554,7 +561,9 @@ export const AdminPriestDetailsPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-amber-700" />
-                      {service.durationMinutes ? `${service.durationMinutes} mins` : "60 mins"}
+                      {service.durationMinutes
+                        ? `${service.durationMinutes} mins`
+                        : "60 mins"}
                     </span>
                     {service.samagriList && service.samagriList.length > 0 && (
                       <span className="text-[11px] text-stone-500">
@@ -589,7 +598,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
             <Calendar className="w-4 h-4 text-amber-700" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug break-words">
+            <h3 className="text-sm sm:text-base font-serif font-bold text-stone-950 leading-snug wrap-break-word">
               Assigned Ceremony Appointments ({priestBookings.length})
             </h3>
             <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 leading-relaxed">
@@ -607,7 +616,7 @@ export const AdminPriestDetailsPage: React.FC = () => {
               >
                 <div className="space-y-1.5 min-w-0 flex-1">
                   <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
-                    <span className="font-serif font-bold text-stone-950 text-sm break-words">
+                    <span className="font-serif font-bold text-stone-950 text-sm wrap-break-word">
                       {b.serviceName}
                     </span>
                     <Badge
@@ -628,7 +637,13 @@ export const AdminPriestDetailsPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-stone-600">
                     <span className="flex items-center gap-1 font-medium">
                       <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                      <span>{b.bookingDate ? formatDate(b.bookingDate) : (b as any).scheduledDate ? formatDate((b as any).scheduledDate) : "—"}</span>
+                      <span>
+                        {b.bookingDate
+                          ? formatDate(b.bookingDate)
+                          : (b as any).scheduledDate
+                            ? formatDate((b as any).scheduledDate)
+                            : "—"}
+                      </span>
                       {b.startTime && (
                         <span className="font-mono text-stone-700">
                           ({b.startTime} - {b.endTime})
@@ -636,7 +651,10 @@ export const AdminPriestDetailsPage: React.FC = () => {
                       )}
                     </span>
                     <span className="truncate">
-                      Devotee: <strong className="text-stone-800">{b.userName || "Devotee"}</strong>
+                      Devotee:{" "}
+                      <strong className="text-stone-800">
+                        {b.userName || "Devotee"}
+                      </strong>
                     </span>
                   </div>
                 </div>

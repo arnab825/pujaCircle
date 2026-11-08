@@ -251,7 +251,6 @@ export class AuthService {
         experienceYears: input.experienceYears || 0,
         bio: input.bio || '',
         languages: input.languages || ['Hindi'],
-        specializations: input.specializations || ['General Puja'],
         serviceAreas: input.serviceAreas || [],
         city: input.city || '',
         state: input.state || '',

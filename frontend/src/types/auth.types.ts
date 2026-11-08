@@ -54,7 +54,6 @@ export interface RegisterPriestRequest {
   experienceYears?: number;
   bio?: string;
   languages?: string[];
-  specializations?: string[];
   serviceAreas?: string[];
   city?: string;
   state?: string;

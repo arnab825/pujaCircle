@@ -13,7 +13,6 @@ export const priestRegistrationSchema = z
     experienceYears: z.coerce.number().int('Years of experience must be an integer').min(0, 'Experience cannot be negative').max(70, 'Experience cannot exceed 70 years'),
     bio: z.string().trim().min(20, 'Please write at least 20 characters about your Vedic lineage & experience').max(2000, 'Bio cannot exceed 2000 characters'),
     languages: z.array(z.string().trim().min(1, 'Language cannot be empty').max(50)).min(1, 'Select at least one language').max(20),
-    specializations: z.array(z.string().trim().min(1, 'Specialization cannot be empty').max(100)).min(1, 'Select at least one puja specialization').max(50),
     serviceAreas: z.array(z.string().trim().min(1, 'Service area cannot be empty').max(100)).min(1, 'Select at least one service area / locality').max(50),
     city: z.string().trim().min(2, 'City is required').max(100),
     state: z.string().trim().min(2, 'State is required').max(100),

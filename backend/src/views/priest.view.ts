@@ -12,7 +12,6 @@ export interface PriestViewModel {
   experienceYears: number;
   bio: string;
   languages: string[];
-  specializations: string[];
   serviceAreas: string[];
   city: string;
   state: string;

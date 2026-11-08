@@ -210,7 +210,7 @@ export const PriestRegisterPage: React.FC = () => {
         city: city.trim(),
         state: state.trim() || "West Bengal",
         pincode: pincode.trim(),
-        serviceAreas: pincode.trim() ? [pincode.trim()] : [],
+        serviceAreas: city.trim() ? [city.trim()] : (pincode.trim() ? [pincode.trim()] : []),
         languages,
       });
 

@@ -1,19 +1,18 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Priest } from '@/types/priest.types';
-import { Button } from '@/components/ui/button';
-import { formatINR, getInitials } from '@/lib/utils';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Priest } from "@/types/priest.types";
+import { Button } from "@/components/ui/button";
+import { formatINR, getInitials, formatLocalityName } from "@/lib/utils";
 import {
   Star,
   MapPin,
   ShieldCheck,
   ArrowRight,
-  Sparkles,
   Languages,
   Clock,
   Flame,
   CheckCircle2,
-} from 'lucide-react';
+} from "lucide-react";
 
 interface PriestCardProps {
   priest: Priest;
@@ -31,21 +30,24 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
   const minPrice = prices.length > 0 ? Math.min(...prices) : 2100;
 
   const displayName = priest.displayName || priest.fullName;
-  const hasReviews = Boolean(priest.reviewCount && priest.reviewCount > 0 && priest.rating && Number(priest.rating) > 0);
+  const hasReviews = Boolean(
+    priest.reviewCount &&
+    priest.reviewCount > 0 &&
+    priest.rating &&
+    Number(priest.rating) > 0,
+  );
   const ratingValue = hasReviews ? Number(priest.rating).toFixed(1) : null;
   const reviewTotal = priest.reviewCount || 0;
   const completedPujas = priest.completedPujas ?? 0;
 
-  // Top specializations / ceremonies
-  const topSpecializations =
-    priest.specializations && priest.specializations.length > 0
-      ? priest.specializations.slice(0, 4)
-      : ['Griha Pravesh', 'Satyanarayan Katha', 'Vastu Shanti'];
-
-  // Serviced areas preview
+  // Serviced areas preview (only place names)
   const serviceAreasPreview =
     priest.serviceAreas && priest.serviceAreas.length > 0
-      ? priest.serviceAreas.slice(0, 3).join(', ')
+      ? priest.serviceAreas
+          .map(formatLocalityName)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(", ")
       : priest.city;
 
   const priestDetailUrl = `/priests/${priest.id}`;
@@ -78,14 +80,20 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
         {/* Rating & Review Counter Pill */}
         <div className="flex flex-1 md:flex-none flex-col md:items-center gap-1 w-full min-w-0">
           <div className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-sm bg-amber-100 text-stone-950 border border-amber-300 text-xs font-bold shadow-2xs w-full text-center">
-            <Star className={`h-3.5 w-3.5 shrink-0 ${hasReviews ? 'fill-amber-500 text-amber-500' : 'text-stone-400'}`} />
+            <Star
+              className={`h-3.5 w-3.5 shrink-0 ${hasReviews ? "fill-amber-500 text-amber-500" : "text-stone-400"}`}
+            />
             {hasReviews ? (
               <>
                 <span>{ratingValue}</span>
-                <span className="text-stone-600 text-[11px]">({reviewTotal})</span>
+                <span className="text-stone-600 text-[11px]">
+                  ({reviewTotal})
+                </span>
               </>
             ) : (
-              <span className="text-stone-700 font-medium text-[11px] truncate">No ratings yet</span>
+              <span className="text-stone-700 font-medium text-[11px] truncate">
+                No ratings yet
+              </span>
             )}
           </div>
         </div>
@@ -117,9 +125,14 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
               </span>
 
               {/* Verified Completed Puja Count Pill */}
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-red-950 text-white text-[11px] font-semibold" title="Real verified ceremonies conducted">
+              <span
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-red-950 text-white text-[11px] font-semibold"
+                title="Real verified ceremonies conducted"
+              >
                 <Flame className="h-3 w-3 text-amber-400" />
-                <span>{completedPujas} {completedPujas === 1 ? 'Puja' : 'Pujas'}</span>
+                <span>
+                  {completedPujas} {completedPujas === 1 ? "Puja" : "Pujas"}
+                </span>
               </span>
             </div>
 
@@ -134,28 +147,17 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
 
           {/* Bio snippet */}
           <p className="text-xs text-stone-600 leading-relaxed line-clamp-2 min-h-[2.5rem]">
-            {priest.bio || 'Accredited Vedic purohit conducting authentic household ceremonies with full vidhi guidance.'}
+            {priest.bio ||
+              "Accredited Vedic purohit conducting authentic household ceremonies with full vidhi guidance."}
           </p>
         </div>
 
-        {/* Specialization Pills & Languages */}
+        {/* Languages */}
         <div className="flex flex-col gap-2 pt-2 border-t border-amber-100">
-          <div className="flex flex-wrap items-center gap-1.5">
-            {topSpecializations.map((spec) => (
-              <span
-                key={spec}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-sm bg-amber-50 text-red-950 border border-amber-300 text-[11px] font-semibold"
-              >
-                <Sparkles className="h-3 w-3 text-amber-600" />
-                <span>{spec}</span>
-              </span>
-            ))}
-          </div>
-
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-stone-600">
             <div className="flex items-center gap-1">
               <Languages className="h-3.5 w-3.5 text-red-700" />
-              <span>{priest.languages?.join(', ') || 'Sanskrit, Hindi'}</span>
+              <span>{priest.languages?.join(", ") || "Sanskrit, Hindi"}</span>
             </div>
             {serviceAreasPreview && (
               <div className="flex items-center gap-1 text-stone-500">
@@ -190,7 +192,10 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
           asChild
           className="bg-red-700 hover:bg-red-800 text-white font-bold px-5 h-10 rounded-md shadow-sm active:scale-[0.98] transition-all duration-150 cursor-pointer w-full"
         >
-          <Link to={priestDetailUrl} className="flex items-center justify-center gap-2 text-xs font-bold w-full">
+          <Link
+            to={priestDetailUrl}
+            className="flex items-center justify-center gap-2 text-xs font-bold w-full"
+          >
             <span>Book Purohit</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -201,4 +206,3 @@ export const PriestCard: React.FC<PriestCardProps> = ({ priest }) => {
 };
 
 export default PriestCard;
-

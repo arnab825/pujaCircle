@@ -80,7 +80,6 @@ export class AdminService {
         experienceYears: priestProfiles.experienceYears,
         bio: priestProfiles.bio,
         languages: priestProfiles.languages,
-        specializations: priestProfiles.specializations,
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
@@ -129,7 +128,6 @@ export class AdminService {
         experienceYears: priestProfiles.experienceYears,
         bio: priestProfiles.bio,
         languages: priestProfiles.languages,
-        specializations: priestProfiles.specializations,
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
@@ -613,11 +611,11 @@ export class AdminService {
       completedAt: b.completedAt ? new Date(b.completedAt).toISOString() : undefined,
       user: b.userId
         ? {
-            id: b.userId,
-            name: b.userName || 'Devotee',
-            phoneNumber: b.userPhone || '',
-            email: b.userEmail || '',
-          }
+          id: b.userId,
+          name: b.userName || 'Devotee',
+          phoneNumber: b.userPhone || '',
+          email: b.userEmail || '',
+        }
         : undefined,
     }));
   }

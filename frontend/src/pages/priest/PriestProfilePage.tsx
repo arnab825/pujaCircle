@@ -12,7 +12,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   ShieldCheck,
   Check,
-  Plus,
   X,
   Star,
   MapPin,
@@ -31,7 +30,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatINR } from "@/lib/utils";
+import { formatINR, formatLocalityName, areDistrictsEquivalent } from "@/lib/utils";
 
 const AVAILABLE_LANGUAGES = [
   "Sanskrit",
@@ -80,8 +79,8 @@ export const PriestProfilePage: React.FC = () => {
   const [languages, setLanguages] = useState<string[]>([]);
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
 
-  // Inputs for adding custom localities
-  const [newAreaInput, setNewAreaInput] = useState("");
+  // Inputs for adding localities via PIN code lookup
+  const [areaPinInput, setAreaPinInput] = useState("");
   const [areaPinSuggestions, setAreaPinSuggestions] = useState<
     Array<{ name: string; city: string; state: string; district?: string; pincode: string }>
   >([]);
@@ -134,7 +133,8 @@ export const PriestProfilePage: React.FC = () => {
         setState(p.state || "");
         setProfileImageUrl(p.profileImageUrl || "");
         setLanguages(p.languages || []);
-        setServiceAreas(p.serviceAreas || []);
+        const cleanedAreas = (p.serviceAreas || []).map(formatLocalityName).filter(Boolean);
+        setServiceAreas(Array.from(new Set(cleanedAreas)));
         setPincode(p.pincode || "");
 
         if (p.pincode && p.pincode.length === 6) {
@@ -218,13 +218,17 @@ export const PriestProfilePage: React.FC = () => {
 
   const syncProfileField = async (partialUpdates: { languages?: string[]; serviceAreas?: string[] }) => {
     try {
+      const sanitizedAreas = partialUpdates.serviceAreas
+        ? Array.from(new Set(partialUpdates.serviceAreas.map(formatLocalityName).filter(Boolean)))
+        : Array.from(new Set(serviceAreas.map(formatLocalityName).filter(Boolean)));
+
       const payload = {
         fullName: fullName.trim() || priest?.fullName || user?.name || "Purohit",
         displayName: fullName.trim() || priest?.displayName || user?.name || "Purohit",
         experienceYears: Number(experienceYears) || priest?.experienceYears || 0,
         bio: bio.trim() || priest?.bio || "",
         languages: partialUpdates.languages ?? languages,
-        serviceAreas: partialUpdates.serviceAreas ?? serviceAreas,
+        serviceAreas: sanitizedAreas,
         city: city.trim() || priest?.city || "",
         state: state.trim() || priest?.state || "",
         pincode: pincode.trim() || priest?.pincode || "",
@@ -256,90 +260,83 @@ export const PriestProfilePage: React.FC = () => {
     syncProfileField({ languages: updated });
   };
 
-  // Dynamic district equivalence comparison
-  const normalizeDistrictTokens = (value: string): string => {
-    return value
-      .toLowerCase()
-      .replace(/twenty\s*four/g, "24")
-      .replace(/twentyfour/g, "24")
-      .replace(/\bgurgaon\b/g, "gurugram")
-      .replace(/\bbangalore\b/g, "bengaluru")
-      .replace(/\bcalcutta\b/g, "kolkata")
-      .replace(/\bbombay\b/g, "mumbai")
-      .replace(/\bmadras\b/g, "chennai")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\b(district|city|urban|rural|division|corporation)\b/g, "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .sort()
-      .join("");
-  };
+  const triggerPincodeLookup = async (cleanDigits: string) => {
+    if (cleanDigits.length !== 6) {
+      toast.error("Please enter a valid 6-digit PIN code.");
+      return;
+    }
 
-  const areDistrictsEquivalent = (firstDistrict: string, secondDistrict: string): boolean => {
-    if (!firstDistrict || !secondDistrict) return true;
-    const n1 = normalizeDistrictTokens(firstDistrict);
-    const n2 = normalizeDistrictTokens(secondDistrict);
-    if (!n1 || !n2) return true;
-    return n1 === n2 || n1.includes(n2) || n2.includes(n1);
-  };
-
-  const handleAreaInputChange = (value: string) => {
-    setNewAreaInput(value);
+    setAreaPinQuery(cleanDigits);
+    setIsSearchingAreaPin(true);
     setDistrictWarning(null);
-    const cleanDigits = value.trim().replace(/\D/g, "");
+
+    try {
+      const res = await priestApi.lookupPincode(cleanDigits);
+      if (res?.locations && res.locations.length > 0) {
+        const primaryLocation = res.locations[0];
+        const candidateDistrict = primaryLocation.district || primaryLocation.city || "";
+        const residingDistrict = district || city;
+
+        // Dynamic district restriction based on live postal lookup
+        if (residingDistrict && candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
+          const warningMsg = `PIN ${cleanDigits} is in ${candidateDistrict} (${primaryLocation.state}), which is outside your residing district (${residingDistrict}). Purohits can only serve localities within their home district.`;
+          setDistrictWarning(warningMsg);
+          toast.error(warningMsg);
+          setAreaPinSuggestions([]);
+          return;
+        }
+
+        const unique = new Map<
+          string,
+          { name: string; city: string; state: string; district: string; pincode: string }
+        >();
+        res.locations.forEach((loc) => {
+          const name = loc.locality || loc.villageTown || loc.postOffice;
+          if (name && !unique.has(name)) {
+            unique.set(name, {
+              name,
+              city: loc.city || loc.district || "",
+              district: loc.district || candidateDistrict,
+              state: loc.state || "",
+              pincode: cleanDigits,
+            });
+          }
+        });
+        setAreaPinSuggestions(Array.from(unique.values()));
+      } else {
+        setAreaPinSuggestions([]);
+        toast.error(`No postal localities found for PIN ${cleanDigits}.`);
+      }
+    } catch {
+      setAreaPinSuggestions([]);
+      toast.error("Failed to lookup PIN code. Please try again.");
+    } finally {
+      setIsSearchingAreaPin(false);
+    }
+  };
+
+  const handleAreaPinInputChange = (value: string) => {
+    // Only numeric digits allowed, max 6 digits
+    const cleanDigits = value.replace(/\D/g, "").slice(0, 6);
+    setAreaPinInput(cleanDigits);
+    setDistrictWarning(null);
 
     if (cleanDigits.length === 6 && cleanDigits !== areaPinQuery) {
-      setAreaPinQuery(cleanDigits);
-      setIsSearchingAreaPin(true);
-      priestApi
-        .lookupPincode(cleanDigits)
-        .then((res) => {
-          if (res?.locations && res.locations.length > 0) {
-            const primaryLocation = res.locations[0];
-            const candidateDistrict = primaryLocation.district || primaryLocation.city || "";
-            const residingDistrict = district || city;
-
-            // Dynamic district restriction based on live postal lookup
-            if (residingDistrict && candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
-              const warningMsg = `PIN ${cleanDigits} is in ${candidateDistrict} (${primaryLocation.state}), which is outside your residing district (${residingDistrict}). Purohits can only serve localities within their home district.`;
-              setDistrictWarning(warningMsg);
-              toast.error(warningMsg);
-              setAreaPinSuggestions([]);
-              return;
-            }
-
-            const unique = new Map<
-              string,
-              { name: string; city: string; state: string; district: string; pincode: string }
-            >();
-            res.locations.forEach((loc) => {
-              const name = loc.locality || loc.villageTown || loc.postOffice;
-              if (name && !unique.has(name)) {
-                unique.set(name, {
-                  name,
-                  city: loc.city || loc.district || "",
-                  district: loc.district || candidateDistrict,
-                  state: loc.state || "",
-                  pincode: cleanDigits,
-                });
-              }
-            });
-            setAreaPinSuggestions(Array.from(unique.values()));
-          } else {
-            setAreaPinSuggestions([]);
-          }
-        })
-        .catch(() => {
-          setAreaPinSuggestions([]);
-        })
-        .finally(() => {
-          setIsSearchingAreaPin(false);
-        });
+      triggerPincodeLookup(cleanDigits);
     } else if (cleanDigits.length < 6) {
       if (areaPinSuggestions.length > 0) setAreaPinSuggestions([]);
       setAreaPinQuery("");
     }
+  };
+
+  const handleSearchPinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanDigits = areaPinInput.replace(/\D/g, "");
+    if (cleanDigits.length !== 6) {
+      toast.error("Please enter a valid 6-digit PIN code.");
+      return;
+    }
+    triggerPincodeLookup(cleanDigits);
   };
 
   const handleSelectAreaSuggestion = (item: {
@@ -358,15 +355,15 @@ export const PriestProfilePage: React.FC = () => {
       return;
     }
 
-    const formatted = `${item.pincode} - ${item.name}`;
-    if (!serviceAreas.includes(formatted) && !serviceAreas.includes(item.name)) {
-      const updated = [...serviceAreas, formatted];
+    const localityName = formatLocalityName(item.name);
+    if (!serviceAreas.some((a) => formatLocalityName(a).toLowerCase() === localityName.toLowerCase())) {
+      const updated = [...serviceAreas, localityName];
       setServiceAreas(updated);
       setDistrictWarning(null);
-      toast.success(`Added ${formatted} to service localities.`);
+      toast.success(`Added ${localityName} to service localities.`);
       syncProfileField({ serviceAreas: updated });
     } else {
-      toast.info(`${formatted} is already in your service areas.`);
+      toast.info(`${localityName} is already in your service areas.`);
     }
   };
 
@@ -380,13 +377,12 @@ export const PriestProfilePage: React.FC = () => {
       if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
         return;
       }
-      const formatted = `${s.pincode} - ${s.name}`;
+      const localityName = formatLocalityName(s.name);
       if (
-        !serviceAreas.includes(formatted) &&
-        !serviceAreas.includes(s.name) &&
-        !toAdd.includes(formatted)
+        !serviceAreas.some((a) => formatLocalityName(a).toLowerCase() === localityName.toLowerCase()) &&
+        !toAdd.includes(localityName)
       ) {
-        toAdd.push(formatted);
+        toAdd.push(localityName);
         addedCount++;
       }
     });
@@ -405,13 +401,12 @@ export const PriestProfilePage: React.FC = () => {
     let addedCount = 0;
     const toAdd: string[] = [];
     residingPinSuggestions.forEach((s) => {
-      const formatted = `${s.pincode} - ${s.name}`;
+      const localityName = formatLocalityName(s.name);
       if (
-        !serviceAreas.includes(formatted) &&
-        !serviceAreas.includes(s.name) &&
-        !toAdd.includes(formatted)
+        !serviceAreas.some((a) => formatLocalityName(a).toLowerCase() === localityName.toLowerCase()) &&
+        !toAdd.includes(localityName)
       ) {
-        toAdd.push(formatted);
+        toAdd.push(localityName);
         addedCount++;
       }
     });
@@ -424,49 +419,6 @@ export const PriestProfilePage: React.FC = () => {
     } else {
       toast.info("All residing localities are already in your service areas.");
     }
-  };
-
-  const handleAddArea = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newAreaInput.trim();
-    if (!trimmed) return;
-
-    const residingDistrict = district || city;
-    const cleanDigits = trimmed.replace(/\D/g, "");
-
-    // 1. If 6-digit PIN code was entered, verify its postal district dynamically
-    if (cleanDigits.length === 6) {
-      setIsSearchingAreaPin(true);
-      try {
-        const res = await priestApi.lookupPincode(cleanDigits);
-        if (res?.locations && res.locations.length > 0) {
-          const primaryLocation = res.locations[0];
-          const targetDistrict = primaryLocation.district || primaryLocation.city || "";
-          if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
-            const warningMsg = `PIN ${cleanDigits} is in ${targetDistrict}, which is outside your residing district (${residingDistrict}). Purohits can only serve localities within their home district.`;
-            setDistrictWarning(warningMsg);
-            toast.error(warningMsg);
-            return;
-          }
-        }
-      } finally {
-        setIsSearchingAreaPin(false);
-      }
-    }
-
-    if (serviceAreas.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
-      toast.error("Service locality already added.");
-      return;
-    }
-
-    const updated = [...serviceAreas, trimmed];
-    setServiceAreas(updated);
-    setNewAreaInput("");
-    setAreaPinSuggestions([]);
-    setAreaPinQuery("");
-    setDistrictWarning(null);
-    toast.success(`Added "${trimmed}" to service localities.`);
-    syncProfileField({ serviceAreas: updated });
   };
 
   const handleRemoveArea = (area: string) => {
@@ -1001,8 +953,7 @@ export const PriestProfilePage: React.FC = () => {
           </Button>
         </div>
         <p className="text-xs text-stone-600">
-          Localities and sectors where you are available to travel for in-home
-          pujas.
+          Enter a 6-digit PIN code to find and select localities within your authorized residing district.
         </p>
 
         {/* District Warning Banner if outside */}
@@ -1030,7 +981,7 @@ export const PriestProfilePage: React.FC = () => {
               variant="outline"
               className="pl-3 pr-1.5 py-1 text-xs flex items-center gap-1.5 bg-amber-50/60 border-amber-300 font-bold text-stone-900 rounded-sm"
             >
-              <span>{area}</span>
+              <span>{formatLocalityName(area)}</span>
               <button
                 type="button"
                 onClick={() => handleRemoveArea(area)}
@@ -1043,15 +994,19 @@ export const PriestProfilePage: React.FC = () => {
         </div>
 
         <form
-          onSubmit={handleAddArea}
+          onSubmit={handleSearchPinSubmit}
           className="flex gap-2 pt-2 border-t border-stone-200 max-w-md"
         >
           <div className="relative flex-1">
             <Input
-              placeholder="Add locality or 6-digit PIN (e.g. 700020, Bandra)..."
-              value={newAreaInput}
-              onChange={(e) => handleAreaInputChange(e.target.value)}
-              className="h-10 text-xs rounded-md border-stone-300 focus:ring-amber-500 bg-white pr-8"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="Enter 6-digit PIN code (e.g. 713103)..."
+              value={areaPinInput}
+              onChange={(e) => handleAreaPinInputChange(e.target.value)}
+              className="h-10 text-xs rounded-md border-stone-300 focus:ring-amber-500 bg-white pr-8 font-mono"
             />
             {isSearchingAreaPin && (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 absolute right-2.5 top-1/2 -translate-y-1/2" />
@@ -1061,16 +1016,22 @@ export const PriestProfilePage: React.FC = () => {
             type="submit"
             size="sm"
             variant="outline"
-            className="h-10 text-xs gap-1 rounded-md border-amber-300 font-bold shrink-0"
+            disabled={isSearchingAreaPin || areaPinInput.length !== 6}
+            className="h-10 text-xs gap-1.5 rounded-md border-amber-300 font-bold shrink-0 cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5 text-amber-600" /> Add Area
+            {isSearchingAreaPin ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+            ) : (
+              <Search className="w-3.5 h-3.5 text-amber-600" />
+            )}
+            Find Places
           </Button>
         </form>
 
         {/* Residing Home PIN Neighborhood Suggestions (hidden when actively searching or dismissed) */}
         {!isHomeSuggestionsDismissed &&
           areaPinSuggestions.length === 0 &&
-          !newAreaInput.trim() &&
+          !areaPinInput.trim() &&
           residingPinSuggestions.length > 0 && (
             <div className="p-3.5 rounded-lg bg-emerald-50/80 border border-emerald-300 space-y-2.5 max-w-xl transition-all">
               <div className="flex items-center justify-between">
@@ -1099,9 +1060,10 @@ export const PriestProfilePage: React.FC = () => {
 
               <div className="flex flex-wrap gap-1.5">
                 {residingPinSuggestions.map((homeLocality) => {
-                  const formatted = `${homeLocality.pincode} - ${homeLocality.name}`;
-                  const isAlreadyAdded =
-                    serviceAreas.includes(formatted) || serviceAreas.includes(homeLocality.name);
+                  const placeName = formatLocalityName(homeLocality.name);
+                  const isAlreadyAdded = serviceAreas.some(
+                    (a) => formatLocalityName(a).toLowerCase() === placeName.toLowerCase()
+                  );
                   return (
                     <button
                       key={homeLocality.name}
@@ -1115,7 +1077,7 @@ export const PriestProfilePage: React.FC = () => {
                       }`}
                     >
                       <span>{isAlreadyAdded ? "✓" : "+"}</span>
-                      <span>{homeLocality.name}</span>
+                      <span>{placeName}</span>
                     </button>
                   );
                 })}
@@ -1145,9 +1107,10 @@ export const PriestProfilePage: React.FC = () => {
 
             <div className="flex flex-wrap gap-1.5">
               {areaPinSuggestions.map((localitySuggestion) => {
-                const formatted = `${localitySuggestion.pincode} - ${localitySuggestion.name}`;
-                const isAlreadyAdded =
-                  serviceAreas.includes(formatted) || serviceAreas.includes(localitySuggestion.name);
+                const placeName = formatLocalityName(localitySuggestion.name);
+                const isAlreadyAdded = serviceAreas.some(
+                  (a) => formatLocalityName(a).toLowerCase() === placeName.toLowerCase()
+                );
                 return (
                   <button
                     key={localitySuggestion.name}
@@ -1161,7 +1124,7 @@ export const PriestProfilePage: React.FC = () => {
                     }`}
                   >
                     <span>{isAlreadyAdded ? "✓" : "+"}</span>
-                    <span className="font-semibold">{localitySuggestion.name}</span>
+                    <span className="font-semibold">{placeName}</span>
                   </button>
                 );
               })}

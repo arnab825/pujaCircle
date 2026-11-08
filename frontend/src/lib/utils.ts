@@ -234,3 +234,50 @@ export function getInitials(name: string | undefined | null): string {
   if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   return name.trim().slice(0, 2).toUpperCase();
 }
+
+/**
+ * Strips leading 6-digit postal code and separator from a locality name,
+ * returning only the place/neighborhood name.
+ * Example: "713103 - Bolpur" -> "Bolpur"
+ * Example: "700020 - Park Street" -> "Park Street"
+ * Example: "Bandra West" -> "Bandra West"
+ */
+export function formatLocalityName(area: string | undefined | null): string {
+  if (!area) return '';
+  return area.replace(/^\d{6}\s*[-–—:]\s*/, '').trim();
+}
+
+/**
+ * Canonical token normalizer for Indian district and city names
+ */
+export function normalizeDistrictTokens(value: string | undefined | null): string {
+  if (!value) return '';
+  return value
+    .toLowerCase()
+    .replace(/twenty\s*four/g, '24')
+    .replace(/twentyfour/g, '24')
+    .replace(/\bgurgaon\b/g, 'gurugram')
+    .replace(/\bbangalore\b/g, 'bengaluru')
+    .replace(/\bcalcutta\b/g, 'kolkata')
+    .replace(/\bbombay\b/g, 'mumbai')
+    .replace(/\bmadras\b/g, 'chennai')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\b(district|city|urban|rural|division|corporation)\b/g, '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort()
+    .join('');
+}
+
+/**
+ * Robust equivalence comparison for Indian administrative districts
+ */
+export function areDistrictsEquivalent(firstDistrict: string | undefined | null, secondDistrict: string | undefined | null): boolean {
+  if (!firstDistrict || !secondDistrict) return true;
+  const n1 = normalizeDistrictTokens(firstDistrict);
+  const n2 = normalizeDistrictTokens(secondDistrict);
+  if (!n1 || !n2) return true;
+  return n1 === n2 || n1.includes(n2) || n2.includes(n1);
+}
+

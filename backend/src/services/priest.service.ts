@@ -48,7 +48,7 @@ async function resolveDistrictFromPincode(pincode: string): Promise<string | nul
   return null;
 }
 
-function normalizeDistrictTokens(value: string): string {
+export function normalizeDistrictTokens(value: string): string {
   return value
     .toLowerCase()
     .replace(/twenty\s*four/g, '24')
@@ -67,7 +67,7 @@ function normalizeDistrictTokens(value: string): string {
     .join('');
 }
 
-function areDistrictsEquivalent(firstDistrict: string, secondDistrict: string): boolean {
+export function areDistrictsEquivalent(firstDistrict: string, secondDistrict: string): boolean {
   if (!firstDistrict || !secondDistrict) return true;
   const norm1 = normalizeDistrictTokens(firstDistrict);
   const norm2 = normalizeDistrictTokens(secondDistrict);
@@ -209,7 +209,6 @@ export class PriestService {
         experienceYears: priestProfiles.experienceYears,
         bio: priestProfiles.bio,
         languages: priestProfiles.languages,
-        specializations: priestProfiles.specializations,
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
@@ -241,6 +240,9 @@ export class PriestService {
 
     return records.map((p) => ({
       ...p,
+      serviceAreas: (p.serviceAreas || [])
+        .map((a: string) => String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
+        .filter(Boolean),
       isPhoneVerified: true,
       rating: Number(p.rating || 0),
       completedPujas: Number(p.completedPujas || 0),
@@ -265,7 +267,6 @@ export class PriestService {
         experienceYears: priestProfiles.experienceYears,
         bio: priestProfiles.bio,
         languages: priestProfiles.languages,
-        specializations: priestProfiles.specializations,
         serviceAreas: priestProfiles.serviceAreas,
         city: priestProfiles.city,
         state: priestProfiles.state,
@@ -311,8 +312,13 @@ export class PriestService {
       .leftJoin(pujaCatalog, eq(priestServices.pujaCatalogId, pujaCatalog.id))
       .where(eq(priestServices.priestId, record.id));
 
+    const cleanedServiceAreas = (record.serviceAreas || [])
+      .map((a: string) => String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
+      .filter(Boolean);
+
     return {
       ...record,
+      serviceAreas: Array.from(new Set(cleanedServiceAreas)),
       isPhoneVerified: true,
       rating: Number(record.rating || 0),
       completedPujas: Number(record.completedPujas || 0),
@@ -423,6 +429,15 @@ export class PriestService {
           }
         }
       }
+
+      // Sanitize service areas to store ONLY place names (no leading PIN code or hyphen)
+      profileUpdates.serviceAreas = Array.from(
+        new Set(
+          profileUpdates.serviceAreas
+            .map((area: string) => String(area).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
+            .filter(Boolean)
+        )
+      );
     }
 
     // 3. Wrap multi-table database updates in a transaction for atomic integrity

@@ -30,6 +30,8 @@ import {
   formatTime,
   formatFullDate,
   getInitials,
+  formatLocalityName,
+  areDistrictsEquivalent,
 } from "@/lib/utils";
 import {
   MapPin,
@@ -177,30 +179,11 @@ export const PriestDetailsPage: React.FC = () => {
     const selectedAddress = userAddresses.find(
       (a) => a.id === selectedAddressId,
     );
-    if (selectedAddress) {
-      const selectedPin = (
-        selectedAddress.pincode ||
-        selectedAddress.pinCode ||
-        ""
-      )
-        .trim()
-        .replace(/\D/g, "");
-      const priestHomePin = (priest?.pincode || "").trim().replace(/\D/g, "");
-      const priestAreasStr = (priest?.serviceAreas || []).join(" ");
-      const hasLocationRules = Boolean(
-        priestHomePin ||
-        (priest?.serviceAreas && priest.serviceAreas.length > 0),
+    if (selectedAddress && !isAddressServed(selectedAddress)) {
+      toast.error(
+        `This Purohit does not provide puja ceremonies in ${selectedAddress.locality || selectedAddress.city || selectedAddress.pincode || selectedAddress.pinCode}. Please select a venue address within their service localities.`,
       );
-      const isServed =
-        (priestHomePin && priestHomePin === selectedPin) ||
-        (selectedPin && priestAreasStr.includes(selectedPin));
-
-      if (hasLocationRules && !isServed) {
-        toast.error(
-          `This Purohit does not provide puja ceremonies in PIN code ${selectedAddress.pincode || selectedAddress.pinCode}. Please select a venue address within their service localities.`,
-        );
-        return;
-      }
+      return;
     }
 
     setIsSubmitting(true);
@@ -297,23 +280,48 @@ export const PriestDetailsPage: React.FC = () => {
   ).length;
 
   const selectedAddress = userAddresses.find((a) => a.id === selectedAddressId);
-  const isPincodeServed = (pincodeStr?: string) => {
-    if (!pincodeStr) return true;
-    const cleanPin = pincodeStr.trim().replace(/\D/g, "");
+  const isAddressServed = (addr?: (typeof userAddresses)[0]) => {
+    if (!addr) return true;
+    const cleanPin = (addr.pincode || addr.pinCode || "").trim().replace(/\D/g, "");
     const priestHomePin = (priest?.pincode || "").trim().replace(/\D/g, "");
-    const priestAreasStr = (priest?.serviceAreas || []).join(" ");
     const hasRules = Boolean(
       priestHomePin || (priest?.serviceAreas && priest.serviceAreas.length > 0),
     );
     if (!hasRules) return true;
-    return (
-      (priestHomePin && priestHomePin === cleanPin) ||
-      priestAreasStr.includes(cleanPin)
-    );
+
+    // 1. Same home PIN
+    if (priestHomePin && cleanPin && priestHomePin === cleanPin) return true;
+
+    // 2. Direct match in raw service areas string (for legacy PIN codes)
+    const priestAreasStr = JSON.stringify(priest?.serviceAreas || []).toLowerCase();
+    if (cleanPin && priestAreasStr.includes(cleanPin)) return true;
+
+    // 3. Clean place names match
+    const priestAreas = (priest?.serviceAreas || []).map(formatLocalityName).filter(Boolean);
+    const addrTokens = [
+      addr.locality,
+      addr.villageTown,
+      addr.city,
+      addr.district,
+    ]
+      .filter(Boolean)
+      .map((t) => t!.toLowerCase().trim());
+
+    const placeMatch = priestAreas.some((area) => {
+      const cleanArea = area.toLowerCase().trim();
+      return addrTokens.some((token) => token.includes(cleanArea) || cleanArea.includes(token));
+    });
+    if (placeMatch) return true;
+
+    // 4. Residing district match (district locker)
+    if (priest?.city && addr.district && areDistrictsEquivalent(addr.district, priest.city)) {
+      return true;
+    }
+
+    return false;
   };
   const isAddressOutside = Boolean(
-    selectedAddress &&
-    !isPincodeServed(selectedAddress.pincode || selectedAddress.pinCode),
+    selectedAddress && !isAddressServed(selectedAddress),
   );
   const selectedAddressSummary = selectedAddress
     ? [
@@ -433,7 +441,7 @@ export const PriestDetailsPage: React.FC = () => {
                 Serving Localities:{" "}
               </span>
               <strong className="text-stone-900">
-                {priest.serviceAreas?.join(", ") || priest.city}
+                {priest.serviceAreas?.map(formatLocalityName).filter(Boolean).join(", ") || priest.city}
               </strong>
             </div>
           </div>
@@ -962,9 +970,7 @@ export const PriestDetailsPage: React.FC = () => {
             ) : (
               userAddresses.map((addr) => {
                 const isSelected = selectedAddressId === addr.id;
-                const isOutside = !isPincodeServed(
-                  addr.pincode || addr.pinCode,
-                );
+                const isOutside = !isAddressServed(addr);
                 const line1 =
                   [
                     addr.houseNo || addr.houseBuilding,
@@ -1121,9 +1127,7 @@ export const PriestDetailsPage: React.FC = () => {
                         .filter(Boolean)
                         .join(", ") || addr.city;
                     const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;
-                    const isOutside = !isPincodeServed(
-                      addr.pincode || addr.pinCode,
-                    );
+                    const isOutside = !isAddressServed(addr);
 
                     return (
                       <div

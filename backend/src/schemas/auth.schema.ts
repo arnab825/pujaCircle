@@ -42,7 +42,6 @@ export const registerPriestSchema = z.object({
   experienceYears: z.coerce.number().int().min(0).max(80).default(0),
   bio: z.string().trim().max(1000).default(''),
   languages: z.array(z.string().trim().max(50)).default([]),
-  specializations: z.array(z.string().trim().max(100)).default([]),
   serviceAreas: z.array(z.string().trim().max(100)).default([]),
   city: z.string().trim().max(100).default(''),
   state: z.string().trim().max(100).default(''),

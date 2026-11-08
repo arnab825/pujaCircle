@@ -7,6 +7,7 @@ import { CreateBookingInput, RatingInput } from '../schemas/booking.schema.js';
 import { AppError } from '../utils/AppError.js';
 import { availabilityService } from './availability.service.js';
 import { resolvePriestProfileId } from '../repositories/priest.repository.js';
+import { areDistrictsEquivalent } from './priest.service.js';
 import { BookingViewModel } from '../views/booking.view.js';
 import { getPagination } from '../utils/pagination.js';
 
@@ -173,7 +174,14 @@ export class BookingService {
 
     // Validate venue address
     const [addr] = await db
-      .select({ id: addresses.id, pincode: addresses.pincode, city: addresses.city })
+      .select({
+        id: addresses.id,
+        pincode: addresses.pincode,
+        locality: addresses.locality,
+        villageTown: addresses.villageTown,
+        city: addresses.city,
+        district: addresses.district,
+      })
       .from(addresses)
       .where(eq(addresses.id, data.addressId))
       .limit(1);
@@ -182,11 +190,12 @@ export class BookingService {
       throw new AppError(404, 'Ceremony venue address not found.');
     }
 
-    // Verify priest serves the venue address pincode
+    // Verify priest serves the venue address pincode or locality
     const [priestProfile] = await db
       .select({
         id: priestProfiles.id,
         pincode: priestProfiles.pincode,
+        city: priestProfiles.city,
         serviceAreas: priestProfiles.serviceAreas,
       })
       .from(priestProfiles)
@@ -196,15 +205,39 @@ export class BookingService {
     if (priestProfile && addr.pincode) {
       const cleanVenuePin = addr.pincode.trim().replace(/\D/g, '');
       const priestHomePin = (priestProfile.pincode || '').trim().replace(/\D/g, '');
-      const priestAreasStr = JSON.stringify(priestProfile.serviceAreas || []);
-      const servesPincode =
-        (priestHomePin && priestHomePin === cleanVenuePin) ||
-        priestAreasStr.includes(cleanVenuePin);
+      const rawAreas: string[] = priestProfile.serviceAreas || [];
+      const cleanAreas = rawAreas.map((a) =>
+        String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim().toLowerCase()
+      ).filter(Boolean);
+      const rawAreasStr = JSON.stringify(rawAreas).toLowerCase();
 
-      if (!servesPincode && (priestProfile.serviceAreas?.length || priestHomePin)) {
+      // 1. Same home PIN
+      const samePin = Boolean(priestHomePin && priestHomePin === cleanVenuePin);
+
+      // 2. Direct pincode match in raw areas (legacy data support)
+      const pinInAreas = cleanVenuePin ? rawAreasStr.includes(cleanVenuePin) : false;
+
+      // 3. Place name match with venue address
+      const venueTokens = [addr.locality, addr.villageTown, addr.city, addr.district]
+        .filter(Boolean)
+        .map((t) => t!.toLowerCase().trim());
+
+      const placeMatch = cleanAreas.some((area) =>
+        venueTokens.some((token) => token.includes(area) || area.includes(token))
+      );
+
+      // 4. District locker check
+      const districtMatch = Boolean(
+        (addr.district && priestProfile.city && areDistrictsEquivalent(addr.district, priestProfile.city)) ||
+        (addr.city && priestProfile.city && areDistrictsEquivalent(addr.city, priestProfile.city))
+      );
+
+      const servesVenue = samePin || pinInAreas || placeMatch || districtMatch;
+
+      if (!servesVenue && (rawAreas.length || priestHomePin)) {
         throw new AppError(
           400,
-          `The selected Purohit does not provide puja services in PIN code ${addr.pincode}. Please select a venue address within the Purohit's service localities.`
+          `The selected Purohit does not provide puja services in ${addr.locality || addr.city || addr.pincode}. Please select a venue address within the Purohit's service localities.`
         );
       }
     }

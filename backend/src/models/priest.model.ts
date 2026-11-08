@@ -14,7 +14,6 @@ export const priestProfiles = pgTable('priest_profiles', {
   experienceYears: integer('experience_years').default(0).notNull(),
   bio: text('bio').default('').notNull(),
   languages: jsonb('languages').$type<string[]>().default([]).notNull(),
-  specializations: jsonb('specializations').$type<string[]>().default([]).notNull(),
   serviceAreas: jsonb('service_areas').$type<string[]>().default([]).notNull(),
   city: varchar('city', { length: 100 }).default('').notNull(),
   state: varchar('state', { length: 100 }).default('').notNull(),
