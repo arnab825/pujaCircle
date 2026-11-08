@@ -1,9 +1,8 @@
-import { randomInt } from 'crypto';
+import { randomInt, randomUUID } from 'crypto';
 import { eq, or, gt, and, sql } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { env } from '../config/env.js';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { db } from '../db/index.js';
 import { users } from '../models/user.model.js';
 import { priestProfiles } from '../models/priest.model.js';
@@ -148,19 +147,15 @@ export class AuthService {
       userRecord.avatarUrl = effectiveAvatar;
     }
 
-    // 2. Validate credentials with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: targetEmail,
-      password: input.password,
-    });
-
-    if (authError || !authData.user) {
+    // 2. Validate credentials with bcrypt
+    const isValid = await bcrypt.compare(input.password, userRecord.password || '');
+    if (!isValid) {
       throw new AppError(401, 'Invalid password. Please check your password and try again.');
     }
 
     return {
       user: toUserView(userRecord, approvalStatus),
-      token: generateAppToken(userRecord) || authData.session?.access_token,
+      token: generateAppToken(userRecord),
     };
   }
 
@@ -177,74 +172,44 @@ export class AuthService {
       throw new AppError(409, 'An account with this phone number or email address is already registered.');
     }
 
-    const { data: authUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
-      email: input.email,
-      password: input.password,
-      email_confirm: true,
-      user_metadata: {
-        name: input.fullName,
-        phone: input.phoneNumber,
-        role: 'USER',
-      },
-    });
-
-    if (createAuthError || !authUser.user) {
-      throw new AppError(400, createAuthError?.message || 'Failed to create authentication credentials.');
-    }
-
-    const userId = authUser.user.id;
-    let createdUser: typeof users.$inferSelect | undefined;
+    const userId = randomUUID();
     const passwordHash = await bcrypt.hash(input.password, 10);
 
-    try {
-      createdUser = await db.transaction(async (tx) => {
-        const [inserted] = await tx
-          .insert(users)
-          .values({
-            id: userId,
-            name: input.fullName,
-            email: input.email,
-            phoneNumber: input.phoneNumber,
-            password: passwordHash,
-            role: 'USER',
-          })
-          .returning();
+    const createdUser = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(users)
+        .values({
+          id: userId,
+          name: input.fullName,
+          email: input.email,
+          phoneNumber: input.phoneNumber,
+          password: passwordHash,
+          role: 'USER',
+        })
+        .returning();
 
-        if (input.address) {
-          await tx.insert(addresses).values({
-            userId,
-            label: input.address.label,
-            houseNo: input.address.houseNo,
-            houseBuilding: input.address.houseBuilding,
-            street: input.address.street,
-            locality: input.address.locality,
-            villageTown: input.address.villageTown,
-            city: input.address.city,
-            district: input.address.district,
-            state: input.address.state,
-            pincode: input.address.pincode,
-            isDefault: true,
-          });
-        }
-        return inserted;
-      });
-    } catch (dbError: any) {
-      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
-      throw new AppError(500, dbError?.message || 'Failed to save devotee user profile in database.');
-    }
-
-    if (!createdUser) {
-      throw new AppError(500, 'Failed to initialize user account.');
-    }
-
-    const { data: sessionData } = await supabase.auth.signInWithPassword({
-      email: input.email,
-      password: input.password,
+      if (input.address) {
+        await tx.insert(addresses).values({
+          userId,
+          label: input.address.label,
+          houseNo: input.address.houseNo,
+          houseBuilding: input.address.houseBuilding,
+          street: input.address.street,
+          locality: input.address.locality,
+          villageTown: input.address.villageTown,
+          city: input.address.city,
+          district: input.address.district,
+          state: input.address.state,
+          pincode: input.address.pincode,
+          isDefault: true,
+        });
+      }
+      return inserted;
     });
 
     return {
       user: toUserView(createdUser),
-      token: generateAppToken(createdUser) || sessionData?.session?.access_token,
+      token: generateAppToken(createdUser),
     };
   }
 
@@ -263,77 +228,47 @@ export class AuthService {
     const targetEmail = (input.email ? input.email.trim().toLowerCase() : `priest.${input.phoneNumber}@pujacircle.internal`);
     const targetPassword = input.password || `PujaPriest@${randomInt(100000, 999999)}`;
 
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: targetEmail,
-      password: targetPassword,
-      email_confirm: true,
-      user_metadata: {
-        name: input.fullName,
-        phone: input.phoneNumber,
-        role: 'PRIEST',
-      },
-    });
-
-    if (authError || !authUser.user) {
-      throw new AppError(400, authError?.message || 'Failed to create priest authentication record.');
-    }
-
-    const userId = authUser.user.id;
-    let createdUser: typeof users.$inferSelect | undefined;
+    const userId = randomUUID();
     const passwordHash = await bcrypt.hash(targetPassword, 10);
 
-    try {
-      createdUser = await db.transaction(async (tx) => {
-        const [inserted] = await tx
-          .insert(users)
-          .values({
-            id: userId,
-            name: input.fullName,
-            email: targetEmail,
-            phoneNumber: input.phoneNumber,
-            password: passwordHash,
-            role: 'PRIEST',
-            avatarUrl: null,
-          })
-          .returning();
+    const createdUser = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(users)
+        .values({
+          id: userId,
+          name: input.fullName,
+          email: targetEmail,
+          phoneNumber: input.phoneNumber,
+          password: passwordHash,
+          role: 'PRIEST',
+          avatarUrl: null,
+        })
+        .returning();
 
-        await tx.insert(priestProfiles).values({
-          userId,
-          approvalStatus: 'PENDING',
-          experienceYears: input.experienceYears || 0,
-          bio: input.bio || '',
-          languages: input.languages || ['Hindi'],
-          specializations: input.specializations || ['General Puja'],
-          serviceAreas: input.serviceAreas || [],
-          city: input.city || '',
-          state: input.state || '',
-          pincode: input.pincode || '',
-          profileImageUrl: '',
-          rating: '0.00',
-          reviewCount: 0,
-          defaultStartTime: '07:00:00',
-          defaultEndTime: '21:00:00',
-        });
-
-        return inserted;
+      await tx.insert(priestProfiles).values({
+        userId,
+        approvalStatus: 'PENDING',
+        experienceYears: input.experienceYears || 0,
+        bio: input.bio || '',
+        languages: input.languages || ['Hindi'],
+        specializations: input.specializations || ['General Puja'],
+        serviceAreas: input.serviceAreas || [],
+        city: input.city || '',
+        state: input.state || '',
+        pincode: input.pincode || '',
+        profileImageUrl: '',
+        rating: '0.00',
+        reviewCount: 0,
+        defaultStartTime: '07:00:00',
+        defaultEndTime: '21:00:00',
       });
-    } catch (dbError: any) {
-      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => {});
-      throw new AppError(500, dbError?.message || 'Failed to save priest profile application in database.');
-    }
 
-    if (!createdUser) {
-      throw new AppError(500, 'Failed to initialize priest account.');
-    }
-
-    const { data: sessionData } = await supabase.auth.signInWithPassword({
-      email: targetEmail,
-      password: targetPassword,
+      return inserted;
     });
 
     return {
       user: toUserView(createdUser),
-      token: generateAppToken(createdUser) || sessionData?.session?.access_token,
+      token: generateAppToken(createdUser),
     };
   }
 
@@ -391,21 +326,7 @@ export class AuthService {
 
     const isDynamicValid = (await verifyOtp(formattedPhone, input.otp)) || (await verifyOtp(cleanPhone, input.otp));
 
-    let supabaseSuccess = false;
     if (!isDynamicValid) {
-      try {
-        const { data, error } = await supabase.auth.verifyOtp({
-          phone: formattedPhone,
-          token: input.otp,
-          type: 'sms',
-        });
-        if (!error && data.user) supabaseSuccess = true;
-      } catch {
-        // Live SMS provider optional fallback
-      }
-    }
-
-    if (!isDynamicValid && !supabaseSuccess) {
       throw new AppError(400, 'Invalid or expired phone verification code. Please check the code and try again.');
     }
 
@@ -456,14 +377,6 @@ export class AuthService {
 
       if (!dbUser) throw new AppError(404, 'No registered account found for this email.');
 
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(dbUser.id, {
-        password: input.newPassword,
-      });
-
-      if (updateError) {
-        throw new AppError(400, updateError.message || 'Failed to update credentials.');
-      }
-
       const passwordHash = await bcrypt.hash(input.newPassword, 10);
       await db.update(users).set({ password: passwordHash }).where(eq(users.id, dbUser.id));
     }
@@ -512,14 +425,6 @@ export class AuthService {
       throw new AppError(404, 'No active account found for password reset.');
     }
 
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(dbUser.id, {
-      password: input.newPassword,
-    });
-
-    if (updateError) {
-      throw new AppError(400, updateError.message || 'Failed to update credentials. Please try again.');
-    }
-
     const passwordHash = await bcrypt.hash(input.newPassword, 10);
     await db.update(users).set({ password: passwordHash }).where(eq(users.id, dbUser.id));
 
@@ -529,10 +434,7 @@ export class AuthService {
   }
 
   // Invalidate session on logout
-  async logout(token?: string): Promise<{ message: string }> {
-    if (token) {
-      await supabase.auth.signOut().catch(() => {});
-    }
+  async logout(_token?: string): Promise<{ message: string }> {
     return { message: 'Logged out successfully.' };
   }
 }

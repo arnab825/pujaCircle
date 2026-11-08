@@ -2,7 +2,6 @@ import { count, eq, sql, desc, and, or, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { db } from '../db/index.js';
 import { users, priestProfiles, bookings, addresses } from '../models/index.js';
-import { supabaseAdmin } from '../config/supabase.js';
 import { AppError } from '../utils/AppError.js';
 import { getPagination } from '../utils/pagination.js';
 import { cloudinaryService } from './cloudinary.service.js';
@@ -405,12 +404,6 @@ export class AdminService {
         .where(inArray(bookings.addressId, addressIds));
     }
 
-    // Delete corresponding Supabase Authentication account so the user cannot log in
-    // and the same email address can be registered again if needed
-    await supabaseAdmin.auth.admin.deleteUser(userId).catch((err) => {
-      console.warn('Supabase auth user delete notice:', err?.message || err);
-    });
-
     // Delete user from application users table (cascades cleanly to addresses)
     await db.delete(users).where(eq(users.id, userId));
 
@@ -457,11 +450,6 @@ export class AdminService {
       .update(bookings)
       .set({ priestId: null, priestServiceId: null })
       .where(eq(bookings.priestId, priest.id));
-
-    // Delete corresponding Supabase Authentication account for the priest
-    await supabaseAdmin.auth.admin.deleteUser(priest.userId).catch((err) => {
-      console.warn('Supabase auth priest delete notice:', err?.message || err);
-    });
 
     // Delete priestProfile (cascades to priest_services and priest_availability_exceptions)
     await db.delete(priestProfiles).where(eq(priestProfiles.id, priest.id));

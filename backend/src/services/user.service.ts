@@ -3,7 +3,6 @@ import bcrypt from 'bcryptjs';
 import { db } from '../db/index.js';
 import { users } from '../models/user.model.js';
 import { priestProfiles } from '../models/priest.model.js';
-import { supabase, supabaseAdmin } from '../config/supabase.js';
 import { toUserView, UserViewModel } from '../views/user.view.js';
 import { UpdateUserProfileInput, ChangePasswordInput } from '../schemas/user.schema.js';
 import { AppError } from '../utils/AppError.js';
@@ -114,7 +113,7 @@ export class UserService {
     return toUserView(updatedUser);
   }
 
-  // Update devotee password via Supabase Auth
+  // Update devotee password
   async changePassword(userId: string, data: ChangePasswordInput): Promise<void> {
     const [user] = await db
       .select()
@@ -126,27 +125,15 @@ export class UserService {
       throw new AppError(404, 'User profile not found.');
     }
 
-    if (data.currentPassword && user.email) {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email.trim().toLowerCase(),
-        password: data.currentPassword,
-      });
-
-      if (signInError) {
+    if (data.currentPassword) {
+      const isValid = await bcrypt.compare(data.currentPassword, user.password || '');
+      if (!isValid) {
         throw new AppError(400, 'Current password is incorrect.');
       }
     }
 
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password: data.newPassword,
-    });
-
-    if (updateError) {
-      throw new AppError(400, updateError.message || 'Failed to update credentials. Please try again.');
-    }
-
     const passwordHash = await bcrypt.hash(data.newPassword, 10);
-    await db.update(users).set({ password: passwordHash }).where(eq(users.id, userId));
+    await db.update(users).set({ password: passwordHash, updatedAt: new Date() }).where(eq(users.id, userId));
   }
 }
 
