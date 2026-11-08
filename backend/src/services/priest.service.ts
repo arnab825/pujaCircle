@@ -16,6 +16,51 @@ import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
 import { PriestViewModel, PriestServiceViewModel } from '@/views/priest.view.js';
 import { getPagination } from '@/utils/pagination.js';
 
+// Dynamic in-memory cache for resolved postal PIN codes to prevent redundant external directory lookups
+const pincodeDistrictCache = new Map<string, string>();
+
+async function resolveDistrictFromPincode(pincode: string): Promise<string | null> {
+  const cleanPin = (pincode || '').trim().replace(/\D/g, '');
+  if (cleanPin.length !== 6) return null;
+
+  if (pincodeDistrictCache.has(cleanPin)) {
+    return pincodeDistrictCache.get(cleanPin)!;
+  }
+
+  try {
+    const response = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`, {
+      signal: AbortSignal.timeout(3500),
+    });
+    if (response.ok) {
+      const data: any = await response.json();
+      if (Array.isArray(data) && data[0]?.Status === 'Success' && Array.isArray(data[0]?.PostOffice)) {
+        const resolvedDistrict = data[0].PostOffice[0]?.District;
+        if (resolvedDistrict && typeof resolvedDistrict === 'string') {
+          const trimmedDistrict = resolvedDistrict.trim();
+          pincodeDistrictCache.set(cleanPin, trimmedDistrict);
+          return trimmedDistrict;
+        }
+      }
+    }
+  } catch {
+    // Non-blocking fallback
+  }
+  return null;
+}
+
+function areDistrictsEquivalent(firstDistrict: string, secondDistrict: string): boolean {
+  if (!firstDistrict || !secondDistrict) return true;
+  const normalize = (value: string) =>
+    value.toLowerCase().replace(/[^a-z0-9]/g, '').replace('district', '').replace('city', '');
+
+  const normalizedFirst = normalize(firstDistrict);
+  const normalizedSecond = normalize(secondDistrict);
+
+  if (normalizedFirst === normalizedSecond) return true;
+  if (normalizedFirst.includes(normalizedSecond) || normalizedSecond.includes(normalizedFirst)) return true;
+  return false;
+}
+
 // Service managing verified Purohit directory, profile configurations, ritual catalog offerings, and working hours
 export class PriestService {
   // Delegate to shared repository for resolving canonical profile UUID
@@ -48,6 +93,7 @@ export class PriestService {
         conditions.push(
           or(
             eq(priestProfiles.pincode, cleanPin),
+            sql`REPLACE(COALESCE(${priestProfiles.pincode}, ''), ' ', '') = ${cleanPin}`,
             sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanPin + '%'}`
           )!
         );
@@ -285,19 +331,11 @@ export class PriestService {
     // Destructure profileImageUrl separately so we control its persistence
     const { fullName, displayName, name, profileImageUrl, ...profileUpdates } = updates as any;
     const newName = fullName || displayName || name;
+    let finalImageUrl: string | null = null;
 
-    // 1. Persist priest display name to users table
-    if (newName && typeof newName === 'string' && newName.trim()) {
-      await db
-        .update(users)
-        .set({ name: newName.trim(), updatedAt: new Date() })
-        .where(eq(users.id, existing.userId));
-    }
-
-    // 2. Handle Cloudinary Upload & Avatar Sync for users + priestProfiles tables
+    // 1. Handle Cloudinary Upload & Avatar Sync for users + priestProfiles tables
     if (profileImageUrl !== undefined) {
       const oldImageUrl = existing.profileImageUrl || existing.avatarUrl;
-      let finalImageUrl: string | null = null;
 
       if (typeof profileImageUrl === 'string' && profileImageUrl.trim().length > 0) {
         const trimmed = profileImageUrl.trim();
@@ -333,24 +371,71 @@ export class PriestService {
         finalImageUrl = null;
       }
 
-      // Sync to users table (users.avatar_url is nullable)
-      await db
-        .update(users)
-        .set({ avatarUrl: finalImageUrl, updatedAt: new Date() })
-        .where(eq(users.id, existing.userId));
-
       // Sync to priest_profiles table (profile_image_url defaults to empty string)
       profileUpdates.profileImageUrl = finalImageUrl || '';
     }
 
-    // 3. Persist other profile fields to priest_profiles table
-    await db
-      .update(priestProfiles)
-      .set({
-        ...profileUpdates,
-        updatedAt: new Date(),
-      })
-      .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
+    // 2. Dynamic District Boundary Validation for serviceAreas (fully dynamic via postal lookup)
+    if (Array.isArray(profileUpdates.serviceAreas) && profileUpdates.serviceAreas.length > 0) {
+      const residingPostalCode = (profileUpdates.pincode || existing.pincode || '').trim().replace(/\D/g, '');
+      const residingCityOrDistrict = (profileUpdates.city || existing.city || '').trim();
+
+      // Dynamically resolve the priest's home district via postal directory
+      let residingDistrict: string | null = null;
+      if (residingPostalCode.length === 6) {
+        residingDistrict = await resolveDistrictFromPincode(residingPostalCode);
+      }
+      if (!residingDistrict && residingCityOrDistrict) {
+        residingDistrict = residingCityOrDistrict;
+      }
+
+      if (residingDistrict) {
+        for (const candidateServiceArea of profileUpdates.serviceAreas) {
+          const areaString = String(candidateServiceArea).trim();
+          const postalMatch = areaString.match(/\b\d{6}\b/);
+
+          if (postalMatch) {
+            const candidatePincode = postalMatch[0];
+            const candidateDistrict = await resolveDistrictFromPincode(candidatePincode);
+
+            if (candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
+              throw new AppError(
+                400,
+                `Cannot add '${candidateServiceArea}': This locality is in ${candidateDistrict}, which is outside your residing district (${residingDistrict}).`
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Wrap multi-table database updates in a transaction for atomic integrity
+    await db.transaction(async (tx) => {
+      // A. Persist priest display name to users table
+      if (newName && typeof newName === 'string' && newName.trim()) {
+        await tx
+          .update(users)
+          .set({ name: newName.trim(), updatedAt: new Date() })
+          .where(eq(users.id, existing.userId));
+      }
+
+      // B. Sync avatar to users table (users.avatar_url is nullable)
+      if (profileImageUrl !== undefined) {
+        await tx
+          .update(users)
+          .set({ avatarUrl: finalImageUrl, updatedAt: new Date() })
+          .where(eq(users.id, existing.userId));
+      }
+
+      // C. Persist other profile fields to priest_profiles table
+      await tx
+        .update(priestProfiles)
+        .set({
+          ...profileUpdates,
+          updatedAt: new Date(),
+        })
+        .where(or(eq(priestProfiles.id, id), eq(priestProfiles.userId, id)));
+    });
 
     return this.getPriestById(id);
   }

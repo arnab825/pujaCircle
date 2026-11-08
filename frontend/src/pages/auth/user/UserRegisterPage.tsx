@@ -207,7 +207,7 @@ export const UserRegisterPage: React.FC = () => {
           houseNo: houseBuilding,
           street: street,
           locality: selectedLocation
-            ? selectedLocation.postOffice
+            ? (selectedLocation.locality || selectedLocation.villageTown || selectedLocation.city)
             : "Central Locality",
           villageTown: selectedLocation
             ? selectedLocation.villageTown
@@ -318,7 +318,7 @@ export const UserRegisterPage: React.FC = () => {
                   >
                     {step > 2 ? "✓" : "2"}
                   </span>
-                  <span>Contact Verification (OTP)</span>
+                  <span>Email Verification (OTP)</span>
                 </div>
                 <div
                   className={`flex items-center gap-2 ${step >= 3 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
@@ -584,7 +584,7 @@ export const UserRegisterPage: React.FC = () => {
                     onClick={handleResendOtp}
                     className="text-xs text-amber-800 hover:text-amber-950 font-semibold underline cursor-pointer"
                   >
-                    Didn't receive codes? Resend OTP
+                    Didn't receive code? Resend Email OTP
                   </button>
                 </div>
 

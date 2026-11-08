@@ -25,10 +25,20 @@ export interface BookingFilterOptions {
   limit?: number;
 }
 
+type RawBookingRecord = typeof bookings.$inferSelect & {
+  user?: typeof users.$inferSelect | null;
+  priestProfile?: (typeof priestProfiles.$inferSelect & {
+    user?: typeof users.$inferSelect | null;
+  }) | null;
+  catalog?: typeof pujaCatalog.$inferSelect | null;
+  address?: typeof addresses.$inferSelect | null;
+  priestService?: typeof priestServices.$inferSelect | null;
+};
+
 // Service managing ceremony reservations, status transitions, completion verification, and devotee reviews
 export class BookingService {
   // Format raw database record and joins into consistent BookingViewModel
-  private formatBookingResponse(b: any): BookingViewModel {
+  private formatBookingResponse(b: RawBookingRecord): BookingViewModel {
     return {
       id: b.id,
       bookingReference: b.bookingReference,
@@ -60,7 +70,7 @@ export class BookingService {
             displayName: b.priestProfile.user?.name || 'Assigned Purohit',
             fullName: b.priestProfile.user?.name || 'Assigned Purohit',
             phoneNumber: b.priestProfile.user?.phoneNumber,
-            email: b.priestProfile.user?.email,
+            email: b.priestProfile.user?.email || undefined,
             profileImageUrl: b.priestProfile.profileImageUrl || b.priestProfile.user?.avatarUrl || '',
             avatarUrl: b.priestProfile.profileImageUrl || b.priestProfile.user?.avatarUrl || '',
           }
@@ -79,7 +89,7 @@ export class BookingService {
             id: b.user.id,
             name: b.user.name,
             phoneNumber: b.user.phoneNumber,
-            email: b.user.email,
+            email: b.user.email || undefined,
           }
         : undefined,
     };
@@ -107,7 +117,7 @@ export class BookingService {
           ? conditions[0]
           : and(...conditions);
 
-    const pagination = filters.page || filters.limit ? getPagination(filters) : undefined;
+    const pagination = getPagination({ page: filters.page ?? 1, limit: filters.limit ?? 50 });
 
     const rawBookings = await db.query.bookings.findMany({
       where: whereClause,
@@ -163,13 +173,40 @@ export class BookingService {
 
     // Validate venue address
     const [addr] = await db
-      .select({ id: addresses.id })
+      .select({ id: addresses.id, pincode: addresses.pincode, city: addresses.city })
       .from(addresses)
       .where(eq(addresses.id, data.addressId))
       .limit(1);
 
     if (!addr) {
       throw new AppError(404, 'Ceremony venue address not found.');
+    }
+
+    // Verify priest serves the venue address pincode
+    const [priestProfile] = await db
+      .select({
+        id: priestProfiles.id,
+        pincode: priestProfiles.pincode,
+        serviceAreas: priestProfiles.serviceAreas,
+      })
+      .from(priestProfiles)
+      .where(eq(priestProfiles.id, resolvedPriestId))
+      .limit(1);
+
+    if (priestProfile && addr.pincode) {
+      const cleanVenuePin = addr.pincode.trim().replace(/\D/g, '');
+      const priestHomePin = (priestProfile.pincode || '').trim().replace(/\D/g, '');
+      const priestAreasStr = JSON.stringify(priestProfile.serviceAreas || []);
+      const servesPincode =
+        (priestHomePin && priestHomePin === cleanVenuePin) ||
+        priestAreasStr.includes(cleanVenuePin);
+
+      if (!servesPincode && (priestProfile.serviceAreas?.length || priestHomePin)) {
+        throw new AppError(
+          400,
+          `The selected Purohit does not provide puja services in PIN code ${addr.pincode}. Please select a venue address within the Purohit's service localities.`
+        );
+      }
     }
 
     // Generate collision-resistant unique booking reference e.g. PC-2026-X8K9M2

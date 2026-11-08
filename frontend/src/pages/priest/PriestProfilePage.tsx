@@ -21,12 +21,14 @@ import {
   Phone,
   Mail,
   User,
+  Lock,
   Loader2,
   Camera,
   Trash2,
   Search,
   ExternalLink,
   Sparkles,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatINR } from "@/lib/utils";
@@ -63,6 +65,7 @@ export const PriestProfilePage: React.FC = () => {
   const [experienceYears, setExperienceYears] = useState<number>(0);
   const [pincode, setPincode] = useState("");
   const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
   const [state, setState] = useState("");
   const [bio, setBio] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
@@ -72,9 +75,40 @@ export const PriestProfilePage: React.FC = () => {
   // Inputs for adding custom items
   const [customLanguage, setCustomLanguage] = useState("");
   const [newAreaInput, setNewAreaInput] = useState("");
-  const [areaPinSuggestions, setAreaPinSuggestions] = useState<Array<{ name: string; city: string; state: string; pincode: string }>>([]);
+  const [areaPinSuggestions, setAreaPinSuggestions] = useState<
+    Array<{ name: string; city: string; state: string; district?: string; pincode: string }>
+  >([]);
+  const [residingPinSuggestions, setResidingPinSuggestions] = useState<
+    Array<{ name: string; city: string; state: string; district?: string; pincode: string }>
+  >([]);
+  const [isHomeSuggestionsDismissed, setIsHomeSuggestionsDismissed] = useState(false);
   const [isSearchingAreaPin, setIsSearchingAreaPin] = useState(false);
   const [areaPinQuery, setAreaPinQuery] = useState("");
+  const [districtWarning, setDistrictWarning] = useState<string | null>(null);
+
+  const loadResidingLocalities = (
+    pin: string,
+    homeDistrict: string,
+    locations: any[],
+  ) => {
+    const unique = new Map<
+      string,
+      { name: string; city: string; state: string; district: string; pincode: string }
+    >();
+    locations.forEach((loc) => {
+      const name = loc.locality || loc.villageTown || loc.postOffice;
+      if (name && !unique.has(name)) {
+        unique.set(name, {
+          name,
+          city: loc.city || loc.district || "",
+          district: loc.district || homeDistrict,
+          state: loc.state || "",
+          pincode: pin,
+        });
+      }
+    });
+    setResidingPinSuggestions(Array.from(unique.values()));
+  };
 
   const loadProfile = async () => {
     setIsLoading(true);
@@ -95,6 +129,17 @@ export const PriestProfilePage: React.FC = () => {
         setLanguages(p.languages || []);
         setServiceAreas(p.serviceAreas || []);
         setPincode(p.pincode || "");
+
+        if (p.pincode && p.pincode.length === 6) {
+          priestApi.lookupPincode(p.pincode).then((res) => {
+            if (res?.locations && res.locations.length > 0) {
+              const loc = res.locations[0];
+              const resolvedDistrict = loc.district || loc.city || p.city || "";
+              setDistrict(resolvedDistrict);
+              loadResidingLocalities(p.pincode!, resolvedDistrict, res.locations);
+            }
+          });
+        }
       } else if (user) {
         setFullName(user.name || "");
       }
@@ -121,11 +166,15 @@ export const PriestProfilePage: React.FC = () => {
         const res = await priestApi.lookupPincode(clean);
         if (res && res.locations && res.locations.length > 0) {
           const loc = res.locations[0];
-          setCity(loc.city || loc.district);
+          const resolvedCity = loc.city || loc.district || "";
+          const resolvedDistrict = loc.district || loc.city || "";
+          setCity(resolvedCity);
+          setDistrict(resolvedDistrict);
           setState(loc.state);
           toast.success(
-            `Detected location: ${loc.city || loc.district}, ${loc.state}`,
+            `Detected location: ${loc.locality ? `${loc.locality}, ` : ""}${resolvedCity} (${resolvedDistrict}), ${loc.state}`,
           );
+          loadResidingLocalities(clean, resolvedDistrict, res.locations);
         } else {
           toast.error("Could not resolve location for this PIN code.");
         }
@@ -184,8 +233,23 @@ export const PriestProfilePage: React.FC = () => {
     setCustomLanguage("");
   };
 
+  // Dynamic district equivalence comparison
+  const areDistrictsEquivalent = (firstDistrict: string, secondDistrict: string): boolean => {
+    if (!firstDistrict || !secondDistrict) return true;
+    const normalize = (val: string) =>
+      val.toLowerCase().replace(/[^a-z0-9]/g, "").replace("district", "").replace("city", "");
+
+    const normalizedFirst = normalize(firstDistrict);
+    const normalizedSecond = normalize(secondDistrict);
+
+    if (normalizedFirst === normalizedSecond) return true;
+    if (normalizedFirst.includes(normalizedSecond) || normalizedSecond.includes(normalizedFirst)) return true;
+    return false;
+  };
+
   const handleAreaInputChange = (value: string) => {
     setNewAreaInput(value);
+    setDistrictWarning(null);
     const cleanDigits = value.trim().replace(/\D/g, "");
 
     if (cleanDigits.length === 6 && cleanDigits !== areaPinQuery) {
@@ -195,9 +259,22 @@ export const PriestProfilePage: React.FC = () => {
         .lookupPincode(cleanDigits)
         .then((res) => {
           if (res?.locations && res.locations.length > 0) {
+            const primaryLocation = res.locations[0];
+            const candidateDistrict = primaryLocation.district || primaryLocation.city || "";
+            const residingDistrict = district || city;
+
+            // Dynamic district restriction based on live postal lookup
+            if (residingDistrict && candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
+              const warningMsg = `PIN ${cleanDigits} is in ${candidateDistrict} (${primaryLocation.state}), which is outside your residing district (${residingDistrict}). Purohits can only serve localities within their home district.`;
+              setDistrictWarning(warningMsg);
+              toast.error(warningMsg);
+              setAreaPinSuggestions([]);
+              return;
+            }
+
             const unique = new Map<
               string,
-              { name: string; city: string; state: string; pincode: string }
+              { name: string; city: string; state: string; district: string; pincode: string }
             >();
             res.locations.forEach((loc) => {
               const name = loc.locality || loc.villageTown || loc.postOffice;
@@ -205,6 +282,7 @@ export const PriestProfilePage: React.FC = () => {
                 unique.set(name, {
                   name,
                   city: loc.city || loc.district || "",
+                  district: loc.district || candidateDistrict,
                   state: loc.state || "",
                   pincode: cleanDigits,
                 });
@@ -230,12 +308,23 @@ export const PriestProfilePage: React.FC = () => {
   const handleSelectAreaSuggestion = (item: {
     name: string;
     city: string;
+    district?: string;
     state: string;
     pincode: string;
   }) => {
+    const residingDistrict = district || city;
+    const targetDistrict = item.district || item.city;
+    if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
+      const warningMsg = `Cannot add ${item.name}: It is in ${targetDistrict}, which is outside your residing district (${residingDistrict}).`;
+      setDistrictWarning(warningMsg);
+      toast.error(warningMsg);
+      return;
+    }
+
     const formatted = `${item.pincode} - ${item.name}`;
     if (!serviceAreas.includes(formatted) && !serviceAreas.includes(item.name)) {
       setServiceAreas((prev) => [...prev, formatted]);
+      setDistrictWarning(null);
       toast.success(`Added ${formatted} to service localities.`);
     } else {
       toast.info(`${formatted} is already in your service areas.`);
@@ -245,7 +334,13 @@ export const PriestProfilePage: React.FC = () => {
   const handleAddAllSuggestions = () => {
     let addedCount = 0;
     const toAdd: string[] = [];
+    const residingDistrict = district || city;
+
     areaPinSuggestions.forEach((s) => {
+      const targetDistrict = s.district || s.city;
+      if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
+        return;
+      }
       const formatted = `${s.pincode} - ${s.name}`;
       if (
         !serviceAreas.includes(formatted) &&
@@ -258,24 +353,74 @@ export const PriestProfilePage: React.FC = () => {
     });
     if (addedCount > 0) {
       setServiceAreas((prev) => [...prev, ...toAdd]);
+      setDistrictWarning(null);
       toast.success(`Added ${addedCount} localities for PIN ${areaPinQuery}.`);
     } else {
       toast.info("All suggested localities are already in your service areas.");
     }
   };
 
-  const handleAddArea = (e: React.FormEvent) => {
+  const handleAddAllResidingSuggestions = () => {
+    let addedCount = 0;
+    const toAdd: string[] = [];
+    residingPinSuggestions.forEach((s) => {
+      const formatted = `${s.pincode} - ${s.name}`;
+      if (
+        !serviceAreas.includes(formatted) &&
+        !serviceAreas.includes(s.name) &&
+        !toAdd.includes(formatted)
+      ) {
+        toAdd.push(formatted);
+        addedCount++;
+      }
+    });
+    if (addedCount > 0) {
+      setServiceAreas((prev) => [...prev, ...toAdd]);
+      setDistrictWarning(null);
+      toast.success(`Added ${addedCount} home localities for PIN ${pincode}.`);
+    } else {
+      toast.info("All residing localities are already in your service areas.");
+    }
+  };
+
+  const handleAddArea = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = newAreaInput.trim();
     if (!trimmed) return;
+
+    const residingDistrict = district || city;
+    const cleanDigits = trimmed.replace(/\D/g, "");
+
+    // 1. If 6-digit PIN code was entered, verify its postal district dynamically
+    if (cleanDigits.length === 6) {
+      setIsSearchingAreaPin(true);
+      try {
+        const res = await priestApi.lookupPincode(cleanDigits);
+        if (res?.locations && res.locations.length > 0) {
+          const primaryLocation = res.locations[0];
+          const targetDistrict = primaryLocation.district || primaryLocation.city || "";
+          if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
+            const warningMsg = `PIN ${cleanDigits} is in ${targetDistrict}, which is outside your residing district (${residingDistrict}). Purohits can only serve localities within their home district.`;
+            setDistrictWarning(warningMsg);
+            toast.error(warningMsg);
+            return;
+          }
+        }
+      } finally {
+        setIsSearchingAreaPin(false);
+      }
+    }
+
     if (serviceAreas.some((a) => a.toLowerCase() === trimmed.toLowerCase())) {
       toast.error("Service locality already added.");
       return;
     }
+
     setServiceAreas([...serviceAreas, trimmed]);
     setNewAreaInput("");
     setAreaPinSuggestions([]);
     setAreaPinQuery("");
+    setDistrictWarning(null);
     toast.success(`Added "${trimmed}" to service localities.`);
   };
 
@@ -374,53 +519,32 @@ export const PriestProfilePage: React.FC = () => {
         className="hidden"
       />
 
-      {/* 1. Header & Primary Action (100% Flexbox) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
-        <div>
-          <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="text-amber-900 border-amber-400 bg-amber-100 text-[11px] font-bold"
-            >
-              Vedic Acharya Dossier
+      {/* 1. Header Banner (100% Flexbox) */}
+      <div className="p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className="text-amber-900 border-amber-400 bg-amber-100 text-[11px] font-bold"
+          >
+            Vedic Acharya Dossier
+          </Badge>
+          {priest?.approvalStatus === "APPROVED" ? (
+            <Badge className="bg-emerald-600 text-white text-[11px] font-bold gap-1">
+              <ShieldCheck className="h-3 w-3" /> Verified Purohit
             </Badge>
-            {priest?.approvalStatus === "APPROVED" ? (
-              <Badge className="bg-emerald-600 text-white text-[11px] font-bold gap-1">
-                <ShieldCheck className="h-3 w-3" /> Verified Purohit
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="text-[11px] font-bold">
-                {priest?.approvalStatus}
-              </Badge>
-            )}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950 mt-1">
-            Vedic Profile & Credentials
-          </h1>
-          <p className="text-xs text-stone-600">
-            Manage your credentials, Gurukul lineage, languages, service
-            localities, and puja offerings.
-          </p>
-        </div>
-
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="gap-2 text-xs font-bold px-6 h-11 bg-[#780016] hover:bg-red-800 text-white border border-amber-400 rounded-md shadow-xs shrink-0 cursor-pointer puja-btn-tap"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving Changes...
-            </>
           ) : (
-            <>
-              <Check className="w-4 h-4" />
-              Save Profile Changes
-            </>
+            <Badge variant="secondary" className="text-[11px] font-bold">
+              {priest?.approvalStatus}
+            </Badge>
           )}
-        </Button>
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950 mt-1">
+          Vedic Profile & Credentials
+        </h1>
+        <p className="text-xs text-stone-600">
+          Manage your credentials, Gurukul lineage, languages, service
+          localities, and puja offerings.
+        </p>
       </div>
 
       {/* 2. Top Summary Card with Interactive Avatar Trigger (Pure White, Haldi Gold Border) */}
@@ -574,25 +698,42 @@ export const PriestProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Detected City & State (100% Flexbox) */}
+            {/* Detected City, District & State (100% Flexbox) */}
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
               <div className="flex-1 space-y-1">
                 <span className="font-bold text-stone-500 text-[10px] uppercase">
-                  Detected City
+                  Detected City / Area
                 </span>
-                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs">
+                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
                   {city || "Enter PIN Code"}
+                </div>
+              </div>
+              <div className="flex-1 space-y-1">
+                <span className="font-bold text-stone-500 text-[10px] uppercase">
+                  Home District
+                </span>
+                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                  {district || city || "Enter PIN Code"}
                 </div>
               </div>
               <div className="flex-1 space-y-1">
                 <span className="font-bold text-stone-500 text-[10px] uppercase">
                   Detected State
                 </span>
-                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs">
+                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
                   {state || "Enter PIN Code"}
                 </div>
               </div>
             </div>
+
+            {pincode.length === 6 && (district || city) && (
+              <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-md flex items-center gap-1.5 mt-2">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>
+                  Authorized Residing Jurisdiction: <strong>{district || city} District</strong> (Purohits serve within this district)
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -614,16 +755,16 @@ export const PriestProfilePage: React.FC = () => {
                 </span>
                 <Badge
                   variant="outline"
-                  className="text-emerald-800 bg-emerald-100 border-emerald-300 text-[10px] font-bold gap-1"
+                  className="text-stone-700 bg-stone-100 border-stone-300 text-[10px] font-bold gap-1"
                 >
-                  <Check className="w-3 h-3 text-emerald-700" /> Phone Verified
+                  <Lock className="w-3 h-3 text-stone-500" /> Registered
                 </Badge>
               </div>
               <p className="font-mono text-sm font-bold text-stone-950">
                 {priest?.phoneNumber || user?.phoneNumber || "Phone pending"}
               </p>
               <p className="text-[11px] text-stone-600">
-                Devotees contact you on this verified number for ritual
+                Devotees contact you on this registered number for ritual
                 coordination.
               </p>
             </div>
@@ -799,6 +940,24 @@ export const PriestProfilePage: React.FC = () => {
           pujas.
         </p>
 
+        {/* District Warning Banner if outside */}
+        {districtWarning && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-300 text-xs text-red-900 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-0.5">
+              <span className="font-bold block text-red-800">Out of Residing District</span>
+              <p className="leading-relaxed">{districtWarning}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDistrictWarning(null)}
+              className="text-red-700 hover:text-red-950 p-1 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           {serviceAreas.map((area) => (
             <Badge
@@ -843,6 +1002,65 @@ export const PriestProfilePage: React.FC = () => {
           </Button>
         </form>
 
+        {/* Residing Home PIN Neighborhood Suggestions (hidden when actively searching or dismissed) */}
+        {!isHomeSuggestionsDismissed &&
+          areaPinSuggestions.length === 0 &&
+          !newAreaInput.trim() &&
+          residingPinSuggestions.length > 0 && (
+            <div className="p-3.5 rounded-lg bg-emerald-50/80 border border-emerald-300 space-y-2.5 max-w-xl transition-all">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                  Home District Neighborhoods for PIN {pincode} ({residingPinSuggestions[0]?.city || district || ""}):
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAddAllResidingSuggestions}
+                    className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+                  >
+                    + Add All ({residingPinSuggestions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsHomeSuggestionsDismissed(true)}
+                    className="text-emerald-800 hover:text-emerald-950 p-0.5 rounded cursor-pointer"
+                    title="Dismiss suggestions"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {residingPinSuggestions.map((homeLocality) => {
+                  const formatted = `${homeLocality.pincode} - ${homeLocality.name}`;
+                  const isAlreadyAdded =
+                    serviceAreas.includes(formatted) || serviceAreas.includes(homeLocality.name);
+                  return (
+                    <button
+                      key={homeLocality.name}
+                      type="button"
+                      disabled={isAlreadyAdded}
+                      onClick={() => handleSelectAreaSuggestion(homeLocality)}
+                      className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 cursor-pointer ${
+                        isAlreadyAdded
+                          ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed"
+                          : "bg-white text-stone-900 border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 shadow-2xs font-semibold"
+                      }`}
+                    >
+                      <span>{isAlreadyAdded ? "✓" : "+"}</span>
+                      <span>{homeLocality.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-stone-500">
+                Localities automatically matched to your home PIN address in {district || city}.
+              </p>
+            </div>
+          )}
+
         {/* Dynamic PIN Code Suggestions Panel */}
         {areaPinSuggestions.length > 0 && (
           <div className="p-3.5 rounded-lg bg-amber-50/80 border border-amber-300 space-y-2.5 max-w-xl transition-all">
@@ -861,16 +1079,16 @@ export const PriestProfilePage: React.FC = () => {
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {areaPinSuggestions.map((s) => {
-                const formatted = `${s.pincode} - ${s.name}`;
+              {areaPinSuggestions.map((localitySuggestion) => {
+                const formatted = `${localitySuggestion.pincode} - ${localitySuggestion.name}`;
                 const isAlreadyAdded =
-                  serviceAreas.includes(formatted) || serviceAreas.includes(s.name);
+                  serviceAreas.includes(formatted) || serviceAreas.includes(localitySuggestion.name);
                 return (
                   <button
-                    key={s.name}
+                    key={localitySuggestion.name}
                     type="button"
                     disabled={isAlreadyAdded}
-                    onClick={() => handleSelectAreaSuggestion(s)}
+                    onClick={() => handleSelectAreaSuggestion(localitySuggestion)}
                     className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 cursor-pointer ${
                       isAlreadyAdded
                         ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed"
@@ -878,7 +1096,7 @@ export const PriestProfilePage: React.FC = () => {
                     }`}
                   >
                     <span>{isAlreadyAdded ? "✓" : "+"}</span>
-                    <span className="font-semibold">{s.name}</span>
+                    <span className="font-semibold">{localitySuggestion.name}</span>
                   </button>
                 );
               })}

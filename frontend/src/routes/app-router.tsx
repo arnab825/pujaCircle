@@ -35,7 +35,6 @@ const UserLoginPage = lazy(() => import('@/pages/auth/user/UserLoginPage'));
 const UserRegisterPage = lazy(() => import('@/pages/auth/user/UserRegisterPage'));
 const UserForgotPasswordPage = lazy(() => import('@/pages/auth/user/UserForgotPasswordPage'));
 const UserResetPasswordPage = lazy(() => import('@/pages/auth/user/UserResetPasswordPage'));
-const UserVerifyPhonePage = lazy(() => import('@/pages/auth/user/UserVerifyPhonePage'));
 const UserVerifyEmailPage = lazy(() => import('@/pages/auth/user/UserVerifyEmailPage'));
 
 // Priest Auth Pages
@@ -43,7 +42,6 @@ const PriestLoginPage = lazy(() => import('@/pages/auth/priest/PriestLoginPage')
 const PriestRegisterPage = lazy(() => import('@/pages/auth/priest/PriestRegisterPage'));
 const PriestForgotPasswordPage = lazy(() => import('@/pages/auth/priest/PriestForgotPasswordPage'));
 const PriestResetPasswordPage = lazy(() => import('@/pages/auth/priest/PriestResetPasswordPage'));
-const PriestVerifyPhonePage = lazy(() => import('@/pages/auth/priest/PriestVerifyPhonePage'));
 const PriestVerifyEmailPage = lazy(() => import('@/pages/auth/priest/PriestVerifyEmailPage'));
 
 // Admin Auth Page
@@ -101,14 +99,14 @@ export const appRouter = createBrowserRouter([
       { path: 'user/register', element: <GuestOnlyRoute>{LazyPage(UserRegisterPage)}</GuestOnlyRoute> },
       { path: 'user/forgot-password', element: <GuestOnlyRoute>{LazyPage(UserForgotPasswordPage)}</GuestOnlyRoute> },
       { path: 'user/reset-password', element: <GuestOnlyRoute>{LazyPage(UserResetPasswordPage)}</GuestOnlyRoute> },
-      { path: 'user/verify-phone', element: <GuestOnlyRoute>{LazyPage(UserVerifyPhonePage)}</GuestOnlyRoute> },
+      { path: 'user/verify-phone', element: <Navigate to="/user/login" replace /> },
       { path: 'user/verify-email', element: <GuestOnlyRoute>{LazyPage(UserVerifyEmailPage)}</GuestOnlyRoute> },
 
       { path: 'priest/login', element: <GuestOnlyRoute>{LazyPage(PriestLoginPage)}</GuestOnlyRoute> },
       { path: 'priest/register', element: <GuestOnlyRoute>{LazyPage(PriestRegisterPage)}</GuestOnlyRoute> },
       { path: 'priest/forgot-password', element: <GuestOnlyRoute>{LazyPage(PriestForgotPasswordPage)}</GuestOnlyRoute> },
       { path: 'priest/reset-password', element: <GuestOnlyRoute>{LazyPage(PriestResetPasswordPage)}</GuestOnlyRoute> },
-      { path: 'priest/verify-phone', element: <GuestOnlyRoute>{LazyPage(PriestVerifyPhonePage)}</GuestOnlyRoute> },
+      { path: 'priest/verify-phone', element: <Navigate to="/priest/login" replace /> },
       { path: 'priest/verify-email', element: <GuestOnlyRoute>{LazyPage(PriestVerifyEmailPage)}</GuestOnlyRoute> },
 
       { path: 'admin/login', element: <GuestOnlyRoute>{LazyPage(AdminLoginPage)}</GuestOnlyRoute> },

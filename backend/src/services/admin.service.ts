@@ -31,36 +31,36 @@ export class AdminService {
   async getDashboardStats(): Promise<DashboardStats> {
     const [
       [userStats],
-      [activeUserStats],
       [priestStats],
-      [approvedPriestStats],
-      [pendingPriestStats],
       [bookingStats],
-      [confirmedBookingStats],
-      [completedBookingStats],
-      [revenueStats],
     ] = await Promise.all([
-      db.select({ value: count() }).from(users).where(eq(users.role, 'USER')),
-      db.select({ value: count() }).from(users).where(and(eq(users.role, 'USER'), eq(users.accountStatus, 'ACTIVE'))),
-      db.select({ value: count() }).from(priestProfiles),
-      db.select({ value: count() }).from(priestProfiles).where(eq(priestProfiles.approvalStatus, 'APPROVED')),
-      db.select({ value: count() }).from(priestProfiles).where(eq(priestProfiles.approvalStatus, 'PENDING')),
-      db.select({ value: count() }).from(bookings),
-      db.select({ value: count() }).from(bookings).where(eq(bookings.status, 'CONFIRMED')),
-      db.select({ value: count() }).from(bookings).where(eq(bookings.status, 'COMPLETED')),
-      db.select({ total: sql<number>`COALESCE(SUM(${bookings.totalPrice}), 0)` }).from(bookings).where(eq(bookings.status, 'COMPLETED')),
+      db.select({
+        totalUsers: sql<number>`count(*) filter (where ${users.role} = 'USER')`,
+        activeUsers: sql<number>`count(*) filter (where ${users.role} = 'USER' and ${users.accountStatus} = 'ACTIVE')`,
+      }).from(users),
+      db.select({
+        totalPriests: sql<number>`count(*)`,
+        approvedPriests: sql<number>`count(*) filter (where ${priestProfiles.approvalStatus} = 'APPROVED')`,
+        pendingPriests: sql<number>`count(*) filter (where ${priestProfiles.approvalStatus} = 'PENDING')`,
+      }).from(priestProfiles),
+      db.select({
+        totalBookings: sql<number>`count(*)`,
+        confirmedBookings: sql<number>`count(*) filter (where ${bookings.status} = 'CONFIRMED')`,
+        completedBookings: sql<number>`count(*) filter (where ${bookings.status} = 'COMPLETED')`,
+        revenueEstimate: sql<number>`coalesce(sum(case when ${bookings.status} = 'COMPLETED' then ${bookings.totalPrice} else 0 end), 0)`,
+      }).from(bookings),
     ]);
 
     return {
-      totalUsers: Number(userStats?.value ?? 0),
-      activeUsers: Number(activeUserStats?.value ?? 0),
-      totalPriests: Number(priestStats?.value ?? 0),
-      approvedPriests: Number(approvedPriestStats?.value ?? 0),
-      pendingPriests: Number(pendingPriestStats?.value ?? 0),
-      totalBookings: Number(bookingStats?.value ?? 0),
-      confirmedBookings: Number(confirmedBookingStats?.value ?? 0),
-      completedBookings: Number(completedBookingStats?.value ?? 0),
-      revenueEstimate: Number(revenueStats?.total ?? 0),
+      totalUsers: Number(userStats?.totalUsers ?? 0),
+      activeUsers: Number(userStats?.activeUsers ?? 0),
+      totalPriests: Number(priestStats?.totalPriests ?? 0),
+      approvedPriests: Number(priestStats?.approvedPriests ?? 0),
+      pendingPriests: Number(priestStats?.pendingPriests ?? 0),
+      totalBookings: Number(bookingStats?.totalBookings ?? 0),
+      confirmedBookings: Number(bookingStats?.confirmedBookings ?? 0),
+      completedBookings: Number(bookingStats?.completedBookings ?? 0),
+      revenueEstimate: Number(bookingStats?.revenueEstimate ?? 0),
     };
   }
 
