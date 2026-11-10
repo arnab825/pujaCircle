@@ -4,6 +4,7 @@ import { priestController } from '../controllers/priest.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
 import { requireRole, requireApprovedPriest } from '../middlewares/role.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
+import { changePasswordSchema } from '../schemas/user.schema.js';
 import {
   updatePriestProfileSchema,
   createPriestServiceSchema,
@@ -29,6 +30,7 @@ const router = Router();
 // Protected priest self-management (/me/...)
 router.get('/me/profile', requireAuth, requireRole('PRIEST'), priestController.getMyProfile);
 router.put('/me/profile', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(updatePriestProfileSchema), priestController.updatePriestProfile);
+router.post('/me/change-password', requireAuth, requireRole('PRIEST'), validate(changePasswordSchema), priestController.changePassword);
 router.get('/me/services', requireAuth, requireRole('PRIEST'), requireApprovedPriest, priestController.getPriestServices);
 router.post('/me/services', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(createPriestServiceSchema), priestController.createPriestService);
 router.delete('/me/services/:serviceId', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(z.object({ serviceId: z.string().uuid() }), 'params'), priestController.deletePriestService);

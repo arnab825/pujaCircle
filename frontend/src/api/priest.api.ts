@@ -56,6 +56,23 @@ export const priestApi = {
     }
   },
 
+  changePassword: async (data: {
+    currentPassword?: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await apiClient.post('/priests/me/change-password', data);
+      return res as any;
+    } catch (error) {
+      logAppError('priestApi.changePassword', error);
+      return {
+        success: false,
+        message: getUserFriendlyErrorMessage(error, 'Failed to update password.'),
+      };
+    }
+  },
+
   // Services & Pricing Catalog
   getPriestServices: async (priestId?: string): Promise<PriestService[]> => {
     try {
