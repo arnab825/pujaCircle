@@ -125,11 +125,18 @@ export class UserService {
       throw new AppError(404, 'User profile not found.');
     }
 
-    if (data.currentPassword) {
-      const isValid = await bcrypt.compare(data.currentPassword, user.password || '');
+    if (user.password) {
+      if (!data.currentPassword) {
+        throw new AppError(400, 'Current password is required.');
+      }
+      const isValid = await bcrypt.compare(data.currentPassword, user.password);
       if (!isValid) {
         throw new AppError(400, 'Current password is incorrect.');
       }
+    }
+
+    if (data.currentPassword && data.currentPassword === data.newPassword) {
+      throw new AppError(400, 'New password cannot be the same as your current password.');
     }
 
     const passwordHash = await bcrypt.hash(data.newPassword, 10);

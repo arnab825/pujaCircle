@@ -28,7 +28,11 @@ import {
   ExternalLink,
   Sparkles,
   AlertCircle,
+  KeyRound,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { changePasswordSchema } from "@/schemas/user.schema";
 import { toast } from "sonner";
 import { formatINR, formatLocalityName, areDistrictsEquivalent } from "@/lib/utils";
 
@@ -77,6 +81,15 @@ export const PriestProfilePage: React.FC = () => {
   const [bio, setBio] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
+
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
 
   // Inputs for adding localities via PIN code lookup
@@ -488,6 +501,44 @@ export const PriestProfilePage: React.FC = () => {
     }
   };
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parseResult = changePasswordSchema.safeParse({
+      currentPassword: currentPassword.trim(),
+      newPassword: newPassword.trim(),
+      confirmPassword: confirmPassword.trim(),
+    });
+
+    if (!parseResult.success) {
+      toast.error(
+        parseResult.error.errors[0]?.message || "Invalid password parameters."
+      );
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      const res = await priestApi.changePassword({
+        currentPassword: currentPassword.trim() || undefined,
+        newPassword: newPassword.trim(),
+        confirmPassword: confirmPassword.trim(),
+      });
+
+      if (res.success) {
+        toast.success(res.message || "Password updated successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(res.message || "Failed to update password.");
+      }
+    } catch {
+      toast.error("An error occurred while updating your password.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   const getInitials = (name: string) => {
     if (!name) return "PT";
     const parts = name.trim().split(" ");
@@ -624,204 +675,325 @@ export const PriestProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 & 4. Details Deck (100% Flexbox, Zero CSS Grids) */}
-      <div className="flex flex-col md:flex-row items-stretch gap-6 w-full">
-        {/* Basic Details & Experience */}
-        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <User className="w-4 h-4 text-red-700" />
-            <h3 className="text-base font-serif font-bold text-stone-950">
-              Basic Profile & Experience
-            </h3>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            <div className="space-y-1">
-              <label className="font-bold text-stone-800 block">
-                Full Legal Name *
-              </label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Pandit Ramesh Shastri"
-                className="h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs"
-              />
+      {/* 3, 4 & 5. Core Profile, Credentials & Lineage (2-Column Responsive Deck) */}
+      <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
+        {/* Left Column: Basic Details & Vedic Lineage Bio */}
+        <div className="flex-1 w-full flex flex-col gap-6">
+          {/* Basic Details & Experience */}
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
+              <User className="w-4 h-4 text-red-700" />
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Basic Profile & Experience
+              </h3>
             </div>
 
-            <div className="space-y-1">
-              <label className="font-bold text-stone-800 flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-amber-600" />
-                Years of Vedic Experience *
-              </label>
-              <Input
-                type="number"
-                min="0"
-                max="70"
-                value={experienceYears}
-                onChange={(e) => setExperienceYears(Number(e.target.value))}
-                placeholder="18"
-                className="h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs"
-              />
-            </div>
-
-            {/* PIN Code with Auto-Detection */}
-            <div className="space-y-1 pt-1">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 text-xs">
+              <div className="space-y-1">
                 <label className="font-bold text-stone-800 block">
-                  6-Digit PIN Code *
+                  Full Legal Name *
                 </label>
-                {isSearchingPin && (
-                  <span className="text-[11px] text-amber-700 flex items-center gap-1 font-bold">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Detecting...
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-2">
                 <Input
-                  value={pincode}
-                  maxLength={6}
-                  onChange={(e) => handlePincodeLookup(e.target.value)}
-                  placeholder="e.g. 400050"
-                  className="h-10 text-xs font-mono tracking-wider rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Pandit Ramesh Shastri"
+                  className="h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePincodeLookup(pincode)}
-                  disabled={isSearchingPin || pincode.length !== 6}
-                  className="h-10 text-xs gap-1 shrink-0 rounded-md border-amber-300 font-bold"
-                >
-                  <Search className="w-3.5 h-3.5 text-amber-600" /> Lookup
-                </Button>
               </div>
-            </div>
 
-            {/* Detected City, District & State (100% Flexbox) */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-1">
-              <div className="flex-1 space-y-1">
-                <span className="font-bold text-stone-500 text-[10px] uppercase">
-                  Detected City / Area
-                </span>
-                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
-                  {city || "Enter PIN Code"}
-                </div>
+              <div className="space-y-1">
+                <label className="font-bold text-stone-800 flex items-center gap-1.5">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-600" />
+                  Years of Vedic Experience *
+                </label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="70"
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(Number(e.target.value))}
+                  placeholder="18"
+                  className="h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs"
+                />
               </div>
-              <div className="flex-1 space-y-1">
-                <span className="font-bold text-stone-500 text-[10px] uppercase">
-                  Home District
-                </span>
-                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
-                  {district || city || "Enter PIN Code"}
-                </div>
-              </div>
-              <div className="flex-1 space-y-1">
-                <span className="font-bold text-stone-500 text-[10px] uppercase">
-                  Detected State
-                </span>
-                <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
-                  {state || "Enter PIN Code"}
-                </div>
-              </div>
-            </div>
 
-            {pincode.length === 6 && (district || city) && (
-              <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-md flex items-center gap-1.5 mt-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>
-                  Authorized Residing Jurisdiction: <strong>{district || city} District</strong> (Purohits serve within this district)
-                </span>
+              {/* PIN Code with Auto-Detection */}
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-stone-800 block">
+                    6-Digit PIN Code *
+                  </label>
+                  {isSearchingPin && (
+                    <span className="text-[11px] text-amber-700 flex items-center gap-1 font-bold">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Detecting...
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={pincode}
+                    maxLength={6}
+                    onChange={(e) => handlePincodeLookup(e.target.value)}
+                    placeholder="e.g. 400050"
+                    className="h-10 text-xs font-mono tracking-wider rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePincodeLookup(pincode)}
+                    disabled={isSearchingPin || pincode.length !== 6}
+                    className="h-10 text-xs gap-1 shrink-0 rounded-md border-amber-300 font-bold"
+                  >
+                    <Search className="w-3.5 h-3.5 text-amber-600" /> Lookup
+                  </Button>
+                </div>
               </div>
-            )}
+
+              {/* Detected City, District & State (100% Flexbox) */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+                <div className="flex-1 space-y-1">
+                  <span className="font-bold text-stone-500 text-[10px] uppercase">
+                    Detected City / Area
+                  </span>
+                  <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                    {city || "Enter PIN Code"}
+                  </div>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <span className="font-bold text-stone-500 text-[10px] uppercase">
+                    Home District
+                  </span>
+                  <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                    {district || city || "Enter PIN Code"}
+                  </div>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <span className="font-bold text-stone-500 text-[10px] uppercase">
+                    Detected State
+                  </span>
+                  <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                    {state || "Enter PIN Code"}
+                  </div>
+                </div>
+              </div>
+
+              {pincode.length === 6 && (district || city) && (
+                <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-md flex items-center gap-1.5 mt-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    Authorized Residing Jurisdiction: <strong>{district || city} District</strong> (Purohits serve within this district)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Vedic Lineage & Bio */}
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
+              <BookOpen className="w-4 h-4 text-red-700" />
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Vedic Lineage & Bio
+              </h3>
+            </div>
+            <p className="text-xs text-stone-600">
+              Describe your Gurukul education, Veda shakha, training, and spiritual
+              background.
+            </p>
+            <Textarea
+              rows={4}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Vedic scholar trained in Varanasi Gurukul. Specializes in Griha Pravesh, Vastu Shanti, and Satyanarayan Katha with over 18 years of ritual expertise..."
+              className="text-xs leading-relaxed resize-y rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+            />
+            <div className="flex justify-between items-center text-[11px] text-stone-500 pt-1 font-medium">
+              <span>
+                Minimum 20 characters. Authentic background helps devotees build
+                trust.
+              </span>
+              <span>{bio.length} characters</span>
+            </div>
           </div>
         </div>
 
-        {/* Verified Contact Information */}
-        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <h3 className="text-base font-serif font-bold text-stone-950">
-              Verified Contact Channels
-            </h3>
-          </div>
-
-          <div className="space-y-4 text-xs">
-            <div className="p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-stone-700 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-red-700" /> Registered
-                  Mobile
-                </span>
-                <Badge
-                  variant="outline"
-                  className="text-stone-700 bg-stone-100 border-stone-300 text-[10px] font-bold gap-1"
-                >
-                  <Lock className="w-3 h-3 text-stone-500" /> Registered
-                </Badge>
-              </div>
-              <p className="font-mono text-sm font-bold text-stone-950">
-                {priest?.phoneNumber || user?.phoneNumber || "Phone pending"}
-              </p>
-              <p className="text-[11px] text-stone-600">
-                Devotees contact you on this registered number for ritual
-                coordination.
-              </p>
+        {/* Right Column: Verified Contact Channels & Security Credentials */}
+        <div className="flex-1 w-full flex flex-col gap-6">
+          {/* Verified Contact Information */}
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Verified Contact Channels
+              </h3>
             </div>
 
-            <div className="p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-stone-700 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-amber-600" /> Registered
-                  Email
-                </span>
-                <Badge
-                  variant="outline"
-                  className="text-emerald-800 bg-emerald-100 border-emerald-300 text-[10px] font-bold gap-1"
-                >
-                  <Check className="w-3 h-3 text-emerald-700" /> Email Verified
-                </Badge>
+            <div className="space-y-4 text-xs">
+              <div className="p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-700 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-red-700" /> Registered
+                    Mobile
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-stone-700 bg-stone-100 border-stone-300 text-[10px] font-bold gap-1"
+                  >
+                    <Lock className="w-3 h-3 text-stone-500" /> Registered
+                  </Badge>
+                </div>
+                <p className="font-mono text-sm font-bold text-stone-950">
+                  {priest?.phoneNumber || user?.phoneNumber || "Phone pending"}
+                </p>
+                <p className="text-[11px] text-stone-600">
+                  Devotees contact you on this registered number for ritual
+                  coordination.
+                </p>
               </div>
-              <p className="font-medium text-xs text-stone-950">
-                {priest?.email || user?.email || "Email pending"}
-              </p>
-              <p className="text-[11px] text-stone-600">
-                Booking updates, scheduling notifications, and platform alerts.
-              </p>
+
+              <div className="p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-stone-700 flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-amber-600" /> Registered
+                    Email
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-emerald-800 bg-emerald-100 border-emerald-300 text-[10px] font-bold gap-1"
+                  >
+                    <Check className="w-3 h-3 text-emerald-700" /> Email Verified
+                  </Badge>
+                </div>
+                <p className="font-medium text-xs text-stone-950">
+                  {priest?.email || user?.email || "Email pending"}
+                </p>
+                <p className="text-[11px] text-stone-600">
+                  Booking updates, scheduling notifications, and platform alerts.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* 5. Vedic Lineage & Bio */}
-      <div className="rounded-xl border-2 border-amber-300 bg-white p-6 sm:p-8 shadow-sm space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-          <BookOpen className="w-4 h-4 text-red-700" />
-          <h3 className="text-base font-serif font-bold text-stone-950">
-            Vedic Lineage & Bio
-          </h3>
-        </div>
-        <p className="text-xs text-stone-600">
-          Describe your Gurukul education, Veda shakha, training, and spiritual
-          background.
-        </p>
-        <Textarea
-          rows={4}
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          placeholder="Vedic scholar trained in Varanasi Gurukul. Specializes in Griha Pravesh, Vastu Shanti, and Satyanarayan Katha with over 18 years of ritual expertise..."
-          className="text-xs leading-relaxed resize-y rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-        />
-        <div className="flex justify-between items-center text-[11px] text-stone-500 pt-1 font-medium">
-          <span>
-            Minimum 20 characters. Authentic background helps devotees build
-            trust.
-          </span>
-          <span>{bio.length} characters</span>
+          {/* Security & Credentials (Password Change) */}
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
+              <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
+              <h3 className="text-base font-serif font-bold text-stone-950">
+                Security & Credentials
+              </h3>
+            </div>
+            <p className="text-xs text-stone-600">
+              Update your password regularly to protect your ritual appointments and account records.
+            </p>
+
+            <form onSubmit={handleUpdatePassword} className="space-y-4 pt-1">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-800 block">
+                  Current Password *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
+                  <Input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="pl-10 pr-10 text-xs h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+                    placeholder="Enter current password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-800 block">
+                  New Password *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
+                  <Input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="pl-10 pr-10 text-xs h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+                    placeholder="At least 6 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-stone-800 block">
+                  Confirm New Password *
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="pl-10 pr-10 text-xs h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
+                    placeholder="Re-enter new password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isUpdatingPassword}
+                className="text-xs gap-1.5 bg-[#780016] hover:bg-red-800 text-white font-bold border border-amber-400 w-full sm:w-auto h-10 px-5 rounded-md shadow-xs cursor-pointer puja-btn-tap"
+              >
+                {isUpdatingPassword ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Updating Password...
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-3.5 h-3.5" />
+                    Update Password
+                  </>
+                )}
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
 
       {/* 6 & 7. Languages & Offerings Deck (100% Flexbox, Zero CSS Grids) */}
-      <div className="flex flex-col md:flex-row items-stretch gap-6 w-full">
+      <div className="flex flex-col lg:flex-row items-stretch gap-6 w-full">
         {/* Languages Spoken */}
         <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-stone-200">

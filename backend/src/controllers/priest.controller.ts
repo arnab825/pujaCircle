@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { sendSuccess, sendError } from '../views/response.view.js';
 import { priestService } from '../services/priest.service.js';
+import { userService } from '../services/user.service.js';
 
 /**
  * Controller managing verified priest directory, profile customizations,
@@ -47,6 +48,16 @@ export class PriestController {
       const targetId = req.params.id || req.user!.id;
       const updated = await priestService.updatePriestProfile(targetId, req.body);
       sendSuccess(res, 'Priest profile updated successfully.', updated);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // POST /api/v1/priests/me/change-password
+  async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await userService.changePassword(req.user!.id, req.body);
+      sendSuccess(res, 'Password updated successfully.');
     } catch (error) {
       next(error);
     }
