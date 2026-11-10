@@ -1,8 +1,8 @@
 import { eq, desc, and } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { addresses, Address } from '../models/address.model.js';
-import { CreateAddressInput, UpdateAddressInput } from '../schemas/address.schema.js';
-import { AppError } from '../utils/AppError.js';
+import { db } from '@/db/index.js';
+import { addresses, Address } from '@/models/address.model.js';
+import { CreateAddressInput, UpdateAddressInput } from '@/schemas/address.schema.js';
+import { AppError } from '@/utils/AppError.js';
 
 // Service managing devotee ceremonial venue addresses
 export class AddressService {

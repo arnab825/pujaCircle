@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { eq } from 'drizzle-orm';
-import { Role } from '../types/express.js';
-import { sendError } from '../views/response.view.js';
-import { isAdmin } from '../utils/auth.util.js';
-import { db } from '../db/index.js';
-import { priestProfiles } from '../models/priest.model.js';
+import { Role } from '@/types/express.js';
+import { sendError } from '@/views/response.view.js';
+import { isAdmin } from '@/utils/auth.util.js';
+import { db } from '@/db/index.js';
+import { priestProfiles } from '@/models/priest.model.js';
 
 /**
  * [MIDDLEWARE] Role-Based Access Control (RBAC) Guard

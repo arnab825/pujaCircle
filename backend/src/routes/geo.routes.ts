@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { sendSuccess } from '../views/response.view.js';
-import { validate } from '../middlewares/validate.middleware.js';
-import { pincodeParamSchema } from '../schemas/common.schema.js';
+import { sendSuccess } from '@/views/response.view.js';
+import { validate } from '@/middlewares/validate.middleware.js';
+import { pincodeParamSchema } from '@/schemas/common.schema.js';
 
 const router = Router();
 

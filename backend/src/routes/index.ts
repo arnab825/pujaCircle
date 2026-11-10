@@ -9,7 +9,7 @@ import { bookingRoutes } from './booking.routes.js';
 import { geoRoutes } from './geo.routes.js';
 import { availabilityRoutes } from './availability.routes.js';
 import { mediaRoutes } from './media.routes.js';
-import { sendSuccess } from '../views/response.view.js';
+import { sendSuccess } from '@/views/response.view.js';
 
 const apiRouter = Router();
 

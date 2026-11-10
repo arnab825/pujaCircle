@@ -570,8 +570,8 @@ export const PriestProfilePage: React.FC = () => {
       />
 
       {/* 1. Header Banner (100% Flexbox) */}
-      <div className="p-6 sm:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
-        <div className="flex items-center gap-2">
+      <div className="p-4 sm:p-6 lg:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <Badge
             variant="outline"
             className="text-amber-900 border-amber-400 bg-amber-100 text-[11px] font-bold"
@@ -588,7 +588,7 @@ export const PriestProfilePage: React.FC = () => {
             </Badge>
           )}
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold font-serif text-stone-950 mt-1">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold font-serif text-stone-950 mt-1">
           Vedic Profile & Credentials
         </h1>
         <p className="text-xs text-stone-600">
@@ -598,8 +598,8 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 2. Top Summary Card with Interactive Avatar Trigger (Pure White, Haldi Gold Border) */}
-      <div className="p-6 sm:p-8 rounded-xl border-2 border-amber-300 bg-white flex flex-col sm:flex-row items-center justify-between gap-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto text-center sm:text-left">
+      <div className="p-4 sm:p-6 lg:p-8 rounded-xl border-2 border-amber-300 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 w-full sm:w-auto text-center sm:text-left">
           <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
             <div className="relative group shrink-0">
               <button
@@ -608,7 +608,7 @@ export const PriestProfilePage: React.FC = () => {
                 className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
                 title="Click to choose a new profile photo"
               >
-                <Avatar className="w-24 h-24 sm:w-20 sm:h-20 border-2 border-white">
+                <Avatar className="w-20 h-20 sm:w-20 sm:h-20 border-2 border-white">
                   {profileImageUrl ? (
                     <AvatarImage
                       src={profileImageUrl}
@@ -647,7 +647,7 @@ export const PriestProfilePage: React.FC = () => {
             <h2 className="text-xl sm:text-2xl font-extrabold font-serif text-stone-950">
               {fullName || user?.name || "Acharya Pandit Ji"}
             </h2>
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 text-xs text-stone-600">
               <span className="font-bold text-stone-900">
                 {experienceYears} Years Vedic Experience
               </span>
@@ -669,18 +669,18 @@ export const PriestProfilePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-md bg-amber-50/70 border border-amber-300 text-xs text-stone-800 font-bold shrink-0">
+        <div className="flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-md bg-amber-50/70 border border-amber-300 text-xs text-stone-800 font-bold w-full sm:w-auto shrink-0">
           <MapPin className="w-4 h-4 text-red-700" />
           <span>{serviceAreas.length} Active Localities</span>
         </div>
       </div>
 
       {/* 3, 4 & 5. Core Profile, Credentials & Lineage (2-Column Responsive Deck) */}
-      <div className="flex flex-col lg:flex-row items-start gap-6 w-full">
+      <div className="flex flex-col lg:flex-row items-start gap-4 sm:gap-6 w-full">
         {/* Left Column: Basic Details & Vedic Lineage Bio */}
-        <div className="flex-1 w-full flex flex-col gap-6">
+        <div className="flex-1 w-full flex flex-col gap-4 sm:gap-6">
           {/* Basic Details & Experience */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
               <User className="w-4 h-4 text-red-700" />
               <h3 className="text-base font-serif font-bold text-stone-950">
@@ -751,12 +751,12 @@ export const PriestProfilePage: React.FC = () => {
               </div>
 
               {/* Detected City, District & State (100% Flexbox) */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-1">
                 <div className="flex-1 space-y-1">
                   <span className="font-bold text-stone-500 text-[10px] uppercase">
                     Detected City / Area
                   </span>
-                  <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                  <div className="p-2.5 sm:p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
                     {city || "Enter PIN Code"}
                   </div>
                 </div>
@@ -764,7 +764,7 @@ export const PriestProfilePage: React.FC = () => {
                   <span className="font-bold text-stone-500 text-[10px] uppercase">
                     Home District
                   </span>
-                  <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                  <div className="p-2.5 sm:p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
                     {district || city || "Enter PIN Code"}
                   </div>
                 </div>
@@ -772,7 +772,7 @@ export const PriestProfilePage: React.FC = () => {
                   <span className="font-bold text-stone-500 text-[10px] uppercase">
                     Detected State
                   </span>
-                  <div className="p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
+                  <div className="p-2.5 sm:p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
                     {state || "Enter PIN Code"}
                   </div>
                 </div>
@@ -790,7 +790,7 @@ export const PriestProfilePage: React.FC = () => {
           </div>
 
           {/* Vedic Lineage & Bio */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-3">
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
               <BookOpen className="w-4 h-4 text-red-700" />
               <h3 className="text-base font-serif font-bold text-stone-950">
@@ -808,20 +808,20 @@ export const PriestProfilePage: React.FC = () => {
               placeholder="Vedic scholar trained in Varanasi Gurukul. Specializes in Griha Pravesh, Vastu Shanti, and Satyanarayan Katha with over 18 years of ritual expertise..."
               className="text-xs leading-relaxed resize-y rounded-md border-stone-300 focus:ring-amber-500 bg-white"
             />
-            <div className="flex justify-between items-center text-[11px] text-stone-500 pt-1 font-medium">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-[11px] text-stone-500 pt-1 font-medium">
               <span>
                 Minimum 20 characters. Authentic background helps devotees build
                 trust.
               </span>
-              <span>{bio.length} characters</span>
+              <span className="self-end sm:self-auto">{bio.length} characters</span>
             </div>
           </div>
         </div>
 
         {/* Right Column: Verified Contact Channels & Security Credentials */}
-        <div className="flex-1 w-full flex flex-col gap-6">
+        <div className="flex-1 w-full flex flex-col gap-4 sm:gap-6">
           {/* Verified Contact Information */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
               <h3 className="text-base font-serif font-bold text-stone-950">
@@ -830,7 +830,7 @@ export const PriestProfilePage: React.FC = () => {
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
+              <div className="p-3.5 sm:p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-stone-700 flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-red-700" /> Registered
@@ -852,7 +852,7 @@ export const PriestProfilePage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
+              <div className="p-3.5 sm:p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-stone-700 flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-amber-600" /> Registered
@@ -876,7 +876,7 @@ export const PriestProfilePage: React.FC = () => {
           </div>
 
           {/* Security & Credentials (Password Change) */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
               <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
               <h3 className="text-base font-serif font-bold text-stone-950">
@@ -993,12 +993,12 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 6 & 7. Languages & Offerings Deck (100% Flexbox, Zero CSS Grids) */}
-      <div className="flex flex-col lg:flex-row items-stretch gap-6 w-full">
+      <div className="flex flex-col lg:flex-row items-stretch gap-4 sm:gap-6 w-full">
         {/* Languages Spoken */}
-        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-stone-200">
             <div className="flex items-center gap-2">
-              <LanguagesIcon className="w-4 h-4 text-red-700" />
+              <LanguagesIcon className="w-4 h-4 text-red-700 shrink-0" />
               <h3 className="text-base font-serif font-bold text-stone-950">
                 Languages Spoken ({languages.length})
               </h3>
@@ -1008,7 +1008,7 @@ export const PriestProfilePage: React.FC = () => {
               variant="outline"
               onClick={handleSave}
               disabled={isSaving}
-              className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
+              className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer w-full sm:w-auto justify-center"
             >
               {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />}
               Save Languages
@@ -1056,7 +1056,7 @@ export const PriestProfilePage: React.FC = () => {
         </div>
 
         {/* Active Puja Services */}
-        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-6 shadow-sm space-y-4">
+        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-stone-200">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
@@ -1064,11 +1064,11 @@ export const PriestProfilePage: React.FC = () => {
                 Puja Services ({services.filter((s) => s.isActive).length})
               </h3>
             </div>
-            <Link to="/priest/services">
+            <Link to="/priest/services" className="w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
-                className="text-xs text-red-700 hover:text-red-800 border-amber-300 gap-1.5 h-8 px-3 rounded-md font-bold"
+                className="w-full sm:w-auto text-xs text-red-700 hover:text-red-800 border-amber-300 gap-1.5 h-8 px-3 rounded-md font-bold justify-center"
               >
                 Manage All <ExternalLink className="w-3 h-3" />
               </Button>
@@ -1105,10 +1105,10 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 8. Service Areas / Localities */}
-      <div className="rounded-xl border-2 border-amber-300 bg-white p-6 sm:p-8 shadow-sm space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-stone-200">
+      <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-stone-200">
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-red-700" />
+            <MapPin className="w-4 h-4 text-red-700 shrink-0" />
             <h3 className="text-base font-serif font-bold text-stone-950">
               Service Localities & Neighborhoods ({serviceAreas.length})
             </h3>
@@ -1118,7 +1118,7 @@ export const PriestProfilePage: React.FC = () => {
             variant="outline"
             onClick={handleSave}
             disabled={isSaving}
-            className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer"
+            className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer w-full sm:w-auto justify-center"
           >
             {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />}
             Save Localities
@@ -1167,7 +1167,7 @@ export const PriestProfilePage: React.FC = () => {
 
         <form
           onSubmit={handleSearchPinSubmit}
-          className="flex gap-2 pt-2 border-t border-stone-200 max-w-md"
+          className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-stone-200 max-w-md"
         >
           <div className="relative flex-1">
             <Input
@@ -1189,7 +1189,7 @@ export const PriestProfilePage: React.FC = () => {
             size="sm"
             variant="outline"
             disabled={isSearchingAreaPin || areaPinInput.length !== 6}
-            className="h-10 text-xs gap-1.5 rounded-md border-amber-300 font-bold shrink-0 cursor-pointer"
+            className="h-10 text-xs gap-1.5 rounded-md border-amber-300 font-bold shrink-0 cursor-pointer w-full sm:w-auto justify-center"
           >
             {isSearchingAreaPin ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
@@ -1206,12 +1206,14 @@ export const PriestProfilePage: React.FC = () => {
           !areaPinInput.trim() &&
           residingPinSuggestions.length > 0 && (
             <div className="p-3.5 rounded-lg bg-emerald-50/80 border border-emerald-300 space-y-2.5 max-w-xl transition-all">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                  Home District Neighborhoods for PIN {pincode} ({residingPinSuggestions[0]?.city || district || ""}):
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                  <span>
+                    Home District Neighborhoods for PIN {pincode} ({residingPinSuggestions[0]?.city || district || ""}):
+                  </span>
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
                   <button
                     type="button"
                     onClick={handleAddAllResidingSuggestions}
@@ -1263,15 +1265,17 @@ export const PriestProfilePage: React.FC = () => {
         {/* Dynamic PIN Code Suggestions Panel */}
         {areaPinSuggestions.length > 0 && (
           <div className="p-3.5 rounded-lg bg-amber-50/80 border border-amber-300 space-y-2.5 max-w-xl transition-all">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-red-700" />
-                Localities for PIN {areaPinQuery} ({areaPinSuggestions[0]?.city || ""}, {areaPinSuggestions[0]?.state || ""}):
+                <MapPin className="w-3.5 h-3.5 text-red-700 shrink-0" />
+                <span>
+                  Localities for PIN {areaPinQuery} ({areaPinSuggestions[0]?.city || ""}, {areaPinSuggestions[0]?.state || ""}):
+                </span>
               </span>
               <button
                 type="button"
                 onClick={handleAddAllSuggestions}
-                className="text-[11px] font-bold text-red-800 hover:text-red-950 underline cursor-pointer"
+                className="text-[11px] font-bold text-red-800 hover:text-red-950 underline cursor-pointer self-start sm:self-auto"
               >
                 + Add All ({areaPinSuggestions.length})
               </button>
@@ -1309,11 +1313,11 @@ export const PriestProfilePage: React.FC = () => {
       </div>
 
       {/* 9. Bottom Action Bar */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-200">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-stone-200">
         <Button
           onClick={handleSave}
           disabled={isSaving}
-          className="gap-2 text-xs font-bold px-7 h-11 bg-[#780016] hover:bg-red-800 text-white border border-amber-400 rounded-md shadow-xs cursor-pointer puja-btn-tap"
+          className="w-full sm:w-auto justify-center gap-2 text-xs font-bold px-7 h-11 bg-[#780016] hover:bg-red-800 text-white border border-amber-400 rounded-md shadow-xs cursor-pointer puja-btn-tap"
         >
           {isSaving ? (
             <>

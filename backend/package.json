@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "test": "tsx src/tests/availability.test.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "start": "node dist/server.js",

@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { priestController } from '../controllers/priest.controller.js';
-import { requireAuth } from '../middlewares/auth.middleware.js';
-import { requireRole, requireApprovedPriest } from '../middlewares/role.middleware.js';
-import { validate } from '../middlewares/validate.middleware.js';
-import { changePasswordSchema } from '../schemas/user.schema.js';
+import { priestController } from '@/controllers/priest.controller.js';
+import { requireAuth } from '@/middlewares/auth.middleware.js';
+import { requireRole, requireApprovedPriest } from '@/middlewares/role.middleware.js';
+import { validate } from '@/middlewares/validate.middleware.js';
+import { changePasswordSchema } from '@/schemas/user.schema.js';
 import {
   updatePriestProfileSchema,
   createPriestServiceSchema,
@@ -12,13 +12,13 @@ import {
   updatePriestAvailabilityExceptionSchema,
   priestWorkingHoursSchema,
   priestFilterParamsSchema,
-} from '../schemas/priest.schema.js';
+} from '@/schemas/priest.schema.js';
 import {
   uuidParamSchema,
   priestServiceParamSchema,
   priestExceptionParamSchema,
   exceptionIdParamSchema,
-} from '../schemas/common.schema.js';
+} from '@/schemas/common.schema.js';
 
 const router = Router();
 

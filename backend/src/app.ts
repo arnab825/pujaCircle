@@ -2,11 +2,11 @@ import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import { env } from './config/env.js';
-import { routes } from './routes/index.js';
-import { errorHandler } from './middlewares/error.middleware.js';
-import { sendError } from './views/response.view.js';
-import { generalRateLimiter } from './middlewares/rateLimit.middleware.js';
+import { env } from '@/config/env.js';
+import { routes } from '@/routes/index.js';
+import { errorHandler } from '@/middlewares/error.middleware.js';
+import { sendError } from '@/views/response.view.js';
+import { generalRateLimiter } from '@/middlewares/rateLimit.middleware.js';
 
 // Express Application Factory & Configuration
 const app: Express = express();

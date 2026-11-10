@@ -1,6 +1,6 @@
 import { and, eq, ilike, or, gte, sql } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog, bookings } from '../models/index.js';
+import { db } from '@/db/index.js';
+import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog, bookings } from '@/models/index.js';
 import {
   UpdatePriestProfileInput,
   CreatePriestServiceInput,
@@ -8,13 +8,13 @@ import {
   PriestFilterParams,
   UpdatePriestAvailabilityExceptionInput,
   PriestWorkingHoursInput,
-} from '../schemas/priest.schema.js';
-import { cloudinaryService } from './cloudinary.service.js';
-import { toISTDateString, toISTTimeString } from './availability.service.js';
-import { AppError } from '../utils/AppError.js';
-import { resolvePriestProfileId } from '../repositories/priest.repository.js';
-import { PriestViewModel, PriestServiceViewModel } from '../views/priest.view.js';
-import { getPagination } from '../utils/pagination.js';
+} from '@/schemas/priest.schema.js';
+import { cloudinaryService } from '@/services/cloudinary.service.js';
+import { toISTDateString, toISTTimeString } from '@/services/availability.service.js';
+import { AppError } from '@/utils/AppError.js';
+import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
+import { PriestViewModel, PriestServiceViewModel } from '@/views/priest.view.js';
+import { getPagination } from '@/utils/pagination.js';
 
 // Dynamic in-memory cache for resolved postal PIN codes to prevent redundant external directory lookups
 const pincodeDistrictCache = new Map<string, string>();

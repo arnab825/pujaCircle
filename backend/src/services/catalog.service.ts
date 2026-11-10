@@ -1,9 +1,9 @@
 import { and, eq, ilike, inArray, or, sql } from 'drizzle-orm';
-import { db } from '../db/index.js';
-import { pujaCatalog, NewPujaCatalog } from '../models/catalog.model.js';
-import { priestServices, priestProfiles, users, bookings } from '../models/index.js';
-import { cloudinaryService } from './cloudinary.service.js';
-import { AppError } from '../utils/AppError.js';
+import { db } from '@/db/index.js';
+import { pujaCatalog, NewPujaCatalog } from '@/models/catalog.model.js';
+import { priestServices, priestProfiles, users, bookings } from '@/models/index.js';
+import { cloudinaryService } from '@/services/cloudinary.service.js';
+import { AppError } from '@/utils/AppError.js';
 
 /**
  * [SERVICE] Catalog Service
