@@ -1,15 +1,15 @@
 import { randomInt } from 'crypto';
 import { eq, and, or, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { db } from '../db/index.js';
-import { bookings, priestProfiles, priestServices, pujaCatalog, addresses, users } from '../models/index.js';
-import { CreateBookingInput, RatingInput } from '../schemas/booking.schema.js';
-import { AppError } from '../utils/AppError.js';
-import { availabilityService } from './availability.service.js';
-import { resolvePriestProfileId } from '../repositories/priest.repository.js';
-import { areDistrictsEquivalent } from './priest.service.js';
-import { BookingViewModel } from '../views/booking.view.js';
-import { getPagination } from '../utils/pagination.js';
+import { db } from '@/db/index.js';
+import { bookings, priestProfiles, priestServices, pujaCatalog, addresses, users } from '@/models/index.js';
+import { CreateBookingInput, RatingInput } from '@/schemas/booking.schema.js';
+import { AppError } from '@/utils/AppError.js';
+import { availabilityService } from '@/services/availability.service.js';
+import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
+import { areDistrictsEquivalent } from '@/services/priest.service.js';
+import { BookingViewModel } from '@/views/booking.view.js';
+import { getPagination } from '@/utils/pagination.js';
 
 function addMinutesToTime(time: string, minutes: number): string {
   const [h = '9', m = '0'] = time.split(':');

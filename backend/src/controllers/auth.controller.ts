@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { authService } from '../services/auth.service.js';
-import { sendSuccess } from '../views/response.view.js';
-import { env } from '../config/env.js';
+import { authService } from '@/services/auth.service.js';
+import { sendSuccess } from '@/views/response.view.js';
+import { env } from '@/config/env.js';
 
 // Static cookie configuration options for session security
 const AUTH_COOKIE_OPTIONS = {

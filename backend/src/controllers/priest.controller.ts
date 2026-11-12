@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendSuccess, sendError } from '../views/response.view.js';
-import { priestService } from '../services/priest.service.js';
-import { userService } from '../services/user.service.js';
+import { sendSuccess, sendError } from '@/views/response.view.js';
+import { priestService } from '@/services/priest.service.js';
+import { userService } from '@/services/user.service.js';
 
 /**
  * Controller managing verified priest directory, profile customizations,
