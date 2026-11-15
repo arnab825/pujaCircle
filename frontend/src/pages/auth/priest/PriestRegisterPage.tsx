@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AuthRoleTabs } from "@/components/auth/AuthRoleTabs";
+import { AuthShowcasePanel } from "@/components/auth/AuthShowcasePanel";
 import {
   User,
   Phone,
@@ -23,11 +24,9 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Sparkles,
   Award,
   Clock,
   MapPin,
-  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -236,116 +235,66 @@ export const PriestRegisterPage: React.FC = () => {
     <div className="w-full min-h-[calc(100vh-140px)] flex items-center justify-center py-6 sm:py-10 px-3 sm:px-4 max-w-full overflow-x-hidden">
       <div className="w-full max-w-4xl rounded-xl border-2 border-amber-300 bg-white shadow-xl overflow-hidden flex flex-col lg:flex-row items-stretch">
         {/* Left Showcase Panel (Desktop Only, 100% Flexbox, Solid Sacred Vermilion `#780016`) */}
-        <div className="hidden lg:flex flex-col justify-between w-5/12 bg-[#780016] text-white p-8 sm:p-10 border-r-2 border-amber-400/40 relative">
-          <div className="space-y-6">
-            {/* Top Brand Logo */}
-            <div className="flex items-center gap-2.5">
-              <div className="h-10 w-10 rounded-md bg-amber-400 text-stone-950 flex items-center justify-center font-serif font-black text-2xl shadow-md select-none">
-                ॐ
-              </div>
-              <div>
-                <div className="font-serif font-black text-lg tracking-wider text-amber-300">
-                  PUJACIRCLE
-                </div>
-                <div className="text-[10px] text-amber-100 uppercase tracking-widest font-semibold">
-                  Vedic Purohit Sanctum
-                </div>
-              </div>
+        <AuthShowcasePanel
+          role="PRIEST"
+          tag="Purohit Application"
+          title="Serve Devotees with Sacred Dignity & Honor"
+          description="Join India's premier network of Gurukul-trained Vedic scholars. Conduct home ceremonies with utmost reverence, choose your preferred locality, and receive 100% direct cash dakshina."
+          points={[
+            "100% Direct Cash Dakshina Kept by Priest (0% Fee)",
+            "Full Schedule Freedom & Local Area Radius",
+            "Verified Devotees with Direct Phone Coordination",
+          ]}
+        >
+          {/* Stepper Progress Indicator on Left Panel */}
+          <div className="p-3.5 rounded-md bg-black/25 border border-amber-400/30 space-y-2 pt-3">
+            <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+              Application Progress
             </div>
-
-            {/* Headline & Value Propositions */}
-            <div className="space-y-3 pt-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-semibold">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Purohit Application</span>
-              </div>
-              <h2 className="text-2xl font-bold font-serif text-white leading-snug">
-                Serve Devotees with Sacred Dignity & Honor
-              </h2>
-              <p className="text-xs text-amber-100/90 leading-relaxed">
-                Join India's premier network of Gurukul-trained Vedic scholars.
-                Conduct home ceremonies with utmost reverence, choose your
-                preferred locality, and receive 100% direct cash dakshina.
-              </p>
-            </div>
-
-            {/* Sacred Commitments */}
-            <div className="space-y-2.5 pt-2">
-              <div className="flex items-center gap-2 text-xs text-amber-100">
-                <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>100% Direct Cash Dakshina Kept by Priest (0% Fee)</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-amber-100">
-                <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>Full Schedule Freedom & Local Area Radius</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-amber-100">
-                <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>Verified Devotees with Direct Phone Coordination</span>
-              </div>
-            </div>
-
-            {/* Stepper Progress Indicator on Left Panel */}
-            <div className="p-3.5 rounded-md bg-black/25 border border-amber-400/30 space-y-2 pt-3">
-              <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
-                Application Progress
-              </div>
-              <div className="space-y-1.5 text-xs">
-                <div
-                  className={`flex items-center gap-2 ${step >= 1 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+            <div className="space-y-1.5 text-xs">
+              <div
+                className={`flex items-center gap-2 ${step >= 1 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 1 ? "bg-amber-400 text-stone-950 font-bold" : step === 1 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 1 ? "bg-amber-400 text-stone-950 font-bold" : step === 1 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    {step > 1 ? "✓" : "1"}
-                  </span>
-                  <span>Acharya Identity & Contacts</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 ${step >= 2 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+                  {step > 1 ? "✓" : "1"}
+                </span>
+                <span>Acharya Identity & Contacts</span>
+              </div>
+              <div
+                className={`flex items-center gap-2 ${step >= 2 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 2 ? "bg-amber-400 text-stone-950 font-bold" : step === 2 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 2 ? "bg-amber-400 text-stone-950 font-bold" : step === 2 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    {step > 2 ? "✓" : "2"}
-                  </span>
-                  <span>Email Verification (OTP)</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 ${step >= 3 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+                  {step > 2 ? "✓" : "2"}
+                </span>
+                <span>Email Verification (OTP)</span>
+              </div>
+              <div
+                className={`flex items-center gap-2 ${step >= 3 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 3 ? "bg-amber-400 text-stone-950 font-bold" : step === 3 ? "border border-amber-400 text-amber-300 font-bold" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 3 ? "bg-amber-400 text-stone-950 font-bold" : step === 3 ? "border border-amber-400 text-amber-300 font-bold" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    {step > 3 ? "✓" : "3"}
-                  </span>
-                  <span>Vedic Samhita & Qualifications</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 ${step === 4 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+                  {step > 3 ? "✓" : "3"}
+                </span>
+                <span>Vedic Samhita & Qualifications</span>
+              </div>
+              <div
+                className={`flex items-center gap-2 ${step === 4 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step === 4 ? "bg-amber-400 text-stone-950 font-bold" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step === 4 ? "bg-amber-400 text-stone-950 font-bold" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    {step === 4 ? "✓" : "4"}
-                  </span>
-                  <span>Submitted for Review</span>
-                </div>
+                  {step === 4 ? "✓" : "4"}
+                </span>
+                <span>Submitted for Review</span>
               </div>
             </div>
           </div>
-
-          {/* Bottom Sanskrit Quote */}
-          <div className="pt-6 border-t border-amber-400/30 space-y-1">
-            <div className="text-xs font-serif text-amber-200 italic">
-              “विद्वत्वं च नृपत्वं च नैव तुल्यं कदाचन — Wisdom and sacred
-              knowledge surpass all royalty.”
-            </div>
-            <div className="text-[10px] text-amber-400 font-medium">
-              — Chanakya Niti
-            </div>
-          </div>
-        </div>
+        </AuthShowcasePanel>
 
         {/* Right Form Panel (Flexbox) */}
         <div className="w-full lg:w-7/12 p-4 sm:p-8 md:p-10 bg-white flex flex-col justify-between relative">

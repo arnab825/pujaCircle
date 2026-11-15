@@ -193,7 +193,6 @@ export class AuthService {
           userId,
           label: input.address.label,
           houseNo: input.address.houseNo,
-          houseBuilding: input.address.houseBuilding,
           street: input.address.street,
           locality: input.address.locality,
           villageTown: input.address.villageTown,

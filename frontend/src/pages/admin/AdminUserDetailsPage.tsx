@@ -335,7 +335,6 @@ export const AdminUserDetailsPage: React.FC = () => {
                   <p className="text-stone-700 leading-relaxed">
                     {[
                       addr.houseNo,
-                      addr.houseBuilding,
                       addr.street,
                       addr.locality,
                       addr.villageTown,

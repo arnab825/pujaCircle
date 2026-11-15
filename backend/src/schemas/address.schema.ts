@@ -4,7 +4,6 @@ import { z } from 'zod';
 export const createAddressSchema = z.object({
   label: z.string().trim().max(100).optional(),
   houseNo: z.string().trim().min(1, 'House/Flat number is required').max(100),
-  houseBuilding: z.string().trim().max(255).optional(),
   street: z.string().trim().max(255).optional(),
   locality: z.string().trim().max(255).optional(),
   villageTown: z.string().trim().max(255).optional(),

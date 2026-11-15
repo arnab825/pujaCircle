@@ -7,7 +7,6 @@ export const addresses = pgTable('addresses', {
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   label: varchar('label', { length: 100 }),
   houseNo: varchar('house_no', { length: 100 }).notNull(),
-  houseBuilding: varchar('house_building', { length: 255 }),
   street: varchar('street', { length: 255 }),
   locality: varchar('locality', { length: 255 }),
   villageTown: varchar('village_town', { length: 255 }),

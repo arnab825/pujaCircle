@@ -4,65 +4,36 @@ import { useAuthStore } from "@/store/auth.store";
 import { priestApi } from "@/api/priest.api";
 import { Priest, PriestService } from "@/types/priest.types";
 import { updatePriestProfileSchema } from "@/schemas/priest.schema";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   ShieldCheck,
-  Check,
-  X,
-  Star,
-  MapPin,
-  Languages as LanguagesIcon,
-  BookOpen,
   Phone,
-  Mail,
-  User,
-  Lock,
-  Loader2,
-  Camera,
-  Trash2,
-  Search,
   ExternalLink,
   Sparkles,
-  AlertCircle,
-  KeyRound,
-  Eye,
-  EyeOff,
 } from "lucide-react";
-import { changePasswordSchema } from "@/schemas/user.schema";
 import { toast } from "sonner";
 import { formatINR, formatLocalityName, areDistrictsEquivalent } from "@/lib/utils";
 
-const AVAILABLE_LANGUAGES = [
-  "Sanskrit",
-  "Hindi",
-  "Bengali",
-  "English",
-  "Marathi",
-  "Gujarati",
-  "Kannada",
-  "Telugu",
-  "Tamil",
-  "Malayalam",
-  "Odia",
-  "Punjabi",
-  "Maithili",
-  "Bhojpuri",
-  "Assamese",
-  "Marwari",
-];
+// Modular Subcomponents
+import { PriestProfileHeaderCard } from "@/components/priest/profile/PriestProfileHeaderCard";
+import { PriestBasicInfoForm } from "@/components/priest/profile/PriestBasicInfoForm";
+import { PriestVedicBioCard } from "@/components/priest/profile/PriestVedicBioCard";
+import { PriestLanguagesSelector } from "@/components/priest/profile/PriestLanguagesSelector";
+import { PriestServiceAreasManager } from "@/components/priest/profile/PriestServiceAreasManager";
+import { ChangePasswordCard } from "@/components/common/ChangePasswordCard";
 
 /**
- * PriestProfilePage
- * Vedic Scholar profile, qualifications, languages, localities, and offerings editor.
- * 100% Flexbox, zero CSS grids, zero gradients, pure solid white canvas, Haldi gold trims.
+ * ============================================================================
+ * [PAGE: PRIEST PROFILE & CREDENTIALS]
+ * Modular Vedic scholar profile, Gurukul lineage, languages, localities,
+ * and offerings coordinator.
+ * 100% Flexbox, zero CSS grids, pure solid white canvas, Haldi gold trims.
+ * ============================================================================
  */
 export const PriestProfilePage: React.FC = () => {
   const { user, setUser } = useAuthStore();
-  const priestId = user?.id || '';
+  const priestId = user?.id || "";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -81,18 +52,9 @@ export const PriestProfilePage: React.FC = () => {
   const [bio, setBio] = useState("");
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
-
-  // Password change states
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [serviceAreas, setServiceAreas] = useState<string[]>([]);
 
-  // Inputs for adding localities via PIN code lookup
+  // Postal PIN Code Search States
   const [areaPinInput, setAreaPinInput] = useState("");
   const [areaPinSuggestions, setAreaPinSuggestions] = useState<
     Array<{ name: string; city: string; state: string; district?: string; pincode: string }>
@@ -102,32 +64,7 @@ export const PriestProfilePage: React.FC = () => {
   >([]);
   const [isHomeSuggestionsDismissed, setIsHomeSuggestionsDismissed] = useState(false);
   const [isSearchingAreaPin, setIsSearchingAreaPin] = useState(false);
-  const [areaPinQuery, setAreaPinQuery] = useState("");
   const [districtWarning, setDistrictWarning] = useState<string | null>(null);
-
-  const loadResidingLocalities = (
-    pin: string,
-    homeDistrict: string,
-    locations: any[],
-  ) => {
-    const unique = new Map<
-      string,
-      { name: string; city: string; state: string; district: string; pincode: string }
-    >();
-    locations.forEach((loc) => {
-      const name = loc.locality || loc.villageTown || loc.postOffice;
-      if (name && !unique.has(name)) {
-        unique.set(name, {
-          name,
-          city: loc.city || loc.district || "",
-          district: loc.district || homeDistrict,
-          state: loc.state || "",
-          pincode: pin,
-        });
-      }
-    });
-    setResidingPinSuggestions(Array.from(unique.values()));
-  };
 
   const loadProfile = async () => {
     setIsLoading(true);
@@ -141,32 +78,18 @@ export const PriestProfilePage: React.FC = () => {
         setPriest(p);
         setFullName(p.fullName || user?.name || "");
         setExperienceYears(p.experienceYears || 0);
-        setBio(p.bio || "");
-        setCity(p.city || "");
-        setState(p.state || "");
-        setProfileImageUrl(p.profileImageUrl || "");
-        setLanguages(p.languages || []);
-        const cleanedAreas = (p.serviceAreas || []).map(formatLocalityName).filter(Boolean);
-        setServiceAreas(Array.from(new Set(cleanedAreas)));
         setPincode(p.pincode || "");
-
-        if (p.pincode && p.pincode.length === 6) {
-          priestApi.lookupPincode(p.pincode).then((res) => {
-            if (res?.locations && res.locations.length > 0) {
-              const loc = res.locations[0];
-              const resolvedDistrict = loc.district || loc.city || p.city || "";
-              setDistrict(resolvedDistrict);
-              loadResidingLocalities(p.pincode!, resolvedDistrict, res.locations);
-            }
-          });
-        }
-      } else if (user) {
-        setFullName(user.name || "");
+        setCity(p.city || "");
+        setDistrict((p as any).district || p.city || "");
+        setState(p.state || "West Bengal");
+        setBio(p.bio || "");
+        setProfileImageUrl(p.profileImageUrl || "");
+        setLanguages(p.languages || ["Sanskrit", "Hindi", "Bengali"]);
+        setServiceAreas(p.serviceAreas || []);
       }
-
       setServices(srvList || []);
     } catch {
-      toast.error("An error occurred while loading your profile.");
+      toast.error("Failed to load priest profile.");
     } finally {
       setIsLoading(false);
     }
@@ -176,59 +99,7 @@ export const PriestProfilePage: React.FC = () => {
     loadProfile();
   }, [priestId]);
 
-  const handlePincodeLookup = async (pinValue: string) => {
-    const clean = pinValue.trim().replace(/\D/g, "");
-    setPincode(clean);
-
-    if (clean.length === 6) {
-      setIsSearchingPin(true);
-      try {
-        const res = await priestApi.lookupPincode(clean);
-        if (res && res.locations && res.locations.length > 0) {
-          const loc = res.locations[0];
-          const resolvedCity = loc.city || loc.district || "";
-          const resolvedDistrict = loc.district || loc.city || "";
-          setCity(resolvedCity);
-          setDistrict(resolvedDistrict);
-          setState(loc.state);
-          toast.success(
-            `Detected location: ${loc.locality ? `${loc.locality}, ` : ""}${resolvedCity} (${resolvedDistrict}), ${loc.state}`,
-          );
-          loadResidingLocalities(clean, resolvedDistrict, res.locations);
-        } else {
-          toast.error("Could not resolve location for this PIN code.");
-        }
-      } catch {
-        toast.error("Failed to lookup PIN code.");
-      } finally {
-        setIsSearchingPin(false);
-      }
-    }
-  };
-
-  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image size must be less than 5MB");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const dataUrl = reader.result as string;
-      setProfileImageUrl(dataUrl);
-      toast.success("Profile photo updated! Remember to save changes.");
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveAvatar = () => {
-    setProfileImageUrl("");
-    toast.success("Profile photo removed.");
-  };
-
+  // Synchronize partial profile updates (languages, localities)
   const syncProfileField = async (partialUpdates: { languages?: string[]; serviceAreas?: string[] }) => {
     try {
       const sanitizedAreas = partialUpdates.serviceAreas
@@ -258,6 +129,7 @@ export const PriestProfilePage: React.FC = () => {
     }
   };
 
+  // Language management
   const toggleLanguage = (lang: string) => {
     let updated: string[];
     if (languages.includes(lang)) {
@@ -273,13 +145,57 @@ export const PriestProfilePage: React.FC = () => {
     syncProfileField({ languages: updated });
   };
 
-  const triggerPincodeLookup = async (cleanDigits: string) => {
+  // Residing PIN code lookup
+  const handlePincodeLookup = async (pinValue: string) => {
+    const cleanDigits = pinValue.replace(/\D/g, "");
+    setPincode(cleanDigits);
+
+    if (cleanDigits.length === 6) {
+      setIsSearchingPin(true);
+      try {
+        const res = await priestApi.lookupPincode(cleanDigits);
+        if (res?.locations && res.locations.length > 0) {
+          const loc = res.locations[0];
+          const detectedCity = loc.city || loc.district || "";
+          const detectedDistrict = loc.district || loc.city || "";
+          const detectedState = loc.state || "";
+
+          setCity(detectedCity);
+          setDistrict(detectedDistrict);
+          setState(detectedState);
+
+          const unique = new Map<string, { name: string; city: string; state: string; district: string; pincode: string }>();
+          res.locations.forEach((item: any) => {
+            const name = item.locality || item.villageTown || item.postOffice;
+            if (name && !unique.has(name)) {
+              unique.set(name, {
+                name,
+                city: item.city || item.district || "",
+                district: item.district || detectedDistrict,
+                state: item.state || "",
+                pincode: cleanDigits,
+              });
+            }
+          });
+          setResidingPinSuggestions(Array.from(unique.values()));
+          setIsHomeSuggestionsDismissed(false);
+          toast.success(`PIN detected: ${detectedCity} (${detectedDistrict}), ${detectedState}`);
+        }
+      } catch {
+        toast.error("Failed to detect location from PIN code.");
+      } finally {
+        setIsSearchingPin(false);
+      }
+    }
+  };
+
+  // Service Localities PIN code search
+  const triggerServiceAreaLookup = async (cleanDigits: string) => {
     if (cleanDigits.length !== 6) {
       toast.error("Please enter a valid 6-digit PIN code.");
       return;
     }
 
-    setAreaPinQuery(cleanDigits);
     setIsSearchingAreaPin(true);
     setDistrictWarning(null);
 
@@ -290,7 +206,6 @@ export const PriestProfilePage: React.FC = () => {
         const candidateDistrict = primaryLocation.district || primaryLocation.city || "";
         const residingDistrict = district || city;
 
-        // Dynamic district restriction based on live postal lookup
         if (residingDistrict && candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
           const warningMsg = `PIN ${cleanDigits} is in ${candidateDistrict} (${primaryLocation.state}), which is outside your residing district (${residingDistrict}). Purohits can only serve localities within their home district.`;
           setDistrictWarning(warningMsg);
@@ -299,18 +214,15 @@ export const PriestProfilePage: React.FC = () => {
           return;
         }
 
-        const unique = new Map<
-          string,
-          { name: string; city: string; state: string; district: string; pincode: string }
-        >();
-        res.locations.forEach((loc) => {
-          const name = loc.locality || loc.villageTown || loc.postOffice;
+        const unique = new Map<string, { name: string; city: string; state: string; district: string; pincode: string }>();
+        res.locations.forEach((item: any) => {
+          const name = item.locality || item.villageTown || item.postOffice;
           if (name && !unique.has(name)) {
             unique.set(name, {
               name,
-              city: loc.city || loc.district || "",
-              district: loc.district || candidateDistrict,
-              state: loc.state || "",
+              city: item.city || item.district || "",
+              district: item.district || candidateDistrict,
+              state: item.state || "",
               pincode: cleanDigits,
             });
           }
@@ -328,68 +240,21 @@ export const PriestProfilePage: React.FC = () => {
     }
   };
 
-  const handleAreaPinInputChange = (value: string) => {
-    // Only numeric digits allowed, max 6 digits
-    const cleanDigits = value.replace(/\D/g, "").slice(0, 6);
-    setAreaPinInput(cleanDigits);
-    setDistrictWarning(null);
-
-    if (cleanDigits.length === 6 && cleanDigits !== areaPinQuery) {
-      triggerPincodeLookup(cleanDigits);
-    } else if (cleanDigits.length < 6) {
-      if (areaPinSuggestions.length > 0) setAreaPinSuggestions([]);
-      setAreaPinQuery("");
-    }
-  };
-
-  const handleSearchPinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanDigits = areaPinInput.replace(/\D/g, "");
-    if (cleanDigits.length !== 6) {
-      toast.error("Please enter a valid 6-digit PIN code.");
-      return;
-    }
-    triggerPincodeLookup(cleanDigits);
-  };
-
-  const handleSelectAreaSuggestion = (item: {
-    name: string;
-    city: string;
-    district?: string;
-    state: string;
-    pincode: string;
-  }) => {
-    const residingDistrict = district || city;
-    const targetDistrict = item.district || item.city;
-    if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
-      const warningMsg = `Cannot add ${item.name}: It is in ${targetDistrict}, which is outside your residing district (${residingDistrict}).`;
-      setDistrictWarning(warningMsg);
-      toast.error(warningMsg);
-      return;
-    }
-
-    const localityName = formatLocalityName(item.name);
+  const handleAddLocality = (loc: { name: string }) => {
+    const localityName = formatLocalityName(loc.name);
     if (!serviceAreas.some((a) => formatLocalityName(a).toLowerCase() === localityName.toLowerCase())) {
       const updated = [...serviceAreas, localityName];
       setServiceAreas(updated);
       setDistrictWarning(null);
-      toast.success(`Added ${localityName} to service localities.`);
+      toast.success(`Added ${localityName} to your service areas.`);
       syncProfileField({ serviceAreas: updated });
-    } else {
-      toast.info(`${localityName} is already in your service areas.`);
     }
   };
 
   const handleAddAllSuggestions = () => {
     let addedCount = 0;
     const toAdd: string[] = [];
-    const residingDistrict = district || city;
-
     areaPinSuggestions.forEach((s) => {
-      const targetDistrict = s.district || s.city;
-      if (residingDistrict && targetDistrict && !areDistrictsEquivalent(targetDistrict, residingDistrict)) {
-        return;
-      }
       const localityName = formatLocalityName(s.name);
       if (
         !serviceAreas.some((a) => formatLocalityName(a).toLowerCase() === localityName.toLowerCase()) &&
@@ -403,34 +268,8 @@ export const PriestProfilePage: React.FC = () => {
       const updated = [...serviceAreas, ...toAdd];
       setServiceAreas(updated);
       setDistrictWarning(null);
-      toast.success(`Added ${addedCount} localities for PIN ${areaPinQuery}.`);
+      toast.success(`Added ${addedCount} localities.`);
       syncProfileField({ serviceAreas: updated });
-    } else {
-      toast.info("All suggested localities are already in your service areas.");
-    }
-  };
-
-  const handleAddAllResidingSuggestions = () => {
-    let addedCount = 0;
-    const toAdd: string[] = [];
-    residingPinSuggestions.forEach((s) => {
-      const localityName = formatLocalityName(s.name);
-      if (
-        !serviceAreas.some((a) => formatLocalityName(a).toLowerCase() === localityName.toLowerCase()) &&
-        !toAdd.includes(localityName)
-      ) {
-        toAdd.push(localityName);
-        addedCount++;
-      }
-    });
-    if (addedCount > 0) {
-      const updated = [...serviceAreas, ...toAdd];
-      setServiceAreas(updated);
-      setDistrictWarning(null);
-      toast.success(`Added ${addedCount} home localities for PIN ${pincode}.`);
-      syncProfileField({ serviceAreas: updated });
-    } else {
-      toast.info("All residing localities are already in your service areas.");
     }
   };
 
@@ -444,7 +283,8 @@ export const PriestProfilePage: React.FC = () => {
     syncProfileField({ serviceAreas: updated });
   };
 
-  const handleSave = async () => {
+  // Profile Save
+  const handleSaveProfile = async () => {
     const parseResult = updatePriestProfileSchema.safeParse({
       fullName: fullName.trim(),
       displayName: fullName.trim(),
@@ -459,15 +299,7 @@ export const PriestProfilePage: React.FC = () => {
     });
 
     if (!parseResult.success) {
-      toast.error(
-        parseResult.error.errors[0]?.message ||
-          "Invalid priest profile information.",
-      );
-      return;
-    }
-
-    if (pincode.trim() && pincode.trim().length !== 6) {
-      toast.error("Please enter a valid 6-digit PIN code.");
+      toast.error(parseResult.error.errors[0]?.message || "Invalid profile information.");
       return;
     }
 
@@ -501,49 +333,51 @@ export const PriestProfilePage: React.FC = () => {
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const parseResult = changePasswordSchema.safeParse({
-      currentPassword: currentPassword.trim(),
-      newPassword: newPassword.trim(),
-      confirmPassword: confirmPassword.trim(),
-    });
+  // Avatar upload
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!parseResult.success) {
-      toast.error(
-        parseResult.error.errors[0]?.message || "Invalid password parameters."
-      );
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
       return;
     }
 
-    setIsUpdatingPassword(true);
-    try {
-      const res = await priestApi.changePassword({
-        currentPassword: currentPassword.trim() || undefined,
-        newPassword: newPassword.trim(),
-        confirmPassword: confirmPassword.trim(),
-      });
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const dataUrl = reader.result as string;
+      setProfileImageUrl(dataUrl);
 
-      if (res.success) {
-        toast.success(res.message || "Password updated successfully!");
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-      } else {
-        toast.error(res.message || "Failed to update password.");
+      try {
+        const res = await priestApi.updatePriestProfile(priestId, {
+          profileImageUrl: dataUrl,
+        });
+
+        if (res.success && res.data?.profileImageUrl) {
+          setProfileImageUrl(res.data.profileImageUrl);
+          if (user) {
+            setUser({ ...user, avatarUrl: res.data.profileImageUrl });
+          }
+          toast.success("Profile photo uploaded successfully!");
+        }
+      } catch {
+        toast.error("Failed to upload profile photo.");
       }
-    } catch {
-      toast.error("An error occurred while updating your password.");
-    } finally {
-      setIsUpdatingPassword(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const getInitials = (name: string) => {
-    if (!name) return "PT";
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return name.slice(0, 2).toUpperCase();
+  const handleRemoveAvatar = async () => {
+    setProfileImageUrl("");
+    if (user) {
+      setUser({ ...user, avatarUrl: undefined });
+    }
+    try {
+      await priestApi.updatePriestProfile(priestId, { profileImageUrl: "" });
+      toast.success("Profile picture removed.");
+    } catch {
+      toast.error("Failed to remove profile picture.");
+    }
   };
 
   if (isLoading) {
@@ -569,7 +403,7 @@ export const PriestProfilePage: React.FC = () => {
         className="hidden"
       />
 
-      {/* 1. Header Banner (100% Flexbox) */}
+      {/* 1. Header Banner */}
       <div className="p-4 sm:p-6 lg:p-7 rounded-xl border-2 border-amber-300 bg-white shadow-sm">
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <Badge
@@ -592,746 +426,178 @@ export const PriestProfilePage: React.FC = () => {
           Vedic Profile & Credentials
         </h1>
         <p className="text-xs text-stone-600">
-          Manage your credentials, Gurukul lineage, languages, service
-          localities, and puja offerings.
+          Manage your credentials, Gurukul lineage, languages, service localities, and puja offerings.
         </p>
       </div>
 
-      {/* 2. Top Summary Card with Interactive Avatar Trigger (Pure White, Haldi Gold Border) */}
-      <div className="p-4 sm:p-6 lg:p-8 rounded-xl border-2 border-amber-300 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-5 w-full sm:w-auto text-center sm:text-left">
-          <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
-            <div className="relative group shrink-0">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="relative block p-1 rounded-full ring-4 ring-amber-400 bg-amber-100 shadow-sm focus:outline-none focus:ring-offset-2 focus:ring-offset-white transition-transform hover:scale-105 cursor-pointer"
-                title="Click to choose a new profile photo"
-              >
-                <Avatar className="w-20 h-20 sm:w-20 sm:h-20 border-2 border-white">
-                  {profileImageUrl ? (
-                    <AvatarImage
-                      src={profileImageUrl}
-                      alt={fullName}
-                      className="object-cover"
-                    />
-                  ) : null}
-                  <AvatarFallback className="bg-[#780016] text-white font-serif text-2xl font-bold">
-                    {getInitials(fullName)}
-                  </AvatarFallback>
-                </Avatar>
+      {/* 2. Top Summary Card */}
+      <PriestProfileHeaderCard
+        priest={priest}
+        fullName={fullName}
+        experienceYears={experienceYears}
+        city={city}
+        state={state}
+        profileImageUrl={profileImageUrl}
+        serviceAreasCount={serviceAreas.length}
+        onAvatarClick={() => fileInputRef.current?.click()}
+        onRemoveAvatar={handleRemoveAvatar}
+      />
 
-                <div className="absolute inset-1 rounded-full bg-stone-950/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-5 h-5 mb-0.5" />
-                  <span className="text-[9px] font-bold tracking-wide uppercase">
-                    Change
-                  </span>
-                </div>
-              </button>
-            </div>
-
-            {profileImageUrl && (
-              <button
-                type="button"
-                onClick={handleRemoveAvatar}
-                className="text-[11px] text-stone-500 hover:text-red-700 font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
-                title="Remove custom profile photo"
-              >
-                <Trash2 className="w-3 h-3 text-red-600" />
-                <span>Remove Photo</span>
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-1.5 flex-1">
-            <h2 className="text-xl sm:text-2xl font-extrabold font-serif text-stone-950">
-              {fullName || user?.name || "Acharya Pandit Ji"}
-            </h2>
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 sm:gap-2 text-xs text-stone-600">
-              <span className="font-bold text-stone-900">
-                {experienceYears} Years Vedic Experience
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-amber-700 font-bold">
-                <Star className={`w-3.5 h-3.5 ${priest?.reviewCount && Number(priest?.rating) > 0 ? "fill-amber-500 text-amber-500" : "text-stone-400"}`} />
-                {priest?.reviewCount && Number(priest?.rating) > 0
-                  ? `${Number(priest.rating).toFixed(1)} (${priest.reviewCount} ${priest.reviewCount === 1 ? "review" : "reviews"})`
-                  : `0.0 (${priest?.reviewCount || 0} reviews)`}
-              </span>
-              <span>•</span>
-              <span className="font-medium text-stone-800">
-                {city || "Location not set"}{state ? `, ${state}` : ""}
-              </span>
-            </div>
-            <p className="text-xs text-stone-500">
-              Tap avatar to upload a new profile picture.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-md bg-amber-50/70 border border-amber-300 text-xs text-stone-800 font-bold w-full sm:w-auto shrink-0">
-          <MapPin className="w-4 h-4 text-red-700" />
-          <span>{serviceAreas.length} Active Localities</span>
-        </div>
-      </div>
-
-      {/* 3, 4 & 5. Core Profile, Credentials & Lineage (2-Column Responsive Deck) */}
+      {/* 3. Core Profile & Lineage Form */}
       <div className="flex flex-col lg:flex-row items-start gap-4 sm:gap-6 w-full">
-        {/* Left Column: Basic Details & Vedic Lineage Bio */}
+        {/* Left Column */}
         <div className="flex-1 w-full flex flex-col gap-4 sm:gap-6">
-          {/* Basic Details & Experience */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-              <User className="w-4 h-4 text-red-700" />
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Basic Profile & Experience
-              </h3>
-            </div>
+          <PriestBasicInfoForm
+            fullName={fullName}
+            setFullName={setFullName}
+            experienceYears={experienceYears}
+            setExperienceYears={setExperienceYears}
+            pincode={pincode}
+            city={city}
+            district={district}
+            state={state}
+            isSearchingPin={isSearchingPin}
+            onPincodeChange={(val) => {
+              const digits = val.replace(/\D/g, "").slice(0, 6);
+              setPincode(digits);
+              if (digits.length === 6) handlePincodeLookup(digits);
+            }}
+            onPincodeLookup={handlePincodeLookup}
+            residingPinSuggestions={residingPinSuggestions}
+            isHomeSuggestionsDismissed={isHomeSuggestionsDismissed}
+            onSelectNeighborhood={handleAddLocality}
+            onDismissHomeSuggestions={() => setIsHomeSuggestionsDismissed(true)}
+          />
 
-            <div className="space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-stone-800 block">
-                  Full Legal Name *
-                </label>
-                <Input
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Pandit Ramesh Shastri"
-                  className="h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs"
-                />
-              </div>
+          <PriestVedicBioCard
+            bio={bio}
+            setBio={setBio}
+            isSaving={isSaving}
+            onSave={handleSaveProfile}
+          />
+        </div>
 
-              <div className="space-y-1">
-                <label className="font-bold text-stone-800 flex items-center gap-1.5">
-                  <BookOpen className="w-3.5 h-3.5 text-amber-600" />
-                  Years of Vedic Experience *
-                </label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="70"
-                  value={experienceYears}
-                  onChange={(e) => setExperienceYears(Number(e.target.value))}
-                  placeholder="18"
-                  className="h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white text-xs"
-                />
-              </div>
-
-              {/* PIN Code with Auto-Detection */}
-              <div className="space-y-1 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-stone-800 block">
-                    6-Digit PIN Code *
-                  </label>
-                  {isSearchingPin && (
-                    <span className="text-[11px] text-amber-700 flex items-center gap-1 font-bold">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Detecting...
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={pincode}
-                    maxLength={6}
-                    onChange={(e) => handlePincodeLookup(e.target.value)}
-                    placeholder="e.g. 400050"
-                    className="h-10 text-xs font-mono tracking-wider rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePincodeLookup(pincode)}
-                    disabled={isSearchingPin || pincode.length !== 6}
-                    className="h-10 text-xs gap-1 shrink-0 rounded-md border-amber-300 font-bold"
-                  >
-                    <Search className="w-3.5 h-3.5 text-amber-600" /> Lookup
-                  </Button>
-                </div>
-              </div>
-
-              {/* Detected City, District & State (100% Flexbox) */}
-              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 pt-1">
-                <div className="flex-1 space-y-1">
-                  <span className="font-bold text-stone-500 text-[10px] uppercase">
-                    Detected City / Area
-                  </span>
-                  <div className="p-2.5 sm:p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
-                    {city || "Enter PIN Code"}
-                  </div>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <span className="font-bold text-stone-500 text-[10px] uppercase">
-                    Home District
-                  </span>
-                  <div className="p-2.5 sm:p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
-                    {district || city || "Enter PIN Code"}
-                  </div>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <span className="font-bold text-stone-500 text-[10px] uppercase">
-                    Detected State
-                  </span>
-                  <div className="p-2.5 sm:p-3 rounded-md bg-amber-50/60 border border-amber-200 text-stone-900 font-bold text-xs truncate">
-                    {state || "Enter PIN Code"}
-                  </div>
-                </div>
-              </div>
-
-              {pincode.length === 6 && (district || city) && (
-                <div className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-md flex items-center gap-1.5 mt-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>
-                    Authorized Residing Jurisdiction: <strong>{district || city} District</strong> (Purohits serve within this district)
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Vedic Lineage & Bio */}
+        {/* Right Column: Contact Channels, Security & Credentials */}
+        <div className="w-full lg:w-96 flex flex-col gap-4 sm:gap-6">
+          {/* Verified Contact Channels */}
           <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-              <BookOpen className="w-4 h-4 text-red-700" />
+              <Phone className="w-4 h-4 text-emerald-700" />
               <h3 className="text-base font-serif font-bold text-stone-950">
-                Vedic Lineage & Bio
+                Verified Communication Channels
               </h3>
             </div>
-            <p className="text-xs text-stone-600">
-              Describe your Gurukul education, Veda shakha, training, and spiritual
-              background.
-            </p>
-            <Textarea
-              rows={4}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Vedic scholar trained in Varanasi Gurukul. Specializes in Griha Pravesh, Vastu Shanti, and Satyanarayan Katha with over 18 years of ritual expertise..."
-              className="text-xs leading-relaxed resize-y rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-            />
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-[11px] text-stone-500 pt-1 font-medium">
-              <span>
-                Minimum 20 characters. Authentic background helps devotees build
-                trust.
-              </span>
-              <span className="self-end sm:self-auto">{bio.length} characters</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Verified Contact Channels & Security Credentials */}
-        <div className="flex-1 w-full flex flex-col gap-4 sm:gap-6">
-          {/* Verified Contact Information */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Verified Contact Channels
-              </h3>
-            </div>
-
-            <div className="space-y-4 text-xs">
-              <div className="p-3.5 sm:p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-700 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-red-700" /> Registered
-                    Mobile
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="text-stone-700 bg-stone-100 border-stone-300 text-[10px] font-bold gap-1"
-                  >
-                    <Lock className="w-3 h-3 text-stone-500" /> Registered
-                  </Badge>
-                </div>
-                <p className="font-mono text-sm font-bold text-stone-950">
-                  {priest?.phoneNumber || user?.phoneNumber || "Phone pending"}
-                </p>
-                <p className="text-[11px] text-stone-600">
-                  Devotees contact you on this registered number for ritual
-                  coordination.
-                </p>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-md">
+                <span className="text-stone-500 font-bold block mb-1">
+                  Registered Mobile
+                </span>
+                <span className="font-mono font-bold text-stone-900">
+                  {user?.phoneNumber || priest?.phoneNumber || "Phone Not Registered"}
+                </span>
               </div>
-
-              <div className="p-3.5 sm:p-4 rounded-md bg-amber-50/50 border border-amber-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-700 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-amber-600" /> Registered
-                    Email
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="text-emerald-800 bg-emerald-100 border-emerald-300 text-[10px] font-bold gap-1"
-                  >
-                    <Check className="w-3 h-3 text-emerald-700" /> Email Verified
-                  </Badge>
-                </div>
-                <p className="font-medium text-xs text-stone-950">
-                  {priest?.email || user?.email || "Email pending"}
-                </p>
-                <p className="text-[11px] text-stone-600">
-                  Booking updates, scheduling notifications, and platform alerts.
-                </p>
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-md">
+                <span className="text-stone-500 font-bold block mb-1">
+                  Registered Email
+                </span>
+                <span className="font-bold text-stone-900 break-all">
+                  {user?.email || priest?.email || "Email Not Registered"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Security & Credentials (Password Change) */}
-          <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-stone-200">
-              <KeyRound className="w-4 h-4 text-amber-600 shrink-0" />
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Security & Credentials
-              </h3>
-            </div>
-            <p className="text-xs text-stone-600">
-              Update your password regularly to protect your ritual appointments and account records.
-            </p>
-
-            <form onSubmit={handleUpdatePassword} className="space-y-4 pt-1">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800 block">
-                  Current Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
-                  <Input
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="pl-10 pr-10 text-xs h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-                    placeholder="Enter current password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800 block">
-                  New Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
-                  <Input
-                    type={showNewPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="pl-10 pr-10 text-xs h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-                    placeholder="At least 6 characters"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
-                  >
-                    {showNewPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-stone-800 block">
-                  Confirm New Password *
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-3 h-4 w-4 text-stone-400" />
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10 pr-10 text-xs h-10 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-                    placeholder="Re-enter new password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isUpdatingPassword}
-                className="text-xs gap-1.5 bg-[#780016] hover:bg-red-800 text-white font-bold border border-amber-400 w-full sm:w-auto h-10 px-5 rounded-md shadow-xs cursor-pointer puja-btn-tap"
-              >
-                {isUpdatingPassword ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Updating Password...
-                  </>
-                ) : (
-                  <>
-                    <KeyRound className="w-3.5 h-3.5" />
-                    Update Password
-                  </>
-                )}
-              </Button>
-            </form>
-          </div>
+          {/* Security & Credentials (Shared ChangePasswordCard) */}
+          <ChangePasswordCard
+            title="Security & Credentials"
+            description="Update your password regularly to protect your booking appointments."
+            buttonLabel="Update Purohit Password"
+            onUpdatePassword={async ({ currentPassword, newPassword, confirmPassword }) => {
+              return priestApi.changePassword({
+                currentPassword,
+                newPassword,
+                confirmPassword,
+              });
+            }}
+          />
         </div>
       </div>
 
-      {/* 6 & 7. Languages & Offerings Deck (100% Flexbox, Zero CSS Grids) */}
-      <div className="flex flex-col lg:flex-row items-stretch gap-4 sm:gap-6 w-full">
-        {/* Languages Spoken */}
-        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-stone-200">
-            <div className="flex items-center gap-2">
-              <LanguagesIcon className="w-4 h-4 text-red-700 shrink-0" />
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Languages Spoken ({languages.length})
-              </h3>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer w-full sm:w-auto justify-center"
-            >
-              {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />}
-              Save Languages
-            </Button>
-          </div>
-          <p className="text-xs text-stone-600">
-            Select all Vedic and regional languages you can perform mantras and
-            katha in.
-          </p>
+      {/* 4. Languages Selector */}
+      <PriestLanguagesSelector
+        selectedLanguages={languages}
+        onToggleLanguage={toggleLanguage}
+      />
 
-          <div className="flex flex-wrap gap-2">
-            {AVAILABLE_LANGUAGES.map((lang) => {
-              const isSelected = languages.includes(lang);
-              return (
-                <button
-                  key={lang}
-                  type="button"
-                  onClick={() => toggleLanguage(lang)}
-                  className={`px-3.5 py-1.5 rounded-sm text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                    isSelected
-                      ? "bg-[#780016] text-white border-amber-400 shadow-xs"
-                      : "bg-white text-stone-700 hover:bg-amber-50 border-stone-300"
-                  }`}
-                >
-                  {isSelected && <Check className="w-3 h-3 text-amber-300" />}
-                  <span>{lang}</span>
-                </button>
-              );
-            })}
-            {languages
-              .filter((l) => !AVAILABLE_LANGUAGES.includes(l))
-              .map((extraLang) => (
-                <button
-                  key={extraLang}
-                  type="button"
-                  onClick={() => toggleLanguage(extraLang)}
-                  className="px-3.5 py-1.5 rounded-sm text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer bg-[#780016] text-white border-amber-400 shadow-xs"
-                >
-                  <Check className="w-3 h-3 text-amber-300" />
-                  <span>{extraLang}</span>
-                  <X className="w-3 h-3 text-amber-200 hover:text-white ml-0.5" />
-                </button>
-              ))}
-          </div>
-        </div>
-
-        {/* Active Puja Services */}
-        <div className="flex-1 rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-stone-200">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-              <h3 className="text-base font-serif font-bold text-stone-950">
-                Puja Services ({services.filter((s) => s.isActive).length})
-              </h3>
-            </div>
-            <Link to="/priest/services" className="w-full sm:w-auto">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full sm:w-auto text-xs text-red-700 hover:text-red-800 border-amber-300 gap-1.5 h-8 px-3 rounded-md font-bold justify-center"
-              >
-                Manage All <ExternalLink className="w-3 h-3" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            {services.length > 0 ? (
-              <div className="space-y-2">
-                {services.map((srv) => (
-                  <div
-                    key={srv.id}
-                    className="p-3 rounded-md bg-amber-50/40 border border-amber-200 flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
-                      <span className="font-bold text-stone-900 text-xs truncate">
-                        {srv.serviceName}
-                      </span>
-                    </div>
-                    <span className="font-mono font-bold text-xs text-red-800 shrink-0">
-                      {formatINR(srv.price)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-stone-500 text-xs">
-                No active ceremony offerings.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 8. Service Areas / Localities */}
-      <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 lg:p-8 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-stone-200">
+      {/* 5. Puja Services Offerings Summary */}
+      <div className="rounded-xl border-2 border-amber-300 bg-white p-4 sm:p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-stone-200">
           <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-red-700 shrink-0" />
+            <Sparkles className="w-4 h-4 text-amber-600" />
             <h3 className="text-base font-serif font-bold text-stone-950">
-              Service Localities & Neighborhoods ({serviceAreas.length})
+              Puja Services ({services.length})
             </h3>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="text-xs h-8 px-3 border-amber-300 text-stone-800 hover:bg-amber-50 cursor-pointer w-full sm:w-auto justify-center"
-          >
-            {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />}
-            Save Localities
-          </Button>
-        </div>
-        <p className="text-xs text-stone-600">
-          Enter a 6-digit PIN code to find and select localities within your authorized residing district.
-        </p>
-
-        {/* District Warning Banner if outside */}
-        {districtWarning && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-300 text-xs text-red-900 flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-0.5">
-              <span className="font-bold block text-red-800">Out of Residing District</span>
-              <p className="leading-relaxed">{districtWarning}</p>
-            </div>
-            <button
+          <Link to="/priest/services">
+            <Button
               type="button"
-              onClick={() => setDistrictWarning(null)}
-              className="text-red-700 hover:text-red-950 p-1 cursor-pointer"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {serviceAreas.map((area) => (
-            <Badge
-              key={area}
               variant="outline"
-              className="pl-3 pr-1.5 py-1 text-xs flex items-center gap-1.5 bg-amber-50/60 border-amber-300 font-bold text-stone-900 rounded-sm"
+              size="sm"
+              className="text-xs gap-1.5 border-amber-300 text-stone-800 font-bold hover:bg-amber-50"
             >
-              <span>{formatLocalityName(area)}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveArea(area)}
-                className="rounded-xs p-0.5 hover:bg-red-700 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </Badge>
-          ))}
+              Manage Services
+              <ExternalLink className="w-3.5 h-3.5 text-amber-600" />
+            </Button>
+          </Link>
         </div>
 
-        <form
-          onSubmit={handleSearchPinSubmit}
-          className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-stone-200 max-w-md"
-        >
-          <div className="relative flex-1">
-            <Input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              placeholder="Enter 6-digit PIN code (e.g. 713103)..."
-              value={areaPinInput}
-              onChange={(e) => handleAreaPinInputChange(e.target.value)}
-              className="h-10 text-xs rounded-md border-stone-300 focus:ring-amber-500 bg-white pr-8 font-mono"
-            />
-            {isSearchingAreaPin && (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 absolute right-2.5 top-1/2 -translate-y-1/2" />
-            )}
-          </div>
-          <Button
-            type="submit"
-            size="sm"
-            variant="outline"
-            disabled={isSearchingAreaPin || areaPinInput.length !== 6}
-            className="h-10 text-xs gap-1.5 rounded-md border-amber-300 font-bold shrink-0 cursor-pointer w-full sm:w-auto justify-center"
-          >
-            {isSearchingAreaPin ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
-            ) : (
-              <Search className="w-3.5 h-3.5 text-amber-600" />
-            )}
-            Find Places
-          </Button>
-        </form>
-
-        {/* Residing Home PIN Neighborhood Suggestions (hidden when actively searching or dismissed) */}
-        {!isHomeSuggestionsDismissed &&
-          areaPinSuggestions.length === 0 &&
-          !areaPinInput.trim() &&
-          residingPinSuggestions.length > 0 && (
-            <div className="p-3.5 rounded-lg bg-emerald-50/80 border border-emerald-300 space-y-2.5 max-w-xl transition-all">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  <span>
-                    Home District Neighborhoods for PIN {pincode} ({residingPinSuggestions[0]?.city || district || ""}):
-                  </span>
-                </span>
-                <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleAddAllResidingSuggestions}
-                    className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
-                  >
-                    + Add All ({residingPinSuggestions.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsHomeSuggestionsDismissed(true)}
-                    className="text-emerald-800 hover:text-emerald-950 p-0.5 rounded cursor-pointer"
-                    title="Dismiss suggestions"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1.5">
-                {residingPinSuggestions.map((homeLocality) => {
-                  const placeName = formatLocalityName(homeLocality.name);
-                  const isAlreadyAdded = serviceAreas.some(
-                    (a) => formatLocalityName(a).toLowerCase() === placeName.toLowerCase()
-                  );
-                  return (
-                    <button
-                      key={homeLocality.name}
-                      type="button"
-                      disabled={isAlreadyAdded}
-                      onClick={() => handleSelectAreaSuggestion(homeLocality)}
-                      className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 cursor-pointer ${
-                        isAlreadyAdded
-                          ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed"
-                          : "bg-white text-stone-900 border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 shadow-2xs font-semibold"
-                      }`}
-                    >
-                      <span>{isAlreadyAdded ? "✓" : "+"}</span>
-                      <span>{placeName}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-[10px] text-stone-500">
-                Localities automatically matched to your home PIN address in {district || city}.
-              </p>
-            </div>
-          )}
-
-        {/* Dynamic PIN Code Suggestions Panel */}
-        {areaPinSuggestions.length > 0 && (
-          <div className="p-3.5 rounded-lg bg-amber-50/80 border border-amber-300 space-y-2.5 max-w-xl transition-all">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-bold text-amber-950 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-red-700 shrink-0" />
-                <span>
-                  Localities for PIN {areaPinQuery} ({areaPinSuggestions[0]?.city || ""}, {areaPinSuggestions[0]?.state || ""}):
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={handleAddAllSuggestions}
-                className="text-[11px] font-bold text-red-800 hover:text-red-950 underline cursor-pointer self-start sm:self-auto"
+        {services.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {services.map((srv) => (
+              <div
+                key={srv.id}
+                className="p-3 rounded-lg border border-amber-200 bg-amber-50/30 flex items-center justify-between"
               >
-                + Add All ({areaPinSuggestions.length})
-              </button>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {areaPinSuggestions.map((localitySuggestion) => {
-                const placeName = formatLocalityName(localitySuggestion.name);
-                const isAlreadyAdded = serviceAreas.some(
-                  (a) => formatLocalityName(a).toLowerCase() === placeName.toLowerCase()
-                );
-                return (
-                  <button
-                    key={localitySuggestion.name}
-                    type="button"
-                    disabled={isAlreadyAdded}
-                    onClick={() => handleSelectAreaSuggestion(localitySuggestion)}
-                    className={`text-xs px-2.5 py-1 rounded-md border transition-all flex items-center gap-1 cursor-pointer ${
-                      isAlreadyAdded
-                        ? "bg-stone-100 text-stone-400 border-stone-200 cursor-not-allowed"
-                        : "bg-white text-stone-900 border-amber-300 hover:bg-amber-100 hover:border-amber-400 shadow-2xs"
-                    }`}
-                  >
-                    <span>{isAlreadyAdded ? "✓" : "+"}</span>
-                    <span className="font-semibold">{placeName}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[10px] text-stone-500">
-              Click any locality suggestion to add it to your travel-eligible puja service areas.
-            </p>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-xs font-bold text-stone-900">
+                    {srv.serviceName}
+                  </span>
+                </div>
+                <span className="text-xs font-serif font-black text-amber-900">
+                  {formatINR(srv.price)}
+                </span>
+              </div>
+            ))}
           </div>
+        ) : (
+          <p className="text-xs text-stone-500 italic">
+            No ceremony offerings configured yet. Click "Manage Services" to select pujas you conduct.
+          </p>
         )}
       </div>
 
-      {/* 9. Bottom Action Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 border-t border-stone-200">
-        <Button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full sm:w-auto justify-center gap-2 text-xs font-bold px-7 h-11 bg-[#780016] hover:bg-red-800 text-white border border-amber-400 rounded-md shadow-xs cursor-pointer puja-btn-tap"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Saving Profile...
-            </>
-          ) : (
-            <>
-              <Check className="w-4 h-4" />
-              Save Profile Changes
-            </>
-          )}
-        </Button>
-      </div>
+      {/* 6. Service Localities & Neighborhoods */}
+      <PriestServiceAreasManager
+        serviceAreas={serviceAreas}
+        areaPinInput={areaPinInput}
+        isSearchingAreaPin={isSearchingAreaPin}
+        areaPinSuggestions={areaPinSuggestions}
+        districtWarning={districtWarning}
+        onAreaPinInputChange={(val) => {
+          const cleanDigits = val.replace(/\D/g, "").slice(0, 6);
+          setAreaPinInput(cleanDigits);
+          setDistrictWarning(null);
+          if (cleanDigits.length === 6) triggerServiceAreaLookup(cleanDigits);
+        }}
+        onSearchPinSubmit={(e) => {
+          e.preventDefault();
+          triggerServiceAreaLookup(areaPinInput);
+        }}
+        onAddLocality={handleAddLocality}
+        onAddAllSuggestions={handleAddAllSuggestions}
+        onRemoveServiceArea={handleRemoveArea}
+      />
     </div>
   );
 };
