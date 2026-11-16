@@ -41,6 +41,24 @@ export const DashboardSidebarShell: React.FC<DashboardSidebarShellProps> = ({
   const { user, logout } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Automatically close mobile menu on route change
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  // Automatically close mobile menu when window resizes to desktop breakpoint (>= 768px)
+  React.useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        setMobileOpen(false);
+      }
+    };
+
+    mql.addEventListener('change', handleMediaChange);
+    return () => mql.removeEventListener('change', handleMediaChange);
+  }, []);
+
   const handleLogout = () => {
     logout();
     navigate(logoutPath);
@@ -201,7 +219,7 @@ export const DashboardSidebarShell: React.FC<DashboardSidebarShellProps> = ({
                   <Menu className="w-5 h-5" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="p-0 w-72 flex flex-col justify-between bg-white text-stone-900">
+              <SheetContent side="left" className="p-0 w-72 md:hidden flex flex-col justify-between bg-white text-stone-900">
                 <div className="flex-1 overflow-y-auto">
                   <div className="h-16 border-b border-[hsl(var(--border))] flex items-center justify-between pl-4 pr-12 shrink-0 bg-white">
                     <div className="flex items-center gap-2.5 min-w-0">

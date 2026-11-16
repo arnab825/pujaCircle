@@ -88,31 +88,6 @@ export class AuthController {
     }
   }
 
-  // POST /api/v1/auth/otp/send-phone
-  async sendPhoneOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await authService.sendPhoneOtp(req.body.phoneNumber);
-      sendSuccess(res, result.message);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // POST /api/v1/auth/otp/verify-phone
-  async verifyPhoneOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await authService.verifyPhoneOtp(req.body);
-
-      if (result.token) {
-        res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
-      }
-
-      sendSuccess(res, 'Phone verification successful.', result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
   // POST /api/v1/auth/otp/send-email
   async sendEmailOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {

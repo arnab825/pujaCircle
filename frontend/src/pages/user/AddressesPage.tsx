@@ -119,7 +119,7 @@ export const AddressesPage: React.FC = () => {
   const handleOpenEdit = (addr: Address) => {
     setEditingAddress(addr);
     setPinCode(addr.pincode || addr.pinCode || "");
-    setHouseNo(addr.houseNo || addr.houseBuilding || "");
+    setHouseNo(addr.houseNo || "");
     setSelectedVillageTown(addr.villageTown || addr.locality || "");
     setDistrict(addr.district || "");
     setState(addr.state || "");
@@ -320,7 +320,7 @@ export const AddressesPage: React.FC = () => {
                         <Home className="h-3.5 w-3.5 text-amber-800" />
                       </div>
                       <span className="font-bold text-sm text-stone-950">
-                        {addr.houseNo || addr.houseBuilding},{" "}
+                        {addr.houseNo},{" "}
                         {addr.villageTown || addr.locality}
                       </span>
                       {addr.isDefault && (

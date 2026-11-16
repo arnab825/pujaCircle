@@ -54,18 +54,18 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md bg-white border-2 border-amber-300">
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-md bg-white border-2 border-amber-300 p-4 sm:p-6">
         <form onSubmit={handleSubmit} className="w-full min-w-0 space-y-3 sm:space-y-4">
-          <DialogHeader className="pr-10 sm:pr-12 text-left w-full min-w-0">
-            <div className="flex items-center gap-2.5 min-w-0 w-full">
-              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-md bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center shrink-0">
+          <DialogHeader className="pr-8 sm:pr-10 text-left w-full min-w-0">
+            <div className="flex items-start gap-2.5 min-w-0 w-full">
+              <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-md bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5">
                 <KeyRound className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <DialogTitle className="text-sm sm:text-base font-serif font-bold text-stone-900 leading-snug break-words">
+                <DialogTitle className="text-sm sm:text-base font-serif font-bold text-stone-900 leading-snug wrap-break-word">
                   Verify & Complete Ceremony
                 </DialogTitle>
-                <DialogDescription className="text-[11px] sm:text-xs text-stone-600 leading-normal break-words mt-0.5">
+                <DialogDescription className="text-[11px] sm:text-xs text-stone-600 leading-normal wrap-break-word mt-0.5">
                   {booking.serviceName || "Puja Ceremony"} • Ref:{" "}
                   {booking.bookingReference || booking.id}
                 </DialogDescription>
@@ -75,12 +75,12 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
 
           <div className="w-full min-w-0 space-y-2.5 sm:space-y-3.5 py-0.5">
             {/* Dakshina notice */}
-            <div className="w-full px-3 py-2 sm:p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-stone-800 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-full min-w-0 px-3 py-2 sm:p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-stone-800 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                 <Banknote className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span className="font-medium text-xs">Cash Dakshina Due:</span>
+                <span className="font-medium text-xs truncate">Cash Dakshina Due:</span>
               </div>
-              <strong className="text-sm font-serif font-bold text-red-800 shrink-0">
+              <strong className="text-sm font-serif font-bold text-red-800 shrink-0 whitespace-nowrap pl-1">
                 {formatINR(
                   booking.servicePrice || booking.dakshinaAmount || 2100,
                 )}
@@ -111,30 +111,30 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
                   setCode(val);
                   if (error) setError("");
                 }}
-                className="w-full text-center font-mono font-bold text-xl sm:text-2xl tracking-[0.4em] sm:tracking-[0.5em] h-10 sm:h-12 border-2 border-stone-300 bg-stone-50/50"
+                className="w-full text-center font-mono font-bold text-xl sm:text-2xl tracking-[0.3em] sm:tracking-[0.5em] h-10 sm:h-12 border-2 border-stone-300 bg-stone-50/50"
               />
               {error && (
                 <p className="text-xs text-rose-600 font-medium">{error}</p>
               )}
             </div>
 
-            <div className="w-full flex items-start gap-2 p-2 sm:p-2.5 rounded bg-stone-50 border border-stone-200 text-[10px] sm:text-[11px] text-stone-600">
+            <div className="w-full min-w-0 flex items-start gap-2 p-2 sm:p-2.5 rounded bg-stone-50 border border-stone-200 text-[10px] sm:text-[11px] text-stone-600">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-              <span className="leading-snug">
+              <span className="leading-snug wrap-break-word">
                 Entering this code confirms you have conducted the rituals and
                 received the cash Dakshina from the devotee.
               </span>
             </div>
           </div>
 
-          <DialogFooter className="w-full flex flex-row items-center justify-end gap-2 pt-2 border-t border-stone-100">
+          <DialogFooter className="w-full flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-stone-100">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={onClose}
               disabled={isProcessing}
-              className="px-3.5 sm:px-4 text-xs h-9 shrink-0 cursor-pointer"
+              className="w-full sm:w-auto px-4 text-xs h-9 cursor-pointer"
             >
               Cancel
             </Button>
@@ -142,7 +142,7 @@ export const CompleteBookingModal: React.FC<CompleteBookingModalProps> = ({
               type="submit"
               size="sm"
               disabled={isProcessing || code.trim().length !== 4}
-              className="flex-1 sm:flex-initial sm:w-auto text-xs font-bold bg-[#780016] hover:bg-red-800 text-white h-9 px-3 sm:px-4 cursor-pointer"
+              className="w-full sm:w-auto text-xs font-bold bg-[#780016] hover:bg-red-800 text-white h-9 px-4 cursor-pointer"
             >
               {isProcessing ? "Verifying..." : "Confirm Completion"}
             </Button>

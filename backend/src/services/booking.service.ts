@@ -5,9 +5,8 @@ import { db } from '@/db/index.js';
 import { bookings, priestProfiles, priestServices, pujaCatalog, addresses, users } from '@/models/index.js';
 import { CreateBookingInput, RatingInput } from '@/schemas/booking.schema.js';
 import { AppError } from '@/utils/AppError.js';
-import { availabilityService } from '@/services/availability.service.js';
-import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
-import { areDistrictsEquivalent } from '@/services/priest.service.js';
+import { availabilityService, toISTDateString, toISTTimeString } from '@/services/availability.service.js';
+import { resolvePriestProfileId, areDistrictsEquivalent } from '@/services/priest.service.js';
 import { BookingViewModel } from '@/views/booking.view.js';
 import { getPagination } from '@/utils/pagination.js';
 
@@ -293,13 +292,8 @@ export class BookingService {
 
     // Verify booking date and slot time have not passed in Asia/Kolkata (IST)
     const now = new Date();
-    const currentISTDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(now);
-    const currentISTTime = now.toLocaleTimeString('en-GB', {
-      timeZone: 'Asia/Kolkata',
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const currentISTDate = toISTDateString(now);
+    const currentISTTime = toISTTimeString(now);
 
     if (data.bookingDate < currentISTDate) {
       throw new AppError(400, 'Cannot book a ceremony for a past date. Please select tomorrow or an upcoming date.');
@@ -393,7 +387,6 @@ export class BookingService {
         paymentMethod: 'OFFLINE_CASH',
         paymentStatus: 'PENDING',
         specialInstructions: data.specialInstructions || data.notes || (data as any).userNotes || null,
-        notes: data.notes || data.specialInstructions || (data as any).userNotes || null,
       })
       .returning();
 

@@ -1,3 +1,5 @@
+import { formatTime } from './utils';
+
 /**
  * [UTILS] Priest Availability & Date Formatting Utilities
  * Lightweight helpers for timezone formatting and time display.
@@ -66,12 +68,8 @@ export function getISTTomorrow(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(tomorrow);
 }
 
-/** Format time from "14:30" to "2:30 PM" */
+/** Format time from "14:30" to "2:30 PM" (centralized in utils) */
 export function formatTimeAmPm(timeStr: string): string {
   if (!timeStr) return '';
-  const [hours = 0, minutes = 0] = timeStr.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  const displayMinutes = minutes ? `:${minutes.toString().padStart(2, '0')}` : ':00';
-  return `${displayHours}${displayMinutes} ${period}`;
+  return formatTime(timeStr);
 }

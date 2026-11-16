@@ -3,7 +3,7 @@ import { db } from '@/db/index.js';
 import { priestAvailabilityExceptions, priestProfiles } from '@/models/priest.model.js';
 import { bookings } from '@/models/booking.model.js';
 import { AppError } from '@/utils/AppError.js';
-import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
+import { resolvePriestProfileId } from '@/services/priest.service.js';
 
 // DTO representing an availability exception returned by the API
 export interface FormattedAvailabilityException {

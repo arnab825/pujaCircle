@@ -8,10 +8,8 @@ import { CompleteBookingModal } from "@/components/priest/CompleteBookingModal";
 import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BOOKING_STATUS_CONFIG } from "@/lib/constants";
 import { Search, Calendar } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 type TabFilter = "PENDING" | "CONFIRMED" | "COMPLETED" | "HISTORY";
 
@@ -170,12 +168,7 @@ export const PriestBookingsPage: React.FC = () => {
               >
                 <span>Pending</span>
                 {counts.pending > 0 ? (
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-sm text-[10px] font-bold",
-                      BOOKING_STATUS_CONFIG.PENDING.pillClass,
-                    )}
-                  >
+                  <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                     {counts.pending}
                   </span>
                 ) : null}
@@ -187,12 +180,7 @@ export const PriestBookingsPage: React.FC = () => {
               >
                 <span>Confirmed</span>
                 {counts.confirmed > 0 ? (
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-sm text-[10px] font-bold",
-                      BOOKING_STATUS_CONFIG.CONFIRMED.pillClass,
-                    )}
-                  >
+                  <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
                     {counts.confirmed}
                   </span>
                 ) : null}
@@ -204,12 +192,7 @@ export const PriestBookingsPage: React.FC = () => {
               >
                 <span>Completed</span>
                 {counts.completed > 0 ? (
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-sm text-[10px] font-bold",
-                      BOOKING_STATUS_CONFIG.COMPLETED.pillClass,
-                    )}
-                  >
+                  <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-stone-100 text-stone-900 border border-stone-300">
                     {counts.completed}
                   </span>
                 ) : null}
@@ -221,12 +204,7 @@ export const PriestBookingsPage: React.FC = () => {
               >
                 <span>Cancelled / Expired</span>
                 {counts.history > 0 ? (
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 rounded-sm text-[10px] font-bold",
-                      BOOKING_STATUS_CONFIG.CANCELLED.pillClass,
-                    )}
-                  >
+                  <span className="px-2 py-0.5 rounded-sm text-[10px] font-bold bg-red-100 text-red-900 border border-red-300">
                     {counts.history}
                   </span>
                 ) : null}

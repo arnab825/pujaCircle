@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { reasonSchema } from './common.schema.js';
 
 /**
  * [SCHEMA] Admin Schemas
  * Strict validation for administrative actions, moderation, and profile settings.
  */
 export const adminActionReasonSchema = z.object({
-  reason: z.string().trim().max(500, 'Reason cannot exceed 500 characters').optional(),
+  reason: reasonSchema,
 });
 
 export const updateAdminProfileSchema = z.object({

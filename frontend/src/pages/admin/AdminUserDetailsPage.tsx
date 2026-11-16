@@ -18,29 +18,12 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { SuspendUserDialog } from "@/components/admin/UserActionDialogs";
+import { DeleteConfirmDialog } from "@/components/admin/PriestActionDialogs";
+import { BookingStatusBadge } from "@/components/booking/BookingStatusBadge";
 
 import { adminApi } from "@/api/admin.api";
-import { formatDate, formatFullDate, formatTime } from "@/lib/utils";
+import { formatDate, formatFullDate, formatTime, formatDisplayPhone } from "@/lib/utils";
 
 /**
  * AdminUserDetailsPage
@@ -58,7 +41,6 @@ export const AdminUserDetailsPage: React.FC = () => {
   // Action Dialog states
   const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [reasonInput, setReasonInput] = useState("");
 
   const loadDevotee = async () => {
     if (!id) return;
@@ -124,16 +106,12 @@ export const AdminUserDetailsPage: React.FC = () => {
     );
   }
 
-  const handleConfirmSuspend = async () => {
-    if (!reasonInput.trim()) {
-      toast.error("Please provide a suspension justification.");
-      return;
-    }
-    const res = await adminApi.suspendUser(devotee.id, reasonInput.trim());
+  const handleConfirmSuspend = async (reason: string) => {
+    if (!reason.trim()) return;
+    const res = await adminApi.suspendUser(devotee.id, reason.trim());
     if (res.success) {
       toast.success(`Account for ${devotee.name} suspended.`);
       setIsSuspendDialogOpen(false);
-      setReasonInput("");
       loadDevotee();
     } else {
       toast.error(res.message || "Failed to suspend account.");
@@ -283,7 +261,7 @@ export const AdminUserDetailsPage: React.FC = () => {
             Registered Mobile
           </span>
           <p className="text-base sm:text-lg font-mono font-bold text-stone-900 mt-1 break-all">
-            {devotee.phoneNumber}
+            {formatDisplayPhone(devotee.phoneNumber)}
           </p>
         </div>
 
@@ -335,7 +313,6 @@ export const AdminUserDetailsPage: React.FC = () => {
                   <p className="text-stone-700 leading-relaxed">
                     {[
                       addr.houseNo,
-                      addr.houseBuilding,
                       addr.street,
                       addr.locality,
                       addr.villageTown,
@@ -392,20 +369,7 @@ export const AdminUserDetailsPage: React.FC = () => {
                       <span className="font-serif font-bold text-stone-950 text-sm wrap-break-word">
                         {booking.serviceName}
                       </span>
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-bold shrink-0 ${
-                          booking.status === "CONFIRMED"
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                            : booking.status === "COMPLETED"
-                              ? "bg-blue-50 text-blue-800 border-blue-300"
-                              : booking.status === "CANCELLED"
-                                ? "bg-rose-50 text-rose-800 border-rose-300"
-                                : "bg-amber-50 text-amber-800 border-amber-300"
-                        }`}
-                      >
-                        {booking.status}
-                      </Badge>
+                      <BookingStatusBadge status={booking.status} withPulse={false} />
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-stone-600">
@@ -503,93 +467,21 @@ export const AdminUserDetailsPage: React.FC = () => {
       </div>
 
       {/* Suspend Confirmation Dialog */}
-      <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
-        <DialogContent className="sm:max-w-md p-4 sm:p-6 rounded-xl bg-white border-2 border-amber-300 shadow-xl">
-          <DialogHeader className="pr-8 sm:pr-10 text-left">
-            <DialogTitle className="text-base font-bold font-serif text-red-700">
-              Suspend Devotee Account
-            </DialogTitle>
-            <DialogDescription className="text-xs text-stone-600">
-              Revoke ceremony booking privileges for {devotee.name}. Please enter a reason.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-xs text-red-900 space-y-1">
-              <p className="font-bold flex items-center gap-1.5 text-red-800">
-                ⚠️ Automatic Cancellation & Notification:
-              </p>
-              <p className="text-[11px] leading-relaxed text-red-700">
-                Suspending this devotee will <strong>automatically cancel all of their active and pending bookings on the priest side</strong>, and a notification email stating the reason will be sent to the devotee.
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="suspend-reason" className="text-xs font-bold text-stone-800">
-                Suspension Reason
-              </Label>
-              <Textarea
-                id="suspend-reason"
-                placeholder="e.g. Disciplinary breach / Unconfirmed bookings..."
-                value={reasonInput}
-                onChange={(e) => setReasonInput(e.target.value)}
-                className="text-xs min-h-24 rounded-md border-stone-300 focus:ring-amber-500 bg-white"
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 flex flex-col-reverse sm:flex-row">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsSuspendDialogOpen(false)}
-              className="text-xs rounded-md h-10 px-4 w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleConfirmSuspend}
-              className="text-xs rounded-md h-10 px-5 font-bold bg-red-700 hover:bg-red-800 text-white w-full sm:w-auto"
-            >
-              Confirm Suspension
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SuspendUserDialog
+        isOpen={isSuspendDialogOpen}
+        onClose={() => setIsSuspendDialogOpen(false)}
+        onConfirm={handleConfirmSuspend}
+        user={devotee}
+      />
 
       {/* Delete Confirmation Alert Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="p-6 rounded-lg bg-white border-2 border-amber-300 shadow-xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-base font-bold font-serif text-red-700 flex items-center gap-2">
-              <Trash2 className="w-4 h-4" />
-              Permanently Delete Devotee Account?
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-xs text-stone-600 space-y-2">
-              <p>
-                Are you sure you want to permanently delete the profile of{" "}
-                <span className="font-bold text-stone-900">{devotee.name}</span>?
-              </p>
-              <span className="block p-2.5 rounded bg-red-50 border border-red-200 text-[11px] text-red-800 font-semibold">
-                ⚠️ All active and pending ceremony bookings will be automatically cancelled on the priest side, and a notification email will be sent to the devotee.
-              </span>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
-            <AlertDialogCancel className="text-xs rounded-md h-10 px-4">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleConfirmDelete()}
-              className="bg-red-700 text-white hover:bg-red-800 text-xs rounded-md h-10 px-5 font-bold"
-            >
-              Delete Record
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Permanently Delete Devotee Account?"
+        description={`Permanently deleting the profile of ${devotee.name} will cancel all upcoming ceremonies and remove devotee credentials.`}
+      />
     </div>
   );
 };

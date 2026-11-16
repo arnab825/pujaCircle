@@ -61,15 +61,15 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
           </div>
 
           {/* Schedule Flex Row */}
-          <div className="grid grid-cols-2 gap-3 p-3 sm:p-3.5 rounded-lg bg-amber-50/50 border border-amber-200">
-            <div className="space-y-1">
+          <div className="flex flex-col sm:flex-row gap-3 p-3 sm:p-3.5 rounded-lg bg-amber-50/50 border border-amber-200">
+            <div className="flex-1 space-y-1">
               <span className="text-stone-500 text-[11px] flex items-center gap-1.5 font-medium">
                 <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 Date
               </span>
               <p className="font-bold text-stone-900 text-xs sm:text-sm">{formatDate(booking.bookingDate)}</p>
             </div>
-            <div className="space-y-1">
+            <div className="flex-1 space-y-1">
               <span className="text-stone-500 text-[11px] flex items-center gap-1.5 font-medium">
                 <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                 Muhurat Time
@@ -144,7 +144,7 @@ export const PriestBookingDetailsDialog: React.FC<PriestBookingDetailsDialogProp
                     <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
                     {booking.rating} / 5
                   </span>
-                  {booking.review && <span className="italic text-stone-700 break-words">"{booking.review}"</span>}
+                  {booking.review && <span className="italic text-stone-700 wrap-break-word">"{booking.review}"</span>}
                 </div>
               )}
             </div>

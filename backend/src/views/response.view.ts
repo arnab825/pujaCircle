@@ -1,8 +1,14 @@
 import { Response } from 'express';
 
 /**
- * [VIEW] Standard JSON Response Presenter
- * Enforces consistent API payload formatting across all PujaCircle controllers.
+ * ============================================================================
+ * [ARCHITECTURAL LAYER: PRESENTATION / VIEW MODEL]
+ * Module: Unified API JSON Response View
+ * 
+ * Enforces uniform, structured JSON payloads across all PujaCircle controllers:
+ * - Success: { success: true, message: string, data?: T }
+ * - Error:   { success: false, message: string, errors?: any }
+ * ============================================================================
  */
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -11,7 +17,12 @@ export interface ApiResponse<T = any> {
   errors?: any;
 }
 
-export const sendSuccess = <T>(res: Response, message: string, data?: T, statusCode = 200) => {
+export const sendSuccess = <T>(
+  res: Response,
+  message: string,
+  data?: T,
+  statusCode = 200
+): Response => {
   return res.status(statusCode).json({
     success: true,
     message,
@@ -19,7 +30,12 @@ export const sendSuccess = <T>(res: Response, message: string, data?: T, statusC
   } satisfies ApiResponse<T>);
 };
 
-export const sendError = (res: Response, message: string, statusCode = 400, errors?: any) => {
+export const sendError = (
+  res: Response,
+  message: string,
+  statusCode = 400,
+  errors?: any
+): Response => {
   return res.status(statusCode).json({
     success: false,
     message,

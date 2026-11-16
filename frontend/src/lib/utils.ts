@@ -1,6 +1,5 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { BookingStatus } from '@/types/booking.types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -85,106 +84,6 @@ export function calculateSlotDuration(startTime: string, endTime: string): numbe
 }
 
 /**
- * Check if two time intervals on the same day overlap
- * Condition: newStart < existingEnd AND newEnd > existingStart
- */
-export function slotsOverlap(
-  s1: { startTime: string; endTime: string },
-  s2: { startTime: string; endTime: string }
-): boolean {
-  const [s1H, s1M] = s1.startTime.split(':').map(Number);
-  const [e1H, e1M] = s1.endTime.split(':').map(Number);
-  const [s2H, s2M] = s2.startTime.split(':').map(Number);
-  const [e2H, e2M] = s2.endTime.split(':').map(Number);
-
-  const start1 = s1H * 60 + s1M;
-  const end1 = e1H * 60 + e1M;
-  const start2 = s2H * 60 + s2M;
-  const end2 = e2H * 60 + e2M;
-
-  return start1 < end2 && end1 > start2;
-}
-
-/**
- * Get human-readable label for booking status
- */
-export function getBookingStatusLabel(status: BookingStatus): string {
-  switch (status) {
-    case 'PENDING':
-      return 'Pending Acceptance';
-    case 'CONFIRMED':
-      return 'Confirmed';
-    case 'COMPLETED':
-      return 'Completed';
-    case 'REJECTED':
-      return 'Declined by Priest';
-    case 'CANCELLED':
-      return 'Cancelled';
-    case 'EXPIRED':
-      return 'Expired (No Response)';
-    default:
-      return status;
-  }
-}
-
-/**
- * Get color tokens for booking status badges
- */
-export function getBookingStatusColor(status: BookingStatus): {
-  bg: string;
-  text: string;
-  border: string;
-} {
-  switch (status) {
-    case 'CONFIRMED':
-      return {
-        bg: 'bg-emerald-500/10 dark:bg-emerald-950/40',
-        text: 'text-emerald-700 dark:text-emerald-300',
-        border: 'border-emerald-500/30',
-      };
-    case 'PENDING':
-      return {
-        bg: 'bg-amber-500/10 dark:bg-amber-950/40',
-        text: 'text-amber-700 dark:text-amber-300',
-        border: 'border-amber-500/30',
-      };
-    case 'COMPLETED':
-      return {
-        bg: 'bg-blue-500/10 dark:bg-blue-950/40',
-        text: 'text-blue-700 dark:text-blue-300',
-        border: 'border-blue-500/30',
-      };
-    case 'REJECTED':
-    case 'CANCELLED':
-      return {
-        bg: 'bg-destructive/10 dark:bg-destructive/30',
-        text: 'text-destructive',
-        border: 'border-destructive/30',
-      };
-    case 'EXPIRED':
-      return {
-        bg: 'bg-muted dark:bg-muted/40',
-        text: 'text-muted-foreground',
-        border: 'border-border',
-      };
-    default:
-      return {
-        bg: 'bg-muted',
-        text: 'text-muted-foreground',
-        border: 'border-border',
-      };
-  }
-}
-
-/**
- * Check if a booking deadline has expired
- */
-export function isBookingExpired(deadline: string | undefined | null): boolean {
-  if (!deadline) return false;
-  return new Date(deadline).getTime() < Date.now();
-}
-
-/**
  * Get dashboard / default home path based on user role
  */
 export function getRoleHomePath(role: 'USER' | 'PRIEST' | 'ADMIN' | undefined | null): string {
@@ -214,16 +113,22 @@ export function normalizePhoneNumber(phone: string): string {
 }
 
 /**
- * Normalize and title-case service/ritual names
+ * Format Indian phone number for clean UI display with country code (+91 XXXXX XXXXX)
+ * Example: "+919876543210" -> "+91 98765 43210"
+ * Example: "9876543210"    -> "+91 98765 43210"
  */
-export function normalizeServiceName(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ');
+export function formatDisplayPhone(phone: string | undefined | null): string {
+  if (!phone) return '—';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`;
+  }
+  if (digits.length === 12 && digits.startsWith('91')) {
+    const raw = digits.slice(2);
+    return `+91 ${raw.slice(0, 5)} ${raw.slice(5)}`;
+  }
+  return phone;
 }
-
 
 /**
  * Get 2-character initials from a person's name

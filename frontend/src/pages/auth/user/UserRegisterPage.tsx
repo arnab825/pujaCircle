@@ -13,9 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthRoleTabs } from "@/components/auth/AuthRoleTabs";
+import { AuthShowcasePanel } from "@/components/auth/AuthShowcasePanel";
 import {
   User,
-  Phone,
   Mail,
   Lock,
   ArrowRight,
@@ -23,7 +23,6 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  Sparkles,
   CheckCircle2,
   MapPin,
 } from "lucide-react";
@@ -92,14 +91,14 @@ export const UserRegisterPage: React.FC = () => {
   const [locations, setLocations] = useState<PincodeLocation[]>([]);
   const [selectedLocation, setSelectedLocation] =
     useState<PincodeLocation | null>(null);
-  const [houseBuilding, setHouseBuilding] = useState("");
+  const [houseNo, setHouseNo] = useState("");
   const [street, setStreet] = useState("");
   const [landmark, setLandmark] = useState("");
   const [isSearchingPin, setIsSearchingPin] = useState(false);
 
   const isStep3Valid =
     pincode.trim().length === 6 &&
-    houseBuilding.trim().length > 0 &&
+    houseNo.trim().length > 0 &&
     street.trim().length > 0;
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -201,10 +200,12 @@ export const UserRegisterPage: React.FC = () => {
       const res = await authApi.registerUser({
         fullName: personalData.fullName,
         email: personalData.email,
-        phoneNumber: personalData.phoneNumber,
+        phoneNumber: personalData.phoneNumber.startsWith("+")
+          ? personalData.phoneNumber
+          : `+91${personalData.phoneNumber}`,
         password: personalData.password,
         address: {
-          houseNo: houseBuilding,
+          houseNo: houseNo,
           street: street,
           locality: selectedLocation
             ? (selectedLocation.locality || selectedLocation.villageTown || selectedLocation.city)
@@ -242,105 +243,56 @@ export const UserRegisterPage: React.FC = () => {
     <div className="w-full min-h-[calc(100vh-140px)] flex items-center justify-center py-6 sm:py-10 px-3 sm:px-4 max-w-full overflow-x-hidden">
       <div className="w-full max-w-4xl rounded-xl border-2 border-amber-300 bg-white shadow-xl overflow-hidden flex flex-col lg:flex-row items-stretch">
         {/* Left Showcase Panel (Desktop Only, 100% Flexbox, Solid Vermilion `#780016`) */}
-        <div className="hidden lg:flex flex-col justify-between w-5/12 bg-[#780016] text-white p-8 sm:p-10 border-r-2 border-amber-400/40 relative">
-          <div className="space-y-6">
-            {/* Top Brand Logo */}
-            <div className="flex items-center gap-2.5">
-              <div className="h-10 w-10 rounded-md bg-amber-400 text-stone-950 flex items-center justify-center font-serif font-black text-2xl shadow-md select-none">
-                ॐ
-              </div>
-              <div>
-                <div className="font-serif font-black text-lg tracking-wider text-amber-300">
-                  PUJACIRCLE
-                </div>
-                <div className="text-[10px] text-amber-100 uppercase tracking-widest font-semibold">
-                  Sacred Vedic Sanctum
-                </div>
-              </div>
+        <AuthShowcasePanel
+          role="USER"
+          tag="Devotee Registration"
+          title="Join 25,000+ Devotee Families Across India"
+          description="Create your devotee sanctum in under two minutes. Experience traditional rituals with verified Gurukul-trained Purohits, transparent muhurat schedules, and direct cash dakshina."
+          points={[
+            "1,200+ Verified Gurukul Scholars",
+            "100% Direct Cash Dakshina to Priest",
+            "Zero Advance Fees & Instant Muhurats",
+          ]}
+        >
+          {/* Stepper Progress Indicator on Left Panel */}
+          <div className="p-3.5 rounded-md bg-black/25 border border-amber-400/30 space-y-2 pt-3">
+            <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+              Registration Progress
             </div>
-
-            {/* Headline & Value Propositions */}
-            <div className="space-y-3 pt-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-sm bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs font-semibold">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Devotee Registration</span>
-              </div>
-              <h2 className="text-2xl font-bold font-serif text-white leading-snug">
-                Join 25,000+ Devotee Families Across India
-              </h2>
-              <p className="text-xs text-amber-100/90 leading-relaxed">
-                Create your devotee sanctum in under two minutes. Experience
-                traditional rituals with verified Gurukul-trained Purohits,
-                transparent muhurat schedules, and direct cash dakshina.
-              </p>
-            </div>
-
-            {/* Sacred Commitments */}
-            <div className="space-y-2.5 pt-2">
-              <div className="flex items-center gap-2 text-xs text-amber-100">
-                <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>1,200+ Verified Gurukul Scholars</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-amber-100">
-                <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>100% Direct Cash Dakshina to Priest</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-amber-100">
-                <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
-                <span>Zero Advance Fees & Instant Muhurats</span>
-              </div>
-            </div>
-
-            {/* Stepper Progress Indicator on Left Panel */}
-            <div className="p-3.5 rounded-md bg-black/25 border border-amber-400/30 space-y-2 pt-3">
-              <div className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
-                Registration Progress
-              </div>
-              <div className="space-y-1.5 text-xs">
-                <div
-                  className={`flex items-center gap-2 ${step >= 1 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+            <div className="space-y-1.5 text-xs">
+              <div
+                className={`flex items-center gap-2 ${step >= 1 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 1 ? "bg-amber-400 text-stone-950 font-bold" : step === 1 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 1 ? "bg-amber-400 text-stone-950 font-bold" : step === 1 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    {step > 1 ? "✓" : "1"}
-                  </span>
-                  <span>Personal Credentials</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 ${step >= 2 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+                  {step > 1 ? "✓" : "1"}
+                </span>
+                <span>Personal Credentials</span>
+              </div>
+              <div
+                className={`flex items-center gap-2 ${step >= 2 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 2 ? "bg-amber-400 text-stone-950 font-bold" : step === 2 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step > 2 ? "bg-amber-400 text-stone-950 font-bold" : step === 2 ? "border border-amber-400 text-amber-300" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    {step > 2 ? "✓" : "2"}
-                  </span>
-                  <span>Email Verification (OTP)</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 ${step >= 3 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+                  {step > 2 ? "✓" : "2"}
+                </span>
+                <span>Email Verification (OTP)</span>
+              </div>
+              <div
+                className={`flex items-center gap-2 ${step >= 3 ? "text-amber-200 font-bold" : "text-amber-200/50"}`}
+              >
+                <span
+                  className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? "border border-amber-400 text-amber-300 font-bold" : "border border-amber-400/40 text-amber-200/50"}`}
                 >
-                  <span
-                    className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? "border border-amber-400 text-amber-300 font-bold" : "border border-amber-400/40 text-amber-200/50"}`}
-                  >
-                    3
-                  </span>
-                  <span>Sanctum Home Address</span>
-                </div>
+                  3
+                </span>
+                <span>Sanctum Home Address</span>
               </div>
             </div>
           </div>
-
-          {/* Bottom Sanskrit Quote */}
-          <div className="pt-6 border-t border-amber-400/30 space-y-1">
-            <div className="text-xs font-serif text-amber-200 italic">
-              “यज्ञो वै श्रेष्ठतमं कर्म — Yajna is the highest auspicious deed.”
-            </div>
-            <div className="text-[10px] text-amber-400 font-medium">
-              — Satapatha Brahmana
-            </div>
-          </div>
-        </div>
+        </AuthShowcasePanel>
 
         {/* Right Form Panel (Flexbox) */}
         <div className="w-full lg:w-7/12 p-4 sm:p-8 md:p-10 bg-white flex flex-col justify-between relative">
@@ -464,16 +416,25 @@ export const UserRegisterPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-stone-800">
-                      Mobile Number (+91)
-                    </Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3.5 top-3 h-4 w-4 text-stone-500" />
-                      <Input
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-stone-800">
+                        Mobile Number
+                      </Label>
+                      <span className="text-[10px] text-stone-500 font-medium">
+                        10-digit Indian mobile
+                      </span>
+                    </div>
+                    <div className="flex rounded-md border border-amber-300 focus-within:ring-2 focus-within:ring-[#780016] focus-within:border-amber-400 overflow-hidden bg-white shadow-2xs">
+                      <div className="flex items-center gap-1.5 px-3 bg-amber-50/80 border-r border-amber-200 text-xs font-bold text-stone-900 select-none shrink-0">
+                        <span className="text-sm">🇮🇳</span>
+                        <span>+91</span>
+                      </div>
+                      <input
                         type="tel"
-                        placeholder="+91 98765 43210"
+                        maxLength={10}
+                        placeholder="98765 43210"
                         {...register("phoneNumber")}
-                        className="pl-10 text-xs h-11 rounded-md border-amber-300 focus-visible:ring-red-700"
+                        className="w-full px-3 text-xs h-11 bg-white focus:outline-none text-stone-900 placeholder:text-stone-400 font-mono tracking-wide"
                       />
                     </div>
                     {errors.phoneNumber && (
@@ -711,8 +672,8 @@ export const UserRegisterPage: React.FC = () => {
                   </Label>
                   <Input
                     placeholder="e.g. Flat 402, Ganga Heights"
-                    value={houseBuilding}
-                    onChange={(e) => setHouseBuilding(e.target.value)}
+                    value={houseNo}
+                    onChange={(e) => setHouseNo(e.target.value)}
                     className="text-xs h-10 rounded-md border-amber-300 focus-visible:ring-red-700"
                     required
                   />

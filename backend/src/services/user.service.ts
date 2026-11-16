@@ -7,7 +7,6 @@ import { toUserView, UserViewModel } from '@/views/user.view.js';
 import { UpdateUserProfileInput, ChangePasswordInput } from '@/schemas/user.schema.js';
 import { AppError } from '@/utils/AppError.js';
 import { cloudinaryService } from '@/services/cloudinary.service.js';
-import { cloudinary } from '@/config/cloudinary.js';
 
 // Service managing devotee user profile details, contact information, and credentials
 export class UserService {
@@ -45,47 +44,11 @@ export class UserService {
     };
 
     if (avatarUrl !== undefined) {
-      const oldAvatarUrl = existingUser.avatarUrl;
-      let finalAvatarUrl: string | null = null;
-
-      if (typeof avatarUrl === 'string' && avatarUrl.trim().length > 0) {
-        const trimmed = avatarUrl.trim();
-
-        // Case A: Base64 Data URI from file picker -> Upload to Cloudinary in 'pujacircle/user' folder
-        if (trimmed.startsWith('data:image/') || trimmed.startsWith('data:')) {
-          try {
-            // Ensure 'pujacircle/user' folder exists in the Cloudinary account
-            await cloudinary.api.create_folder('pujacircle/user').catch(() => { });
-            // Clean up any accidentally created root-level 'user' folder if empty
-            await cloudinary.api.delete_folder('user').catch(() => { });
-
-            const uploadResult = await cloudinaryService.uploadImage(trimmed, 'pujacircle/user');
-            finalAvatarUrl = uploadResult.secure_url || uploadResult.url;
-          } catch (uploadError: any) {
-            console.error('[UserService] Cloudinary avatar upload failed:', uploadError);
-            throw new AppError(500, 'Failed to upload profile picture to cloud storage.');
-          }
-        }
-        // Case B: Already a hosted URL (e.g. from Cloudinary or external)
-        else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-          finalAvatarUrl = trimmed;
-        }
-
-        // Cleanup: Purge previous image from Cloudinary if different
-        if (oldAvatarUrl && oldAvatarUrl.startsWith('http') && oldAvatarUrl !== finalAvatarUrl) {
-          await cloudinaryService.deleteImageByUrl(oldAvatarUrl).catch((err) => {
-            console.warn('[UserService] Failed to clean up previous Cloudinary asset:', err);
-          });
-        }
-      } else {
-        // Case C: Photo removed (empty string or null) -> Clean up Cloudinary
-        if (oldAvatarUrl && oldAvatarUrl.startsWith('http')) {
-          await cloudinaryService.deleteImageByUrl(oldAvatarUrl).catch((err) => {
-            console.warn('[UserService] Failed to clean up previous Cloudinary asset:', err);
-          });
-        }
-        finalAvatarUrl = null;
-      }
+      const finalAvatarUrl = await cloudinaryService.processAvatarUpload(
+        avatarUrl,
+        existingUser.avatarUrl,
+        'pujacircle/user'
+      );
 
       updatePayload.avatarUrl = finalAvatarUrl;
 

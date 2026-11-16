@@ -61,6 +61,14 @@ export interface Ritual {
   suggestedDakshina?: number;
 }
 
+export interface LocalitySuggestion {
+  name: string;
+  city: string;
+  state: string;
+  district?: string;
+  pincode: string;
+}
+
 
 
 /**

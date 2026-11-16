@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { reasonSchema } from './common.schema.js';
 
 /**
  * [SCHEMA] Booking Validation Schemas
@@ -30,7 +31,7 @@ export const ratingSchema = z.object({
 });
 
 export const bookingActionReasonSchema = z.object({
-  reason: z.string().trim().max(500, 'Reason cannot exceed 500 characters').optional(),
+  reason: reasonSchema,
   priestId: z.string().optional(),
   userId: z.string().optional(),
   completionCode: z.string().optional(),

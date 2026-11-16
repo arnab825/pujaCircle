@@ -12,74 +12,57 @@ import {
 import { cloudinaryService } from '@/services/cloudinary.service.js';
 import { toISTDateString, toISTTimeString } from '@/services/availability.service.js';
 import { AppError } from '@/utils/AppError.js';
-import { resolvePriestProfileId } from '@/repositories/priest.repository.js';
 import { PriestViewModel, PriestServiceViewModel } from '@/views/priest.view.js';
 import { getPagination } from '@/utils/pagination.js';
+import { geoService, normalizeDistrictTokens, areDistrictsEquivalent } from '@/services/geo.service.js';
 
-// Dynamic in-memory cache for resolved postal PIN codes to prevent redundant external directory lookups
-const pincodeDistrictCache = new Map<string, string>();
+// Re-export district helpers for any callers relying on priest.service
+export { normalizeDistrictTokens, areDistrictsEquivalent };
 
-async function resolveDistrictFromPincode(pincode: string): Promise<string | null> {
-  const cleanPin = (pincode || '').trim().replace(/\D/g, '');
-  if (cleanPin.length !== 6) return null;
+// In-memory cache to eliminate repetitive N+1 database lookups for priest ID resolution
+const profileIdCache = new Map<string, { id: string; timestamp: number }>();
+const PROFILE_CACHE_TTL_MS = 60 * 1000; // 60-second TTL
 
-  if (pincodeDistrictCache.has(cleanPin)) {
-    return pincodeDistrictCache.get(cleanPin)!;
+/**
+ * Resolves canonical priestProfiles.id from either a profile UUID or linked user UUID.
+ * Includes in-memory TTL caching to prevent redundant database hits.
+ */
+export async function resolvePriestProfileId(idOrUserId: string): Promise<string | null> {
+  if (!idOrUserId) return null;
+
+  const cached = profileIdCache.get(idOrUserId);
+  if (cached && Date.now() - cached.timestamp < PROFILE_CACHE_TTL_MS) {
+    return cached.id;
   }
 
-  try {
-    const response = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`, {
-      signal: AbortSignal.timeout(3500),
-    });
-    if (response.ok) {
-      const data: any = await response.json();
-      if (Array.isArray(data) && data[0]?.Status === 'Success' && Array.isArray(data[0]?.PostOffice)) {
-        const resolvedDistrict = data[0].PostOffice[0]?.District;
-        if (resolvedDistrict && typeof resolvedDistrict === 'string') {
-          const trimmedDistrict = resolvedDistrict.trim();
-          pincodeDistrictCache.set(cleanPin, trimmedDistrict);
-          return trimmedDistrict;
-        }
-      }
-    }
-  } catch {
-    // Non-blocking fallback
+  const [profile] = await db
+    .select({ id: priestProfiles.id })
+    .from(priestProfiles)
+    .where(or(eq(priestProfiles.id, idOrUserId), eq(priestProfiles.userId, idOrUserId)))
+    .limit(1);
+
+  if (profile) {
+    profileIdCache.set(idOrUserId, { id: profile.id, timestamp: Date.now() });
+    profileIdCache.set(profile.id, { id: profile.id, timestamp: Date.now() });
+    return profile.id;
   }
+
   return null;
 }
 
-export function normalizeDistrictTokens(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/twenty\s*four/g, '24')
-    .replace(/twentyfour/g, '24')
-    .replace(/\bgurgaon\b/g, 'gurugram')
-    .replace(/\bbangalore\b/g, 'bengaluru')
-    .replace(/\bcalcutta\b/g, 'kolkata')
-    .replace(/\bbombay\b/g, 'mumbai')
-    .replace(/\bmadras\b/g, 'chennai')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\b(district|city|urban|rural|division|corporation)\b/g, '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .sort()
-    .join('');
-}
-
-export function areDistrictsEquivalent(firstDistrict: string, secondDistrict: string): boolean {
-  if (!firstDistrict || !secondDistrict) return true;
-  const norm1 = normalizeDistrictTokens(firstDistrict);
-  const norm2 = normalizeDistrictTokens(secondDistrict);
-  if (!norm1 || !norm2) return true;
-  if (norm1 === norm2) return true;
-  if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
-  return false;
-}
-
-// Service managing verified Purohit directory, profile configurations, ritual catalog offerings, and working hours
+/**
+ * ============================================================================
+ * [ARCHITECTURAL LAYER: SERVICE]
+ * Module: Priest Service
+ * Responsibilities:
+ * - Purohit profile retrieval & updates
+ * - Vedic rituals offering catalog & custom pricing
+ * - Locality & service area management
+ * - Public priest search & filtering with geodistance/district matching
+ * ============================================================================
+ */
 export class PriestService {
-  // Delegate to shared repository for resolving canonical profile UUID
+  // Canonical profile UUID resolution
   async resolvePriestProfileId(idOrUserId: string): Promise<string | null> {
     return resolvePriestProfileId(idOrUserId);
   }
@@ -238,16 +221,7 @@ export class PriestService {
 
     const records = await query;
 
-    return records.map((p) => ({
-      ...p,
-      serviceAreas: (p.serviceAreas || [])
-        .map((a: string) => String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
-        .filter(Boolean),
-      isPhoneVerified: true,
-      rating: Number(p.rating || 0),
-      completedPujas: Number(p.completedPujas || 0),
-      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
-    }));
+    return records.map((p) => this.formatPriestViewModel(p));
   }
 
   // Retrieve a single priest public profile with configured services
@@ -312,18 +286,26 @@ export class PriestService {
       .leftJoin(pujaCatalog, eq(priestServices.pujaCatalogId, pujaCatalog.id))
       .where(eq(priestServices.priestId, record.id));
 
-    const cleanedServiceAreas = (record.serviceAreas || [])
+    return this.formatPriestViewModel(record, services);
+  }
+
+  // Helper to format consistent PriestViewModel records across queries
+  private formatPriestViewModel(p: any, services?: any[]): PriestViewModel {
+    const cleanedAreas = (p.serviceAreas || [])
       .map((a: string) => String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
       .filter(Boolean);
 
-    return {
-      ...record,
-      serviceAreas: Array.from(new Set(cleanedServiceAreas)),
+    const formatted: PriestViewModel = {
+      ...p,
+      serviceAreas: Array.from(new Set(cleanedAreas)),
       isPhoneVerified: true,
-      rating: Number(record.rating || 0),
-      completedPujas: Number(record.completedPujas || 0),
-      createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
-      services: services.map((s) => ({
+      rating: Number(p.rating || 0),
+      completedPujas: Number(p.completedPujas || 0),
+      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    };
+
+    if (services) {
+      formatted.services = services.map((s) => ({
         id: s.id,
         priestId: s.priestId,
         serviceName: s.serviceName,
@@ -334,8 +316,10 @@ export class PriestService {
         isCustom: s.isCustom,
         pujaCatalogId: s.pujaCatalogId,
         durationMinutes: s.durationMinutes,
-      })),
-    };
+      }));
+    }
+
+    return formatted;
   }
 
   // Retrieve current authenticated priest profile
@@ -405,7 +389,7 @@ export class PriestService {
       // Dynamically resolve the priest's home district via postal directory
       let residingDistrict: string | null = null;
       if (residingPostalCode.length === 6) {
-        residingDistrict = await resolveDistrictFromPincode(residingPostalCode);
+        residingDistrict = await geoService.resolveDistrictFromPincode(residingPostalCode);
       }
       if (!residingDistrict && residingCityOrDistrict) {
         residingDistrict = residingCityOrDistrict;
@@ -418,7 +402,7 @@ export class PriestService {
 
           if (postalMatch) {
             const candidatePincode = postalMatch[0];
-            const candidateDistrict = await resolveDistrictFromPincode(candidatePincode);
+            const candidateDistrict = await geoService.resolveDistrictFromPincode(candidatePincode);
 
             if (candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
               throw new AppError(

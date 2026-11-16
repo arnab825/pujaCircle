@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
 import { Check, XCircle, Ban, Trash2, MoreVertical, Eye, ShieldCheck, MapPin } from 'lucide-react';
+import { formatDisplayPhone } from '@/lib/utils';
 
 interface PriestApprovalTableProps {
   priests: Priest[];
@@ -93,7 +94,7 @@ export const PriestApprovalTable: React.FC<PriestApprovalTableProps> = ({
                       >
                         {p.fullName}
                       </Link>
-                      <p className="text-[11px] text-stone-500 font-mono mt-0.5">{p.phoneNumber}</p>
+                      <p className="text-[11px] text-stone-500 font-mono mt-0.5">{formatDisplayPhone(p.phoneNumber)}</p>
                     </div>
                   </div>
                 </TableCell>

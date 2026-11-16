@@ -6,8 +6,6 @@ import {
   loginSchema,
   registerUserSchema,
   registerPriestSchema,
-  phoneOtpRequestSchema,
-  verifyPhoneOtpSchema,
   emailOtpRequestSchema,
   verifyEmailOtpSchema,
   forgotPasswordSchema,
@@ -26,10 +24,6 @@ router.post('/register/priest', authRateLimiter, validate(registerPriestSchema),
 // Session State
 router.get('/me', requireAuth, authController.getMe);
 router.post('/logout', authController.logout);
-
-// Phone OTP Endpoints (protected by strict OTP rate limiter)
-router.post('/otp/send-phone', otpRateLimiter, validate(phoneOtpRequestSchema), authController.sendPhoneOtp);
-router.post('/otp/verify-phone', otpRateLimiter, validate(verifyPhoneOtpSchema), authController.verifyPhoneOtp);
 
 // Email OTP Endpoints (protected by strict OTP rate limiter)
 router.post('/otp/send-email', otpRateLimiter, validate(emailOtpRequestSchema), authController.sendEmailOtp);

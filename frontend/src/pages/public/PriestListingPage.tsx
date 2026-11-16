@@ -271,9 +271,9 @@ export const PriestListingPage: React.FC = () => {
                   : activeAddress.state
                   ? ` (${activeAddress.state})`
                   : ""}
-                {activeAddress.label && (
+                {activeAddress.isDefault && (
                   <span className="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-amber-200 text-stone-800 font-bold uppercase">
-                    {activeAddress.label}
+                    Default
                   </span>
                 )}
               </span>
@@ -289,7 +289,7 @@ export const PriestListingPage: React.FC = () => {
                 >
                   {userAddresses.map((addr) => (
                     <option key={addr.id} value={addr.id}>
-                      {addr.label || "Address"}: {addr.pincode || addr.pinCode} - {addr.locality || addr.city}
+                      {addr.locality || addr.city} ({addr.pincode || addr.pinCode}){addr.isDefault ? " [Default]" : ""}
                     </option>
                   ))}
                 </select>

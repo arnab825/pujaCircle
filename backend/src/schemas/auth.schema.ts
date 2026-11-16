@@ -14,9 +14,7 @@ export const loginSchema = z.object({
 });
 
 export const registerAddressSchema = z.object({
-  label: z.string().trim().max(100).optional(),
   houseNo: z.string().trim().min(1, 'House/Flat number is required').max(100),
-  houseBuilding: z.string().trim().max(255).optional(),
   street: z.string().trim().max(255).optional(),
   locality: z.string().trim().max(255).optional(),
   villageTown: z.string().trim().max(255).optional(),
@@ -48,15 +46,6 @@ export const registerPriestSchema = z.object({
   pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional(),
 });
 
-export const phoneOtpRequestSchema = z.object({
-  phoneNumber: z.string().trim().regex(phoneRegex, 'Please enter a valid 10-digit Indian phone number'),
-});
-
-export const verifyPhoneOtpSchema = z.object({
-  phoneNumber: z.string().trim().regex(phoneRegex, 'Please enter a valid 10-digit Indian phone number'),
-  otp: z.string().trim().regex(/^\d{6}$/, 'Verification code must be exactly 6 digits'),
-});
-
 export const emailOtpRequestSchema = z.object({
   email: z.string().trim().email('Invalid email address').max(255),
 });
@@ -80,8 +69,6 @@ export const resetPasswordSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterUserInput = z.infer<typeof registerUserSchema>;
 export type RegisterPriestInput = z.infer<typeof registerPriestSchema>;
-export type PhoneOtpRequestInput = z.infer<typeof phoneOtpRequestSchema>;
-export type VerifyPhoneOtpInput = z.infer<typeof verifyPhoneOtpSchema>;
 export type EmailOtpRequestInput = z.infer<typeof emailOtpRequestSchema>;
 export type VerifyEmailOtpInput = z.infer<typeof verifyEmailOtpSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
