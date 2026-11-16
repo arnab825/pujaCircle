@@ -11,11 +11,11 @@ import { otpCodes } from '@/models/otp.model.js';
 import { toUserView, UserViewModel } from '@/views/user.view.js';
 import { brevoEmailService } from '@/services/email.service.js';
 import { AppError } from '@/utils/AppError.js';
+import { normalizePhoneNumber } from '@/utils/auth.util.js';
 import {
   LoginInput,
   RegisterUserInput,
   RegisterPriestInput,
-  VerifyPhoneOtpInput,
   VerifyEmailOtpInput,
   ForgotPasswordInput,
   ResetPasswordInput,
@@ -24,9 +24,6 @@ import {
 export interface AuthResult {
   user?: UserViewModel;
   token?: string;
-  verified?: boolean;
-  requiresRegistration?: boolean;
-  phoneNumber?: string;
 }
 
 // Generate signed application JWT with user identity claims
@@ -162,10 +159,17 @@ export class AuthService {
   // Register a new devotee user account
   async registerUser(input: RegisterUserInput): Promise<AuthResult> {
     const cleanEmail = input.email.trim().toLowerCase();
+    const formattedPhone = normalizePhoneNumber(input.phoneNumber);
+    const rawPhone = input.phoneNumber.trim();
+
     const existing = await db
       .select()
       .from(users)
-      .where(or(eq(users.phoneNumber, input.phoneNumber), sql`LOWER(${users.email}) = ${cleanEmail}`))
+      .where(or(
+        eq(users.phoneNumber, formattedPhone),
+        eq(users.phoneNumber, rawPhone),
+        sql`LOWER(${users.email}) = ${cleanEmail}`
+      ))
       .limit(1);
 
     if (existing.length > 0) {
@@ -182,7 +186,7 @@ export class AuthService {
           id: userId,
           name: input.fullName,
           email: input.email,
-          phoneNumber: input.phoneNumber,
+          phoneNumber: formattedPhone,
           password: passwordHash,
           role: 'USER',
         })
@@ -191,7 +195,6 @@ export class AuthService {
       if (input.address) {
         await tx.insert(addresses).values({
           userId,
-          label: input.address.label,
           houseNo: input.address.houseNo,
           street: input.address.street,
           locality: input.address.locality,
@@ -214,17 +217,23 @@ export class AuthService {
 
   // Register a new Purohit priest profile application
   async registerPriest(input: RegisterPriestInput): Promise<AuthResult> {
+    const formattedPhone = normalizePhoneNumber(input.phoneNumber);
+    const rawPhone = input.phoneNumber.trim();
+
     const existing = await db
       .select()
       .from(users)
-      .where(eq(users.phoneNumber, input.phoneNumber))
+      .where(or(
+        eq(users.phoneNumber, formattedPhone),
+        eq(users.phoneNumber, rawPhone)
+      ))
       .limit(1);
 
     if (existing.length > 0) {
       throw new AppError(409, 'A user account with this phone number is already registered.');
     }
 
-    const targetEmail = (input.email ? input.email.trim().toLowerCase() : `priest.${input.phoneNumber}@pujacircle.internal`);
+    const targetEmail = (input.email ? input.email.trim().toLowerCase() : `priest.${formattedPhone.replace('+', '')}@pujacircle.internal`);
     const targetPassword = input.password || `PujaPriest@${randomInt(100000, 999999)}`;
 
     const userId = randomUUID();
@@ -237,7 +246,7 @@ export class AuthService {
           id: userId,
           name: input.fullName,
           email: targetEmail,
-          phoneNumber: input.phoneNumber,
+          phoneNumber: formattedPhone,
           password: passwordHash,
           role: 'PRIEST',
           avatarUrl: null,
@@ -303,46 +312,6 @@ export class AuthService {
     }
 
     return toUserView(userRecord, approvalStatus);
-  }
-
-  // Dispatch phone verification OTP and store in database
-  async sendPhoneOtp(phoneNumber: string): Promise<{ message: string }> {
-    const cleanPhone = phoneNumber.trim();
-    const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
-
-    await generateAndStoreOtp(formattedPhone);
-
-    return {
-      message: `Verification code dispatched successfully to ${formattedPhone}.`,
-    };
-  }
-
-  // Verify submitted phone OTP and return registered user or registration requirement
-  async verifyPhoneOtp(input: VerifyPhoneOtpInput): Promise<AuthResult> {
-    const cleanPhone = input.phoneNumber.trim();
-    const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+91${cleanPhone}`;
-
-    const isDynamicValid = (await verifyOtp(formattedPhone, input.otp)) || (await verifyOtp(cleanPhone, input.otp));
-
-    if (!isDynamicValid) {
-      throw new AppError(400, 'Invalid or expired phone verification code. Please check the code and try again.');
-    }
-
-    const [dbUser] = await db
-      .select()
-      .from(users)
-      .where(or(eq(users.phoneNumber, cleanPhone), eq(users.phoneNumber, formattedPhone)))
-      .limit(1);
-
-    if (dbUser) {
-      return { user: toUserView(dbUser) };
-    }
-
-    return {
-      verified: true,
-      requiresRegistration: true,
-      phoneNumber: input.phoneNumber,
-    };
   }
 
   // Dispatch email verification OTP via Brevo REST API

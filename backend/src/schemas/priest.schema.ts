@@ -50,14 +50,12 @@ export const priestFilterParamsSchema = z.object({
   minRating: z.coerce.number().optional(),
 });
 
-export const createPriestAvailabilityExceptionSchema = z.object({
-  exceptionType: z.enum(['BLOCK', 'CUSTOM_HOURS']).default('BLOCK'),
-  startAt: z.string().min(1, 'startAt is required'),
-  endAt: z.string().min(1, 'endAt is required'),
+export const updatePriestAvailabilityExceptionSchema = z.object({
+  exceptionType: z.enum(['BLOCK', 'CUSTOM_HOURS']).optional(),
+  startAt: z.string().optional(),
+  endAt: z.string().optional(),
   reason: z.string().trim().max(255).optional(),
 });
-
-export const updatePriestAvailabilityExceptionSchema = createPriestAvailabilityExceptionSchema.partial();
 
 export const priestWorkingHoursSchema = z.object({
   defaultStartTime: z.string().trim().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be in HH:mm 24hr format').optional(),
@@ -68,6 +66,5 @@ export type UpdatePriestProfileInput = z.infer<typeof updatePriestProfileSchema>
 export type CreatePriestServiceInput = z.infer<typeof createPriestServiceSchema>;
 export type UpdatePriestServiceInput = z.infer<typeof updatePriestServiceSchema>;
 export type PriestFilterParams = z.infer<typeof priestFilterParamsSchema>;
-export type CreatePriestAvailabilityExceptionInput = z.infer<typeof createPriestAvailabilityExceptionSchema>;
 export type UpdatePriestAvailabilityExceptionInput = z.infer<typeof updatePriestAvailabilityExceptionSchema>;
 export type PriestWorkingHoursInput = z.infer<typeof priestWorkingHoursSchema>;

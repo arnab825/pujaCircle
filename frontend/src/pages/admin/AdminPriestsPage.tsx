@@ -208,13 +208,13 @@ export const AdminPriestsPage: React.FC = () => {
           </Tabs>
         </div>
 
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full sm:w-80 md:w-96">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
           <Input
             placeholder="Search by name, city, phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 text-xs h-11 rounded-md border-2 border-stone-200 focus:ring-amber-500 bg-white"
+            className="pl-10 pr-4 text-xs h-11 rounded-md border-2 border-stone-200 focus:ring-amber-500 bg-white"
           />
         </div>
       </div>

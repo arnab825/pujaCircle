@@ -25,6 +25,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDisplayPhone } from "@/lib/utils";
 
 /**
  * ============================================================================
@@ -48,7 +49,7 @@ export const ProfilePage: React.FC = () => {
   const [isSavingProfile, setIsSavingProfile] = useState<boolean>(false);
 
   const email = user?.email || "devotee@pujacircle.com";
-  const phoneNumber = user?.phoneNumber || "+91 9876543210";
+  const phoneNumber = formatDisplayPhone(user?.phoneNumber) || "+91 98765 43210";
 
   useEffect(() => {
     if (user?.name) {

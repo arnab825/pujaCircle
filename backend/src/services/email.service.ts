@@ -23,6 +23,58 @@ export class BrevoEmailService {
   }
 
   /**
+   * Internal helper to dispatch transactional emails via Brevo HTTPS API
+   */
+  private async sendBrevoEmail(payload: {
+    toEmail: string;
+    subject: string;
+    htmlContent: string;
+    textContent: string;
+    logLabel: string;
+    fallbackLogMessage?: string;
+  }): Promise<{ success: boolean; messageId?: string }> {
+    const cleanEmail = payload.toEmail.trim().toLowerCase();
+    if (!cleanEmail) return { success: false };
+
+    if (this.apiKey) {
+      try {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': this.apiKey,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            sender: {
+              name: this.senderName,
+              email: this.senderEmail,
+            },
+            to: [{ email: cleanEmail }],
+            subject: payload.subject,
+            htmlContent: payload.htmlContent,
+            textContent: payload.textContent,
+          }),
+        });
+
+        const data: any = await response.json();
+        if (response.ok) {
+          console.log(`[BREVO] Successfully dispatched ${payload.logLabel} to ${cleanEmail} | Message ID: ${data.messageId || 'sent'}`);
+          return { success: true, messageId: data.messageId };
+        } else {
+          console.warn(`[BREVO NOTICE] Failed to send ${payload.logLabel} via Brevo API:`, data.message || JSON.stringify(data));
+        }
+      } catch (err: any) {
+        console.warn(`[BREVO EXCEPTION] Failed to connect to Brevo API:`, err.message);
+      }
+    } else {
+      console.log(payload.fallbackLogMessage || `ℹ️ Brevo: BREVO_API_KEY not configured. Dispatched ${payload.logLabel} to ${cleanEmail} (Simulated).`);
+    }
+
+    return { success: true };
+  }
+
+  /**
    * Dispatch 6-digit OTP verification email via Brevo REST API
    */
   async sendOtpEmail(
@@ -101,47 +153,14 @@ export class BrevoEmailService {
 </html>
 `;
 
-    // If Brevo API key is configured, send via Brevo v3 HTTPS endpoint
-    if (this.apiKey) {
-      try {
-        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'accept': 'application/json',
-            'api-key': this.apiKey,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            sender: {
-              name: this.senderName,
-              email: this.senderEmail,
-            },
-            to: [
-              {
-                email: cleanEmail,
-              },
-            ],
-            subject,
-            htmlContent,
-            textContent: `${mainHeading}: Your PujaCircle verification code is ${otp}. Valid for 10 minutes.`,
-          }),
-        });
-
-        const data: any = await response.json();
-        if (response.ok) {
-          console.log(`[BREVO] Successfully dispatched OTP email to ${cleanEmail} | Message ID: ${data.messageId || 'sent'}`);
-          return { success: true, messageId: data.messageId };
-        } else {
-          console.warn(`[BREVO NOTICE] Failed to send email via Brevo API:`, data.message || JSON.stringify(data));
-        }
-      } catch (err: any) {
-        console.warn(`[BREVO EXCEPTION] Failed to connect to Brevo API:`, err.message);
-      }
-    } else {
-      console.log('ℹ️ Brevo: BREVO_API_KEY not set yet. OTP safely printed below for immediate verification.');
-    }
-
-    return { success: true };
+    return this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent: `${mainHeading}: Your PujaCircle verification code is ${otp}. Valid for 10 minutes.`,
+      logLabel: 'OTP verification email',
+      fallbackLogMessage: 'ℹ️ Brevo: BREVO_API_KEY not set yet. OTP safely printed below for immediate verification.',
+    });
   }
 
   /**
@@ -236,42 +255,13 @@ export class BrevoEmailService {
 
     const textContent = `PujaCircle Account Notice: Your ${roleLabel} account for ${userName} has been ${actionLabel.toLowerCase()} by the platform administrator. Reason: ${reason}. All active and pending ceremony bookings (${cancelledBookingsCount}) have been automatically cancelled. Contact support@pujacircle.com for inquiries.`;
 
-    if (this.apiKey) {
-      try {
-        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            accept: 'application/json',
-            'api-key': this.apiKey,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            sender: {
-              name: this.senderName,
-              email: this.senderEmail,
-            },
-            to: [{ email: cleanEmail }],
-            subject,
-            htmlContent,
-            textContent,
-          }),
-        });
-
-        const data: any = await response.json();
-        if (response.ok) {
-          console.log(`[BREVO] Successfully sent account status email to ${cleanEmail} | ID: ${data.messageId || 'sent'}`);
-          return { success: true, messageId: data.messageId };
-        } else {
-          console.warn(`[BREVO NOTICE] Failed to send account status email:`, data.message || JSON.stringify(data));
-        }
-      } catch (err: any) {
-        console.warn(`[BREVO EXCEPTION] Failed to connect to Brevo API:`, err.message);
-      }
-    } else {
-      console.log(`ℹ️ Brevo: BREVO_API_KEY not configured. Dispatched account status notice to ${cleanEmail} (Simulated).`);
-    }
-
-    return { success: true };
+    return this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent,
+      logLabel: 'account status email',
+    });
   }
 
   /**
@@ -388,42 +378,13 @@ export class BrevoEmailService {
 
     const textContent = `PujaCircle Notice: Your booking (${params.bookingReference}) for ${params.serviceName} scheduled on ${params.bookingDate} (${params.slotTime}) with ${params.priestName} has been cancelled because the priest account was ${actionLabel} by the platform administrator. Reason: ${params.reason}. Due to our zero advance policy, no funds were deducted. You can book another verified Purohit immediately on PujaCircle. Support: support@pujacircle.com`;
 
-    if (this.apiKey) {
-      try {
-        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            accept: 'application/json',
-            'api-key': this.apiKey,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            sender: {
-              name: this.senderName,
-              email: this.senderEmail,
-            },
-            to: [{ email: cleanEmail }],
-            subject,
-            htmlContent,
-            textContent,
-          }),
-        });
-
-        const data: any = await response.json();
-        if (response.ok) {
-          console.log(`[BREVO] Successfully sent booking cancellation notice to ${cleanEmail} | ID: ${data.messageId || 'sent'}`);
-          return { success: true, messageId: data.messageId };
-        } else {
-          console.warn(`[BREVO NOTICE] Failed to send booking cancellation email:`, data.message || JSON.stringify(data));
-        }
-      } catch (err: any) {
-        console.warn(`[BREVO EXCEPTION] Failed to connect to Brevo API:`, err.message);
-      }
-    } else {
-      console.log(`ℹ️ Brevo: BREVO_API_KEY not configured. Dispatched devotee cancellation notice to ${cleanEmail} (Simulated).`);
-    }
-
-    return { success: true };
+    return this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent,
+      logLabel: 'booking cancellation email',
+    });
   }
 }
 

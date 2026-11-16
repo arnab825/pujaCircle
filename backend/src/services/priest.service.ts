@@ -50,11 +50,6 @@ export async function resolvePriestProfileId(idOrUserId: string): Promise<string
   return null;
 }
 
-// Wrapper delegating district resolution to unified geoService
-async function resolveDistrictFromPincode(pincode: string): Promise<string | null> {
-  return geoService.resolveDistrictFromPincode(pincode);
-}
-
 /**
  * ============================================================================
  * [ARCHITECTURAL LAYER: SERVICE]
@@ -226,16 +221,7 @@ export class PriestService {
 
     const records = await query;
 
-    return records.map((p) => ({
-      ...p,
-      serviceAreas: (p.serviceAreas || [])
-        .map((a: string) => String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
-        .filter(Boolean),
-      isPhoneVerified: true,
-      rating: Number(p.rating || 0),
-      completedPujas: Number(p.completedPujas || 0),
-      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
-    }));
+    return records.map((p) => this.formatPriestViewModel(p));
   }
 
   // Retrieve a single priest public profile with configured services
@@ -300,18 +286,26 @@ export class PriestService {
       .leftJoin(pujaCatalog, eq(priestServices.pujaCatalogId, pujaCatalog.id))
       .where(eq(priestServices.priestId, record.id));
 
-    const cleanedServiceAreas = (record.serviceAreas || [])
+    return this.formatPriestViewModel(record, services);
+  }
+
+  // Helper to format consistent PriestViewModel records across queries
+  private formatPriestViewModel(p: any, services?: any[]): PriestViewModel {
+    const cleanedAreas = (p.serviceAreas || [])
       .map((a: string) => String(a).replace(/^\d{6}\s*[-–—:]\s*/, '').trim())
       .filter(Boolean);
 
-    return {
-      ...record,
-      serviceAreas: Array.from(new Set(cleanedServiceAreas)),
+    const formatted: PriestViewModel = {
+      ...p,
+      serviceAreas: Array.from(new Set(cleanedAreas)),
       isPhoneVerified: true,
-      rating: Number(record.rating || 0),
-      completedPujas: Number(record.completedPujas || 0),
-      createdAt: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
-      services: services.map((s) => ({
+      rating: Number(p.rating || 0),
+      completedPujas: Number(p.completedPujas || 0),
+      createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    };
+
+    if (services) {
+      formatted.services = services.map((s) => ({
         id: s.id,
         priestId: s.priestId,
         serviceName: s.serviceName,
@@ -322,8 +316,10 @@ export class PriestService {
         isCustom: s.isCustom,
         pujaCatalogId: s.pujaCatalogId,
         durationMinutes: s.durationMinutes,
-      })),
-    };
+      }));
+    }
+
+    return formatted;
   }
 
   // Retrieve current authenticated priest profile
@@ -393,7 +389,7 @@ export class PriestService {
       // Dynamically resolve the priest's home district via postal directory
       let residingDistrict: string | null = null;
       if (residingPostalCode.length === 6) {
-        residingDistrict = await resolveDistrictFromPincode(residingPostalCode);
+        residingDistrict = await geoService.resolveDistrictFromPincode(residingPostalCode);
       }
       if (!residingDistrict && residingCityOrDistrict) {
         residingDistrict = residingCityOrDistrict;
@@ -406,7 +402,7 @@ export class PriestService {
 
           if (postalMatch) {
             const candidatePincode = postalMatch[0];
-            const candidateDistrict = await resolveDistrictFromPincode(candidatePincode);
+            const candidateDistrict = await geoService.resolveDistrictFromPincode(candidatePincode);
 
             if (candidateDistrict && !areDistrictsEquivalent(candidateDistrict, residingDistrict)) {
               throw new AppError(

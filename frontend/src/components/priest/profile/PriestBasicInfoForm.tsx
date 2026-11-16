@@ -2,14 +2,7 @@ import React from 'react';
 import { User, BookOpen, Search, Loader2, Sparkles, MapPin, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
-interface LocalitySuggestion {
-  name: string;
-  city: string;
-  state: string;
-  district?: string;
-  pincode: string;
-}
+import { LocalitySuggestion } from '@/types/priest.types';
 
 interface PriestBasicInfoFormProps {
   fullName: string;

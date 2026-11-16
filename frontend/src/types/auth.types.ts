@@ -35,7 +35,6 @@ export interface RegisterUserRequest {
   password?: string;
   address?: {
     houseNo: string;
-    houseBuilding?: string;
     street?: string;
     locality?: string;
     villageTown?: string;
@@ -58,15 +57,6 @@ export interface RegisterPriestRequest {
   city?: string;
   state?: string;
   pincode?: string;
-}
-
-export interface PhoneOtpRequest {
-  phoneNumber: string;
-}
-
-export interface VerifyPhoneOtpRequest {
-  phoneNumber: string;
-  otp: string;
 }
 
 export interface EmailOtpRequest {

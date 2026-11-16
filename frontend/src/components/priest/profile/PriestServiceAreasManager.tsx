@@ -3,14 +3,7 @@ import { MapPin, Search, Loader2, Sparkles, AlertCircle, X, Plus } from 'lucide-
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatLocalityName } from '@/lib/utils';
-
-interface LocalitySuggestion {
-  name: string;
-  city: string;
-  state: string;
-  district?: string;
-  pincode: string;
-}
+import { LocalitySuggestion } from '@/types/priest.types';
 
 interface PriestServiceAreasManagerProps {
   serviceAreas: string[];

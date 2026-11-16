@@ -1,13 +1,9 @@
-export type AddressLabel = 'HOME' | 'OFFICE' | 'TEMPLE' | 'OTHER';
-
 export interface Address {
   id: string;
   userId: string;
-  label?: AddressLabel;
   recipientName?: string;
   phoneNumber?: string;
-  houseNo?: string;
-  houseBuilding?: string;
+  houseNo: string;
   street?: string;
   locality?: string;
   villageTown?: string;
@@ -24,11 +20,9 @@ export interface Address {
 }
 
 export interface CreateAddressRequest {
-  label?: AddressLabel;
   recipientName?: string;
   phoneNumber?: string;
-  houseNo?: string;
-  houseBuilding?: string;
+  houseNo: string;
   street?: string;
   locality?: string;
   villageTown?: string;

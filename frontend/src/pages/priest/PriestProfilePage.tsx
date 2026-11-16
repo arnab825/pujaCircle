@@ -13,7 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatINR, formatLocalityName, areDistrictsEquivalent } from "@/lib/utils";
+import { formatINR, formatLocalityName, areDistrictsEquivalent, formatDisplayPhone } from "@/lib/utils";
 
 // Modular Subcomponents
 import { PriestProfileHeaderCard } from "@/components/priest/profile/PriestProfileHeaderCard";
@@ -493,7 +493,7 @@ export const PriestProfilePage: React.FC = () => {
                   Registered Mobile
                 </span>
                 <span className="font-mono font-bold text-stone-900">
-                  {user?.phoneNumber || priest?.phoneNumber || "Phone Not Registered"}
+                  {formatDisplayPhone(user?.phoneNumber || priest?.phoneNumber) || "Phone Not Registered"}
                 </span>
               </div>
               <div className="p-3 bg-stone-50 border border-stone-200 rounded-md">

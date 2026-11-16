@@ -72,38 +72,20 @@ export const addressApi = {
 
   /**
    * Real Postal PIN-Code Lookup API
-   * Calls https://api.postalpincode.in/pincode/{PINCODE}
+   * Proxied through backend GeoService with TTL caching and fallback
    */
   lookupPincode: async (pincode: string): Promise<PincodeLookupResponse> => {
-    const cleanPin = pincode.trim().replace(/\D/g, '');
-
-    if (cleanPin.length === 6) {
-      try {
-        const response = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (Array.isArray(data) && data[0]?.Status === 'Success' && Array.isArray(data[0]?.PostOffice)) {
-            const locations: PincodeLocation[] = data[0].PostOffice.map((po: any) => ({
-              postOffice: `${po.Name} Post Office`,
-              locality: po.Name,
-              villageTown: po.Name,
-              city: po.District || po.Block || po.Circle || 'Unknown',
-              district: po.District || 'Unknown',
-              state: po.State || 'Unknown',
-              country: po.Country || 'India',
-            }));
-
-            return {
-              pincode: cleanPin,
-              locations,
-            };
-          }
-        }
-      } catch (error) {
-        logAppError('addressApi.lookupPincode', error, { cleanPin });
-      }
+    const cleanPin = (pincode || '').trim().replace(/\D/g, '');
+    if (cleanPin.length !== 6) {
+      return { pincode: cleanPin, locations: [] };
     }
 
-    return { pincode: cleanPin, locations: [] };
+    try {
+      const res = await apiClient.get(`/geo/pincode/${cleanPin}`);
+      return (res as any).data || res;
+    } catch (error) {
+      logAppError('addressApi.lookupPincode', error, { cleanPin });
+      return { pincode: cleanPin, locations: [] };
+    }
   },
 };

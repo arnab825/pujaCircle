@@ -43,6 +43,39 @@ export class CloudinaryService {
   }
 
   /**
+   * Process avatar image input (base64 upload or hosted URL) and clean up old avatar asset
+   */
+  async processAvatarUpload(
+    newAvatarInput: string | null | undefined,
+    oldAvatarUrl: string | null | undefined,
+    folder: string = 'pujacircle/user'
+  ): Promise<string | null> {
+    if (typeof newAvatarInput === 'string' && newAvatarInput.trim().length > 0) {
+      const trimmed = newAvatarInput.trim();
+
+      let finalAvatarUrl: string | null = null;
+      if (trimmed.startsWith('data:image/') || trimmed.startsWith('data:')) {
+        await cloudinary.api.create_folder(folder).catch(() => {});
+        const uploadResult = await this.uploadImage(trimmed, folder);
+        finalAvatarUrl = uploadResult.secure_url || uploadResult.url;
+      } else if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        finalAvatarUrl = trimmed;
+      }
+
+      if (oldAvatarUrl && oldAvatarUrl.startsWith('http') && oldAvatarUrl !== finalAvatarUrl) {
+        await this.deleteImageByUrl(oldAvatarUrl).catch(() => {});
+      }
+
+      return finalAvatarUrl;
+    } else {
+      if (oldAvatarUrl && oldAvatarUrl.startsWith('http')) {
+        await this.deleteImageByUrl(oldAvatarUrl).catch(() => {});
+      }
+      return null;
+    }
+  }
+
+  /**
    * Delete a media asset from Cloudinary storage by public ID
    */
   async deleteImage(publicId: string): Promise<any> {

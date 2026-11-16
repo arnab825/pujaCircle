@@ -2,8 +2,6 @@ import {
   LoginCredentials,
   AuthResponse,
   AuthUser,
-  PhoneOtpRequest,
-  VerifyPhoneOtpRequest,
   EmailOtpRequest,
   VerifyEmailOtpRequest,
   RegisterUserRequest,
@@ -75,32 +73,6 @@ export const authApi = {
     } catch (error) {
       logAppError('authApi.logout', error);
       return { success: true, message: 'Logged out successfully.' };
-    }
-  },
-
-  sendPhoneOtp: async (data: PhoneOtpRequest): Promise<{ success: boolean; message: string }> => {
-    try {
-      const res = await apiClient.post('/auth/otp/send-phone', data);
-      return res as any;
-    } catch (error) {
-      logAppError('authApi.sendPhoneOtp', error, { phoneNumber: data.phoneNumber });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to dispatch verification code. Please try again.'),
-      };
-    }
-  },
-
-  verifyPhoneOtp: async (data: VerifyPhoneOtpRequest): Promise<{ success: boolean; message: string }> => {
-    try {
-      const res = await apiClient.post('/auth/otp/verify-phone', data);
-      return res as any;
-    } catch (error) {
-      logAppError('authApi.verifyPhoneOtp', error, { phoneNumber: data.phoneNumber });
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Verification failed. Please check the code and try again.'),
-      };
     }
   },
 

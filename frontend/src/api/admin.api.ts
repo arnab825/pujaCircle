@@ -1,6 +1,7 @@
 import { Priest, PriestFilterParams } from '@/types/priest.types';
 import { Booking } from '@/types/booking.types';
 import { apiClient } from '@/api/client';
+import { userApi } from '@/api/user.api';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 
 /**
@@ -190,16 +191,7 @@ export const adminApi = {
   },
 
   updateAdminPassword: async (data: { currentPassword?: string; newPassword: string; confirmPassword: string }): Promise<{ success: boolean; message: string }> => {
-    try {
-      const res = await apiClient.post('/admin/change-password', data);
-      return res as any;
-    } catch (error) {
-      logAppError('adminApi.updateAdminPassword', error);
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to update administrator password.'),
-      };
-    }
+    return userApi.changePassword(data);
   },
 
   // Platform Bookings

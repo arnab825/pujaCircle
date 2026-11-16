@@ -6,6 +6,8 @@ import {
 } from '@/types/priest.types';
 import { PincodeLookupResponse } from '@/types/address.types';
 import { apiClient } from '@/api/client';
+import { catalogApi } from '@/api/catalog.api';
+import { userApi } from '@/api/user.api';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 import { CalculatedSlot } from '@/lib/availabilityUtils';
 
@@ -61,16 +63,7 @@ export const priestApi = {
     newPassword: string;
     confirmPassword: string;
   }): Promise<{ success: boolean; message: string }> => {
-    try {
-      const res = await apiClient.post('/priests/me/change-password', data);
-      return res as any;
-    } catch (error) {
-      logAppError('priestApi.changePassword', error);
-      return {
-        success: false,
-        message: getUserFriendlyErrorMessage(error, 'Failed to update password.'),
-      };
-    }
+    return userApi.changePassword(data);
   },
 
   // Services & Pricing Catalog
@@ -271,13 +264,7 @@ export const priestApi = {
   },
 
   getRituals: async (): Promise<Ritual[]> => {
-    try {
-      const res = await apiClient.get('/catalog');
-      return (res as any).data || res;
-    } catch (error) {
-      logAppError('priestApi.getRituals', error);
-      return [];
-    }
+    return (await catalogApi.getCatalog()) as unknown as Ritual[];
   },
 
   lookupPincode: async (pincode: string): Promise<PincodeLookupResponse> => {

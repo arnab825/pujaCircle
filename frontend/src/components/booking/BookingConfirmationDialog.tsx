@@ -134,7 +134,7 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
               <div className="space-y-2">
                 {userAddresses.map((addr) => {
                   const line1 =
-                    [addr.houseNo || addr.houseBuilding, addr.villageTown || addr.locality]
+                    [addr.houseNo, addr.villageTown || addr.locality]
                       .filter(Boolean)
                       .join(', ') || addr.city;
                   const line2 = `${addr.city}, ${addr.state} - ${addr.pincode || addr.pinCode}`;

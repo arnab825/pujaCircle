@@ -26,3 +26,5 @@ export const priestExceptionParamSchema = z.object({
 export const exceptionIdParamSchema = z.object({
   exceptionId: z.string().uuid('Invalid Exception ID format'),
 });
+
+export const reasonSchema = z.string().trim().max(500, 'Reason cannot exceed 500 characters').optional();

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -21,7 +21,7 @@ import {
   Phone,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayPhone } from '@/lib/utils';
 import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 
 // Navbar
@@ -29,10 +29,30 @@ import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 // Priest and Admin portals are rendered exclusively within DashboardSidebarShell and never see this.
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  // Automatically close mobile menu and profile dropdown on route change
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+    setProfileDropdownOpen(false);
+  }, [location.pathname]);
+
+  // Automatically close mobile menu when window resizes to desktop breakpoint (>= 768px)
+  React.useEffect(() => {
+    const mql = window.matchMedia('(min-width: 768px)');
+    const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (e.matches) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    mql.addEventListener('change', handleMediaChange);
+    return () => mql.removeEventListener('change', handleMediaChange);
+  }, []);
 
   // Close profile dropdown when clicking outside
   React.useEffect(() => {
@@ -148,7 +168,7 @@ export const Navbar: React.FC = () => {
         {/* Right Actions & Authentication Menu */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {isDevotee && user ? (
-            <div className="relative" ref={profileDropdownRef}>
+            <div className="hidden md:block relative" ref={profileDropdownRef}>
               <button
                 type="button"
                 id="navbar-profile-dropdown-btn"
@@ -171,15 +191,9 @@ export const Navbar: React.FC = () => {
 
               {profileDropdownOpen && (
                 <div
-                  className="absolute right-0 top-full mt-1.5 w-56 p-1.5 bg-white border-2 border-amber-300 shadow-xl rounded-lg z-50 animate-in fade-in-0 zoom-in-95"
+                  className="absolute right-0 top-full mt-1.5 w-52 p-1.5 bg-white border-2 border-amber-300 shadow-xl rounded-lg z-50 animate-in fade-in-0 zoom-in-95"
                   role="menu"
                 >
-                  <div className="px-2 py-1.5">
-                    <p className="text-xs font-bold font-serif text-stone-900 truncate">{user.name}</p>
-                    <p className="text-[11px] text-stone-500 truncate">{user.phoneNumber || user.email}</p>
-                  </div>
-                  <div className="h-px bg-amber-100 my-1" />
-
                   <div className="flex flex-col gap-0.5">
                     <button
                       type="button"
@@ -260,7 +274,7 @@ export const Navbar: React.FC = () => {
               </Button>
             </SheetTrigger>
 
-            <SheetContent side="right" className="w-72 sm:w-80 bg-[#FAF7F2] border-l-2 border-amber-300 p-0 text-stone-900 flex flex-col justify-between">
+            <SheetContent side="right" className="w-72 sm:w-80 md:hidden bg-[#FAF7F2] border-l-2 border-amber-300 p-0 text-stone-900 flex flex-col justify-between">
               <div>
                 <div className="h-16 border-b border-amber-200/80 flex items-center justify-between px-5 bg-white">
                   <div className="flex items-center gap-2.5">
@@ -335,41 +349,46 @@ export const Navbar: React.FC = () => {
               {/* Drawer Bottom Actions */}
               <div className="p-4 border-t border-amber-200/80 bg-white">
                 {isDevotee && user ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 ring-2 ring-amber-400 shrink-0">
-                        <AvatarImage src={user.avatarUrl} alt={user.name} className="object-cover" />
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3 p-2 rounded-lg bg-amber-50/60 border border-amber-200/60">
+                      <Avatar className="h-10 w-10 ring-2 ring-amber-400 shrink-0">
+                        <AvatarImage src={effectiveAvatarUrl || undefined} alt={user.name} className="object-cover" />
                         <AvatarFallback className="text-xs font-serif font-bold text-white bg-[#780016]">
                           {userInitials}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="truncate">
-                        <p className="text-xs font-bold text-stone-900 truncate">{user.name}</p>
-                        <p className="text-[10px] text-stone-500 truncate">{user.phoneNumber || user.email}</p>
+                      <div className="truncate min-w-0">
+                        <p className="text-xs font-bold text-stone-900 truncate font-serif">{user.name}</p>
+                        <p className="text-[11px] text-stone-600 truncate">
+                          {formatDisplayPhone(user.phoneNumber) || user.email}
+                        </p>
                       </div>
                     </div>
-                    <div className="space-y-1">
+                    <div className="flex flex-col gap-1">
                       <Link
                         to="/user/profile"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-2 py-1.5 text-xs text-stone-700 hover:text-stone-950 font-medium"
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs text-stone-700 hover:text-stone-950 hover:bg-amber-50 rounded-md font-medium transition-colors"
                       >
-                        <User className="h-3.5 w-3.5 text-stone-600" />
-                        <span>Profile</span>
+                        <User className="h-4 w-4 text-stone-600 shrink-0" />
+                        <span>Profile Settings</span>
                       </Link>
                       <Link
                         to="/user/addresses"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-2 py-1.5 text-xs text-stone-700 hover:text-stone-950 font-medium"
+                        className="flex items-center gap-2.5 px-3 py-2 text-xs text-stone-700 hover:text-stone-950 hover:bg-amber-50 rounded-md font-medium transition-colors"
                       >
-                        <MapPin className="h-3.5 w-3.5 text-amber-600" />
+                        <MapPin className="h-4 w-4 text-amber-600 shrink-0" />
                         <span>My Addresses</span>
                       </Link>
                     </div>
                     <Button
                       variant="outline"
-                      onClick={handleLogout}
-                      className="w-full text-xs font-bold text-red-700 border-red-200 hover:bg-red-50 gap-2 h-9 rounded-md"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full text-xs font-bold text-red-700 border-red-200 hover:bg-red-50 hover:text-red-800 gap-2 h-9 rounded-md cursor-pointer transition-colors"
                     >
                       <LogOut className="h-3.5 w-3.5" />
                       <span>Sign Out</span>

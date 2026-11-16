@@ -16,7 +16,6 @@ import { AuthRoleTabs } from "@/components/auth/AuthRoleTabs";
 import { AuthShowcasePanel } from "@/components/auth/AuthShowcasePanel";
 import {
   User,
-  Phone,
   Mail,
   Lock,
   ArrowRight,
@@ -92,14 +91,14 @@ export const UserRegisterPage: React.FC = () => {
   const [locations, setLocations] = useState<PincodeLocation[]>([]);
   const [selectedLocation, setSelectedLocation] =
     useState<PincodeLocation | null>(null);
-  const [houseBuilding, setHouseBuilding] = useState("");
+  const [houseNo, setHouseNo] = useState("");
   const [street, setStreet] = useState("");
   const [landmark, setLandmark] = useState("");
   const [isSearchingPin, setIsSearchingPin] = useState(false);
 
   const isStep3Valid =
     pincode.trim().length === 6 &&
-    houseBuilding.trim().length > 0 &&
+    houseNo.trim().length > 0 &&
     street.trim().length > 0;
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -201,10 +200,12 @@ export const UserRegisterPage: React.FC = () => {
       const res = await authApi.registerUser({
         fullName: personalData.fullName,
         email: personalData.email,
-        phoneNumber: personalData.phoneNumber,
+        phoneNumber: personalData.phoneNumber.startsWith("+")
+          ? personalData.phoneNumber
+          : `+91${personalData.phoneNumber}`,
         password: personalData.password,
         address: {
-          houseNo: houseBuilding,
+          houseNo: houseNo,
           street: street,
           locality: selectedLocation
             ? (selectedLocation.locality || selectedLocation.villageTown || selectedLocation.city)
@@ -415,16 +416,25 @@ export const UserRegisterPage: React.FC = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-stone-800">
-                      Mobile Number (+91)
-                    </Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3.5 top-3 h-4 w-4 text-stone-500" />
-                      <Input
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-stone-800">
+                        Mobile Number
+                      </Label>
+                      <span className="text-[10px] text-stone-500 font-medium">
+                        10-digit Indian mobile
+                      </span>
+                    </div>
+                    <div className="flex rounded-md border border-amber-300 focus-within:ring-2 focus-within:ring-[#780016] focus-within:border-amber-400 overflow-hidden bg-white shadow-2xs">
+                      <div className="flex items-center gap-1.5 px-3 bg-amber-50/80 border-r border-amber-200 text-xs font-bold text-stone-900 select-none shrink-0">
+                        <span className="text-sm">🇮🇳</span>
+                        <span>+91</span>
+                      </div>
+                      <input
                         type="tel"
-                        placeholder="+91 98765 43210"
+                        maxLength={10}
+                        placeholder="98765 43210"
                         {...register("phoneNumber")}
-                        className="pl-10 text-xs h-11 rounded-md border-amber-300 focus-visible:ring-red-700"
+                        className="w-full px-3 text-xs h-11 bg-white focus:outline-none text-stone-900 placeholder:text-stone-400 font-mono tracking-wide"
                       />
                     </div>
                     {errors.phoneNumber && (
@@ -662,8 +672,8 @@ export const UserRegisterPage: React.FC = () => {
                   </Label>
                   <Input
                     placeholder="e.g. Flat 402, Ganga Heights"
-                    value={houseBuilding}
-                    onChange={(e) => setHouseBuilding(e.target.value)}
+                    value={houseNo}
+                    onChange={(e) => setHouseNo(e.target.value)}
                     className="text-xs h-10 rounded-md border-amber-300 focus-visible:ring-red-700"
                     required
                   />

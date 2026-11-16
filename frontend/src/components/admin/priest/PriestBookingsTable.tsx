@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Clock, Star } from 'lucide-react';
 import { Booking } from '@/types/booking.types';
+import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { formatDate } from '@/lib/utils';
 
 interface PriestBookingsTableProps {
@@ -39,19 +40,7 @@ export const PriestBookingsTable: React.FC<PriestBookingsTableProps> = ({ bookin
                   <span className="font-bold text-stone-950 text-sm font-serif">
                     {b.serviceName}
                   </span>
-                  <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      b.status === 'COMPLETED'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : b.status === 'CONFIRMED'
-                        ? 'bg-blue-100 text-blue-800'
-                        : b.status === 'PENDING'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-stone-100 text-stone-600'
-                    }`}
-                  >
-                    {b.status}
-                  </span>
+                  <BookingStatusBadge status={b.status} withPulse={false} />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-stone-600 text-[11px]">

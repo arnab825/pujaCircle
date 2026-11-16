@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatDisplayPhone } from '@/lib/utils';
 import { Ban, Trash2, MoreVertical, ShieldCheck, Mail, Phone, Calendar, Eye } from 'lucide-react';
 
 export interface DevoteeRecord {
@@ -110,7 +110,7 @@ export const UserManagementTable: React.FC<UserManagementTableProps> = ({
                   <div className="space-y-1 text-stone-600">
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
                       <Phone className="w-3 h-3 text-amber-700 shrink-0" />
-                      <span>{u.phoneNumber}</span>
+                      <span>{formatDisplayPhone(u.phoneNumber)}</span>
                     </div>
                     {u.email && (
                       <div className="flex items-center gap-1.5 text-[11px]">
