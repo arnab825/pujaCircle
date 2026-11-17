@@ -24,6 +24,7 @@ import {
   EyeOff,
   Sparkles,
   UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AuthRoleTabs } from '@/components/auth/AuthRoleTabs';
@@ -142,7 +143,7 @@ export const AuthLoginForm: React.FC<AuthLoginFormProps> = ({
         {/* Right Form Panel */}
         <div className="w-full lg:w-7/12 p-4 sm:p-8 md:p-10 bg-white flex flex-col justify-between relative">
           <div>
-            {/* Role Switcher Tabs */}
+            {/* Role Switcher Tabs & Admin Portal Shortcut */}
             <div className="flex items-center justify-between gap-2 sm:gap-4 mb-6">
               <div className="flex-1 min-w-0">
                 <AuthRoleTabs
@@ -155,6 +156,17 @@ export const AuthLoginForm: React.FC<AuthLoginFormProps> = ({
                   }}
                 />
               </div>
+
+              {/* Discreet Staff Operations Portal Link */}
+              <Link
+                to="/admin/login"
+                tabIndex={-1}
+                title="Staff Operations Console"
+                aria-label="Staff Operations Console"
+                className="p-1.5 rounded-md text-amber-600/70 hover:text-amber-800 bg-amber-50/60 hover:bg-amber-100/90 border border-amber-200/70 transition-all shrink-0 cursor-pointer shadow-2xs"
+              >
+                <ShieldCheck className="h-4 w-4" />
+              </Link>
             </div>
 
             {/* Form Header */}
