@@ -56,11 +56,21 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   checkSession: async () => {
+    // If no token exists, the visitor is an unauthenticated guest.
+    // Initialize immediately so public landing pages render instantly without waiting for backend cold-start.
+    if (typeof window !== 'undefined' && !localStorage.getItem('pc_token')) {
+      set({ user: null, isAuthenticated: false, isInitialized: true });
+      return;
+    }
+
     try {
       const res = await authApi.getMe();
       if (res.success && res.data?.user) {
         set({ user: res.data.user, isAuthenticated: true, isInitialized: true });
       } else {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('pc_token');
+        }
         set({ user: null, isAuthenticated: false, isInitialized: true });
       }
     } catch {

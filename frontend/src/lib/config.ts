@@ -15,5 +15,6 @@ const getEnv = (key: string, defaultValue: string = ''): string => {
 
 export const config = {
   apiBaseUrl: getEnv('VITE_API_BASE_URL', 'http://localhost:5000/api/v1'),
-  defaultTimeout: 10000,
+  // 45 seconds timeout to accommodate free-tier cold starts (Render/Supabase waking up)
+  defaultTimeout: 45000,
 };
