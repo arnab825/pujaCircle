@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ShieldCheck } from 'lucide-react';
 import { PujaCircleLogo } from '@/components/common/PujaCircleLogo';
 import { useAuthStore } from '@/store/auth.store';
 import { TermsModal } from '@/components/legal/TermsModal';
@@ -91,6 +92,15 @@ export const Footer: React.FC = () => {
             >
               Cookie Policy
             </button>
+            <span className="text-amber-300 select-none">•</span>
+            <Link
+              to="/admin/login"
+              className="text-stone-500 hover:text-[#991B1B] transition-colors cursor-pointer flex items-center gap-1 font-semibold"
+              title="Staff Operations Console"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-stone-400 group-hover:text-[#991B1B]" />
+              <span>Staff Portal</span>
+            </Link>
           </div>
         </div>
       </div>
