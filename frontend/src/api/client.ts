@@ -17,6 +17,17 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
+// Request interceptor: attach Authorization header if token exists in localStorage (cross-origin cookie fallback)
+apiClient.interceptors.request.use((reqConfig) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('pc_token');
+    if (token && !reqConfig.headers.Authorization) {
+      reqConfig.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return reqConfig;
+});
+
 // Response interceptor with strict error sanitization and 401 session eviction
 apiClient.interceptors.response.use(
   (response) => response.data,

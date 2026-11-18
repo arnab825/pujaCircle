@@ -11,12 +11,16 @@ import { generalRateLimiter } from '@/middlewares/rateLimit.middleware.js';
 // Express Application Factory & Configuration
 const app: Express = express();
 
+// Trust reverse proxy (essential for Render / Cloudflare rate-limiting and secure headers)
+app.set('trust proxy', 1);
+
 // Security headers — XSS protection, content-type sniffing, frameguard, etc.
 app.use(helmet());
 
-// Robust CORS configuration supporting frontend ports and preflight checks
+// Robust CORS configuration supporting frontend ports, Vercel deployments, and preflight checks
+const cleanClientUrl = env.CLIENT_URL.replace(/\/$/, '');
 const allowedOrigins = [
-  env.CLIENT_URL,
+  cleanClientUrl,
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
@@ -27,10 +31,21 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, or Postman)
-      if (!origin || allowedOrigins.includes(origin) || env.NODE_ENV === 'development') {
+      if (!origin) {
         return callback(null, true);
       }
-      return callback(new Error('CORS policy: Not allowed by CORS'));
+
+      const cleanOrigin = origin.replace(/\/$/, '');
+
+      if (
+        cleanOrigin === cleanClientUrl ||
+        allowedOrigins.includes(cleanOrigin) ||
+        cleanOrigin.endsWith('.vercel.app') ||
+        env.NODE_ENV === 'development'
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS policy: Origin ${origin} not allowed`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

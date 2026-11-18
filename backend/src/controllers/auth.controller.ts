@@ -4,10 +4,11 @@ import { sendSuccess } from '@/views/response.view.js';
 import { env } from '@/config/env.js';
 
 // Static cookie configuration options for session security
+// Cross-site cookie (Render backend <-> Vercel frontend) requires sameSite='none' and secure=true in production
 const AUTH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 } as const;
 
@@ -79,8 +80,16 @@ export class AuthController {
       const token = req.cookies?.access_token || req.headers.authorization?.split(' ')[1];
       const result = await authService.logout(token);
 
-      res.clearCookie('access_token');
-      res.clearCookie('token');
+      res.clearCookie('access_token', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+      });
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+      });
 
       sendSuccess(res, result.message);
     } catch (error) {

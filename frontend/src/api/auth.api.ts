@@ -19,8 +19,11 @@ import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
 export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
-      const res = await apiClient.post('/auth/login', credentials);
-      return res as any;
+      const res = (await apiClient.post('/auth/login', credentials)) as any;
+      if (res?.data?.token && typeof window !== 'undefined') {
+        localStorage.setItem('pc_token', res.data.token);
+      }
+      return res;
     } catch (error) {
       logAppError('authApi.login', error, { email: credentials.email });
       return {
@@ -32,8 +35,11 @@ export const authApi = {
 
   registerUser: async (data: RegisterUserRequest): Promise<AuthResponse> => {
     try {
-      const res = await apiClient.post('/auth/register/user', data);
-      return res as any;
+      const res = (await apiClient.post('/auth/register/user', data)) as any;
+      if (res?.data?.token && typeof window !== 'undefined') {
+        localStorage.setItem('pc_token', res.data.token);
+      }
+      return res;
     } catch (error) {
       logAppError('authApi.registerUser', error, { phone: data.phoneNumber });
       return {
@@ -45,8 +51,11 @@ export const authApi = {
 
   registerPriest: async (data: RegisterPriestRequest): Promise<AuthResponse> => {
     try {
-      const res = await apiClient.post('/auth/register/priest', data);
-      return res as any;
+      const res = (await apiClient.post('/auth/register/priest', data)) as any;
+      if (res?.data?.token && typeof window !== 'undefined') {
+        localStorage.setItem('pc_token', res.data.token);
+      }
+      return res;
     } catch (error) {
       logAppError('authApi.registerPriest', error, { phone: data.phoneNumber });
       return {
@@ -68,6 +77,9 @@ export const authApi = {
 
   logout: async (): Promise<{ success: boolean; message: string }> => {
     try {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pc_token');
+      }
       const res = await apiClient.post('/auth/logout');
       return res as any;
     } catch (error) {
