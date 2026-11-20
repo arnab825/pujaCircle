@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { config } from '@/lib/config';
 import { useAuthStore } from '@/store/auth.store';
+import { getAuthTokenCookie } from '@/lib/cookies';
 
 /**
  * Axios HTTP Client
@@ -17,10 +18,10 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor: attach Authorization header if token exists in localStorage (cross-origin cookie fallback)
+// Request interceptor: attach Authorization header if token exists in cookie
 apiClient.interceptors.request.use((reqConfig) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('pc_token');
+    const token = getAuthTokenCookie();
     if (token && !reqConfig.headers.Authorization) {
       reqConfig.headers.Authorization = `Bearer ${token}`;
     }

@@ -18,12 +18,12 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
   try {
     let token: string | undefined;
 
-    // 1. Check Authorization header or HTTP-only cookies
+    // 1. Check Authorization header or HTTP-only / session cookies
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
-    } else if (req.cookies && (req.cookies.access_token || req.cookies.token)) {
-      token = req.cookies.access_token || req.cookies.token;
+    } else if (req.cookies && (req.cookies.access_token || req.cookies.token || req.cookies.pc_token)) {
+      token = req.cookies.access_token || req.cookies.token || req.cookies.pc_token;
     }
 
     if (!token) {

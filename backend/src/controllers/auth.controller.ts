@@ -3,13 +3,24 @@ import { authService } from '@/services/auth.service.js';
 import { sendSuccess } from '@/views/response.view.js';
 import { env } from '@/config/env.js';
 
-// Static cookie configuration options for session security
+// Static cookie configuration options for session security (Strict 1-week / 7-day TTL)
 // Cross-site cookie (Render backend <-> Vercel frontend) requires sameSite='none' and secure=true in production
+const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (1 week) in milliseconds
+
 const AUTH_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.NODE_ENV === 'production',
   sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+  maxAge: SESSION_EXPIRY_MS,
+  path: '/',
+} as const;
+
+const CLIENT_COOKIE_OPTIONS = {
+  httpOnly: false,
+  secure: env.NODE_ENV === 'production',
+  sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+  maxAge: SESSION_EXPIRY_MS,
+  path: '/',
 } as const;
 
 // Controller managing user authentication, registration, session, and OTP verification
@@ -21,6 +32,7 @@ export class AuthController {
 
       if (result.token) {
         res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
+        res.cookie('pc_token', result.token, CLIENT_COOKIE_OPTIONS);
       }
 
       sendSuccess(res, 'Signed in successfully.', result);
@@ -36,6 +48,7 @@ export class AuthController {
 
       if (result.token) {
         res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
+        res.cookie('pc_token', result.token, CLIENT_COOKIE_OPTIONS);
       }
 
       sendSuccess(res, 'Devotee account created successfully.', result, 201);
@@ -51,6 +64,7 @@ export class AuthController {
 
       if (result.token) {
         res.cookie('access_token', result.token, AUTH_COOKIE_OPTIONS);
+        res.cookie('pc_token', result.token, CLIENT_COOKIE_OPTIONS);
       }
 
       sendSuccess(
@@ -77,18 +91,26 @@ export class AuthController {
   // POST /api/v1/auth/logout
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const token = req.cookies?.access_token || req.headers.authorization?.split(' ')[1];
+      const token = req.cookies?.access_token || req.cookies?.pc_token || req.headers.authorization?.split(' ')[1];
       const result = await authService.logout(token);
 
       res.clearCookie('access_token', {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+        path: '/',
       });
       res.clearCookie('token', {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+        path: '/',
+      });
+      res.clearCookie('pc_token', {
+        httpOnly: false,
+        secure: env.NODE_ENV === 'production',
+        sameSite: (env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+        path: '/',
       });
 
       sendSuccess(res, result.message);

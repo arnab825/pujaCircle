@@ -11,6 +11,7 @@ import {
 } from '@/types/auth.types';
 import { apiClient } from '@/api/client';
 import { logAppError, getUserFriendlyErrorMessage } from '@/lib/errorHandler';
+import { setAuthTokenCookie, removeAuthTokenCookie } from '@/lib/cookies';
 
 /**
  * Authentication API (Frontend Layer)
@@ -20,8 +21,8 @@ export const authApi = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {
       const res = (await apiClient.post('/auth/login', credentials)) as any;
-      if (res?.data?.token && typeof window !== 'undefined') {
-        localStorage.setItem('pc_token', res.data.token);
+      if (res?.data?.token) {
+        setAuthTokenCookie(res.data.token);
       }
       return res;
     } catch (error) {
@@ -36,8 +37,8 @@ export const authApi = {
   registerUser: async (data: RegisterUserRequest): Promise<AuthResponse> => {
     try {
       const res = (await apiClient.post('/auth/register/user', data)) as any;
-      if (res?.data?.token && typeof window !== 'undefined') {
-        localStorage.setItem('pc_token', res.data.token);
+      if (res?.data?.token) {
+        setAuthTokenCookie(res.data.token);
       }
       return res;
     } catch (error) {
@@ -52,8 +53,8 @@ export const authApi = {
   registerPriest: async (data: RegisterPriestRequest): Promise<AuthResponse> => {
     try {
       const res = (await apiClient.post('/auth/register/priest', data)) as any;
-      if (res?.data?.token && typeof window !== 'undefined') {
-        localStorage.setItem('pc_token', res.data.token);
+      if (res?.data?.token) {
+        setAuthTokenCookie(res.data.token);
       }
       return res;
     } catch (error) {
@@ -77,9 +78,7 @@ export const authApi = {
 
   logout: async (): Promise<{ success: boolean; message: string }> => {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('pc_token');
-      }
+      removeAuthTokenCookie();
       const res = await apiClient.post('/auth/logout');
       return res as any;
     } catch (error) {
