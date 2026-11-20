@@ -9,6 +9,7 @@ import { availabilityService, toISTDateString, toISTTimeString } from '@/service
 import { resolvePriestProfileId, areDistrictsEquivalent } from '@/services/priest.service.js';
 import { BookingViewModel } from '@/views/booking.view.js';
 import { getPagination } from '@/utils/pagination.js';
+import { brevoEmailService } from '@/services/email.service.js';
 
 function addMinutesToTime(time: string, minutes: number): string {
   const [h = '9', m = '0'] = time.split(':');
@@ -390,7 +391,30 @@ export class BookingService {
       })
       .returning();
 
-    return this.getBookingById(newBooking.id);
+    const createdBooking = await this.getBookingById(newBooking.id);
+
+    // Dispatch Brevo transactional emails to Devotee & Purohit asynchronously
+    if (createdBooking.user?.email || createdBooking.priest?.email) {
+      brevoEmailService
+        .sendBookingRequestedEmail({
+          devoteeEmail: createdBooking.user?.email || '',
+          devoteeName: createdBooking.user?.name || 'Devotee',
+          priestEmail: createdBooking.priest?.email || '',
+          priestName: createdBooking.priest?.displayName || 'Purohit',
+          bookingReference: createdBooking.bookingReference,
+          serviceName: createdBooking.serviceName,
+          bookingDate: createdBooking.bookingDate,
+          startTime: createdBooking.startTime,
+          totalPrice: createdBooking.totalPrice,
+          venueAddress:
+            createdBooking.venueAddressSnapshot?.locality ||
+            createdBooking.venueAddressSnapshot?.city ||
+            'Selected Sanctum',
+        })
+        .catch(() => {});
+    }
+
+    return createdBooking;
   }
 
   // Priest accepts a pending ceremony booking (status -> CONFIRMED)
@@ -437,7 +461,30 @@ export class BookingService {
       })
       .where(eq(bookings.id, bookingId));
 
-    return this.getBookingById(bookingId);
+    const confirmedBooking = await this.getBookingById(bookingId);
+
+    // Dispatch Brevo confirmation email with 4-digit code to Devotee
+    if (confirmedBooking.user?.email) {
+      brevoEmailService
+        .sendBookingConfirmedEmail({
+          devoteeEmail: confirmedBooking.user.email,
+          devoteeName: confirmedBooking.user.name || 'Devotee',
+          priestName: confirmedBooking.priest?.displayName || 'Purohit',
+          bookingReference: confirmedBooking.bookingReference,
+          serviceName: confirmedBooking.serviceName,
+          bookingDate: confirmedBooking.bookingDate,
+          startTime: confirmedBooking.startTime,
+          totalPrice: confirmedBooking.totalPrice,
+          completionCode,
+          venueAddress:
+            confirmedBooking.venueAddressSnapshot?.locality ||
+            confirmedBooking.venueAddressSnapshot?.city ||
+            'Selected Sanctum',
+        })
+        .catch(() => {});
+    }
+
+    return confirmedBooking;
   }
 
   // Priest declines a pending ceremony booking (status -> REJECTED)
@@ -462,16 +509,35 @@ export class BookingService {
       throw new AppError(400, `Cannot reject booking. Current status is ${booking.status}.`);
     }
 
+    const finalReason = reason || 'Declined by priest due to schedule constraints';
+
     await db
       .update(bookings)
       .set({
         status: 'REJECTED',
-        rejectionReason: reason || 'Declined by priest due to schedule constraints',
+        rejectionReason: finalReason,
         updatedAt: new Date(),
       })
       .where(eq(bookings.id, bookingId));
 
-    return this.getBookingById(bookingId);
+    const rejectedBooking = await this.getBookingById(bookingId);
+
+    // Dispatch Brevo rejection email to Devotee
+    if (rejectedBooking.user?.email) {
+      brevoEmailService
+        .sendBookingRejectedEmail({
+          devoteeEmail: rejectedBooking.user.email,
+          devoteeName: rejectedBooking.user.name || 'Devotee',
+          priestName: rejectedBooking.priest?.displayName || 'Purohit',
+          bookingReference: rejectedBooking.bookingReference,
+          serviceName: rejectedBooking.serviceName,
+          bookingDate: rejectedBooking.bookingDate,
+          reason: finalReason,
+        })
+        .catch(() => {});
+    }
+
+    return rejectedBooking;
   }
 
   // Devotee or Priest cancels a pending or confirmed booking (status -> CANCELLED)
@@ -499,18 +565,41 @@ export class BookingService {
     }
 
     const now = new Date();
+    const finalReason = reason || (isDevotee ? 'Cancelled by devotee' : 'Cancelled by priest');
+
     await db
       .update(bookings)
       .set({
         status: 'CANCELLED',
         cancelledBy: isDevotee ? 'USER' : 'PRIEST',
-        cancellationReason: reason || (isDevotee ? 'Cancelled by devotee' : 'Cancelled by priest'),
+        cancellationReason: finalReason,
         cancelledAt: now,
         updatedAt: now,
       })
       .where(eq(bookings.id, bookingId));
 
-    return this.getBookingById(bookingId);
+    const cancelledBooking = await this.getBookingById(bookingId);
+
+    // Notify the other party about the cancellation
+    const notifyEmail = isDevotee ? cancelledBooking.priest?.email : cancelledBooking.user?.email;
+    const notifyName = isDevotee ? cancelledBooking.priest?.displayName : cancelledBooking.user?.name;
+    const actorName = isDevotee ? cancelledBooking.user?.name || 'Devotee' : cancelledBooking.priest?.displayName || 'Purohit';
+
+    if (notifyEmail) {
+      brevoEmailService
+        .sendBookingCancelledEmail({
+          recipientEmail: notifyEmail,
+          recipientName: notifyName || 'User',
+          cancelledByName: actorName,
+          bookingReference: cancelledBooking.bookingReference,
+          serviceName: cancelledBooking.serviceName,
+          bookingDate: cancelledBooking.bookingDate,
+          reason: finalReason,
+        })
+        .catch(() => {});
+    }
+
+    return cancelledBooking;
   }
 
   // Priest marks ceremony completed after verifying 4-digit devotee completionCode
@@ -564,7 +653,24 @@ export class BookingService {
       })
       .where(eq(bookings.id, bookingId));
 
-    return this.getBookingById(bookingId);
+    const completedBooking = await this.getBookingById(bookingId);
+
+    // Dispatch Brevo ceremony fulfillment & review invitation email to Devotee
+    if (completedBooking.user?.email) {
+      brevoEmailService
+        .sendBookingCompletedEmail({
+          devoteeEmail: completedBooking.user.email,
+          devoteeName: completedBooking.user.name || 'Devotee',
+          priestName: completedBooking.priest?.displayName || 'Purohit',
+          bookingReference: completedBooking.bookingReference,
+          serviceName: completedBooking.serviceName,
+          bookingDate: completedBooking.bookingDate,
+          totalPrice: completedBooking.totalPrice,
+        })
+        .catch(() => {});
+    }
+
+    return completedBooking;
   }
 
   // Devotee submits star rating and review feedback for a completed ceremony
