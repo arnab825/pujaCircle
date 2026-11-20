@@ -386,6 +386,463 @@ export class BrevoEmailService {
       logLabel: 'booking cancellation email',
     });
   }
+  /**
+   * Dispatch booking requested notifications to Devotee and Purohit
+   */
+  async sendBookingRequestedEmail(params: {
+    devoteeEmail: string;
+    devoteeName: string;
+    priestEmail: string;
+    priestName: string;
+    bookingReference: string;
+    serviceName: string;
+    bookingDate: string;
+    startTime: string;
+    totalPrice: number;
+    venueAddress: string;
+  }): Promise<void> {
+    const devoteeClean = params.devoteeEmail?.trim().toLowerCase();
+    const priestClean = params.priestEmail?.trim().toLowerCase();
+
+    // 1. Send receipt to Devotee
+    if (devoteeClean) {
+      const subject = `ॐ PujaCircle — Ceremony Booking Request Placed (${params.bookingReference})`;
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #faf8f5; color: #1c1917; }
+    .container { max-width: 560px; margin: 30px auto; background: #ffffff; border-radius: 12px; border: 2px solid #fcd34d; overflow: hidden; box-shadow: 0 10px 25px rgba(120, 0, 22, 0.08); }
+    .header { background: #780016; padding: 26px 24px; text-align: center; color: #ffffff; }
+    .om-badge { display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #fbbf24; color: #1c1917; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fde68a; margin: 0; }
+    .brand-sub { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fef3c7; margin-top: 4px; }
+    .content { padding: 30px 26px; }
+    .badge { display: inline-block; padding: 4px 12px; background: #fef3c7; color: #780016; border: 1px solid #fde68a; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 10px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 16px 0; }
+    .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 16px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .lbl { color: #78716c; font-weight: 600; }
+    .val { color: #1c1917; font-weight: 700; text-align: right; }
+    .dakshina-row { border-top: 1px dashed #d6d3d1; padding-top: 8px; margin-top: 8px; color: #780016; font-size: 14px; }
+    .footer { background: #f5f5f4; padding: 20px; text-align: center; font-size: 11px; color: #a8a29e; }
+    .quote { font-style: italic; color: #780016; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="om-badge">ॐ</div>
+      <div class="brand-title">PUJACIRCLE</div>
+      <div class="brand-sub">Ceremony Reservation Request</div>
+    </div>
+    <div class="content">
+      <div class="badge">Awaiting Purohit Confirmation</div>
+      <h1>Pranam, ${params.devoteeName || 'Devotee'}</h1>
+      <p>Your ceremony booking request has been successfully submitted and forwarded to <strong>${params.priestName}</strong> for Muhurat schedule review.</p>
+      
+      <div class="details-box">
+        <div class="row"><span class="lbl">Booking Reference:</span><span class="val">${params.bookingReference}</span></div>
+        <div class="row"><span class="lbl">Sacred Ceremony:</span><span class="val">${params.serviceName}</span></div>
+        <div class="row"><span class="lbl">Ceremony Date:</span><span class="val">${params.bookingDate}</span></div>
+        <div class="row"><span class="lbl">Muhurat Time:</span><span class="val">${params.startTime} IST</span></div>
+        <div class="row"><span class="lbl">Assigned Purohit:</span><span class="val">${params.priestName}</span></div>
+        <div class="row"><span class="lbl">Sanctum Venue:</span><span class="val">${params.venueAddress}</span></div>
+        <div class="row dakshina-row"><span class="lbl">Total Cash Dakshina:</span><span class="val">₹${params.totalPrice}</span></div>
+      </div>
+      <p style="font-size: 12px; color: #78716c;">You will receive another notification as soon as the Purohit accepts your requested Muhurat slot.</p>
+    </div>
+    <div class="footer">
+      <div class="quote">“यज्ञो वै श्रेष्ठतमं कर्म — Yajna is the highest auspicious deed.”</div>
+      <div>© ${new Date().getFullYear()} PujaCircle Sanctum. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+      await this.sendBrevoEmail({
+        toEmail: devoteeClean,
+        subject,
+        htmlContent,
+        textContent: `PujaCircle: Your booking request (${params.bookingReference}) for ${params.serviceName} on ${params.bookingDate} at ${params.startTime} with ${params.priestName} has been submitted.`,
+        logLabel: 'devotee booking requested email',
+      }).catch(() => {});
+    }
+
+    // 2. Send appointment notification to Priest
+    if (priestClean) {
+      const subject = `ॐ PujaCircle — New Ceremony Appointment Request (${params.bookingReference})`;
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #faf8f5; color: #1c1917; }
+    .container { max-width: 560px; margin: 30px auto; background: #ffffff; border-radius: 12px; border: 2px solid #fcd34d; overflow: hidden; box-shadow: 0 10px 25px rgba(120, 0, 22, 0.08); }
+    .header { background: #780016; padding: 26px 24px; text-align: center; color: #ffffff; }
+    .om-badge { display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #fbbf24; color: #1c1917; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fde68a; margin: 0; }
+    .brand-sub { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fef3c7; margin-top: 4px; }
+    .content { padding: 30px 26px; }
+    .badge { display: inline-block; padding: 4px 12px; background: #fef3c7; color: #780016; border: 1px solid #fde68a; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 10px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 16px 0; }
+    .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 16px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .lbl { color: #78716c; font-weight: 600; }
+    .val { color: #1c1917; font-weight: 700; text-align: right; }
+    .action-btn { display: inline-block; background: #780016; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 14px; margin-top: 12px; }
+    .footer { background: #f5f5f4; padding: 20px; text-align: center; font-size: 11px; color: #a8a29e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="om-badge">ॐ</div>
+      <div class="brand-title">PUJACIRCLE</div>
+      <div class="brand-sub">Purohit Workspace Alert</div>
+    </div>
+    <div class="content">
+      <div class="badge">Action Required</div>
+      <h1>Pranam, Pandit ${params.priestName} Ji</h1>
+      <p>A devotee has booked your sacred service on PujaCircle. Please review the ceremony details and accept the appointment from your dashboard.</p>
+      
+      <div class="details-box">
+        <div class="row"><span class="lbl">Booking Reference:</span><span class="val">${params.bookingReference}</span></div>
+        <div class="row"><span class="lbl">Devotee Name:</span><span class="val">${params.devoteeName}</span></div>
+        <div class="row"><span class="lbl">Sacred Ceremony:</span><span class="val">${params.serviceName}</span></div>
+        <div class="row"><span class="lbl">Ceremony Date:</span><span class="val">${params.bookingDate}</span></div>
+        <div class="row"><span class="lbl">Muhurat Time:</span><span class="val">${params.startTime} IST</span></div>
+        <div class="row"><span class="lbl">Venue Locality:</span><span class="val">${params.venueAddress}</span></div>
+        <div class="row" style="color: #780016; font-size: 14px; border-top: 1px dashed #d6d3d1; padding-top: 8px;"><span class="lbl">Dakshina Amount:</span><span class="val">₹${params.totalPrice} (Cash on Vidhi Completion)</span></div>
+      </div>
+      <p>Please log in to your Purohit Workspace to accept or reschedule this booking.</p>
+    </div>
+    <div class="footer">
+      <div>© ${new Date().getFullYear()} PujaCircle Sanctum. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+      await this.sendBrevoEmail({
+        toEmail: priestClean,
+        subject,
+        htmlContent,
+        textContent: `PujaCircle: New booking request (${params.bookingReference}) from ${params.devoteeName} for ${params.serviceName} on ${params.bookingDate} at ${params.startTime}. Please log in to accept.`,
+        logLabel: 'priest new booking request email',
+      }).catch(() => {});
+    }
+  }
+
+  /**
+   * Dispatch booking confirmed email to Devotee with 4-digit completion code
+   */
+  async sendBookingConfirmedEmail(params: {
+    devoteeEmail: string;
+    devoteeName: string;
+    priestName: string;
+    bookingReference: string;
+    serviceName: string;
+    bookingDate: string;
+    startTime: string;
+    totalPrice: number;
+    completionCode: string;
+    venueAddress: string;
+  }): Promise<void> {
+    const cleanEmail = params.devoteeEmail?.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    const subject = `ॐ PujaCircle — Ceremony Confirmed! (${params.bookingReference}) — Secret Passkey: ${params.completionCode}`;
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #faf8f5; color: #1c1917; }
+    .container { max-width: 560px; margin: 30px auto; background: #ffffff; border-radius: 12px; border: 2px solid #fcd34d; overflow: hidden; box-shadow: 0 10px 25px rgba(120, 0, 22, 0.08); }
+    .header { background: #780016; padding: 26px 24px; text-align: center; color: #ffffff; }
+    .om-badge { display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #fbbf24; color: #1c1917; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fde68a; margin: 0; }
+    .content { padding: 30px 26px; }
+    .badge-success { display: inline-block; padding: 4px 12px; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 10px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 16px 0; }
+    .otp-box { background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 8px; padding: 18px; text-align: center; margin: 20px 0; }
+    .otp-label { font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase; margin-bottom: 4px; }
+    .otp-code { font-family: 'Courier New', monospace; font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #780016; margin: 4px 0; }
+    .otp-hint { font-size: 12px; color: #78716c; margin-top: 6px; }
+    .details-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 16px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .lbl { color: #78716c; font-weight: 600; }
+    .val { color: #1c1917; font-weight: 700; }
+    .footer { background: #f5f5f4; padding: 20px; text-align: center; font-size: 11px; color: #a8a29e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="om-badge">ॐ</div>
+      <div class="brand-title">PUJACIRCLE</div>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fef3c7; margin-top: 4px;">Ceremony Confirmed</div>
+    </div>
+    <div class="content">
+      <div class="badge-success">Appointment Confirmed</div>
+      <h1>Auspicious Muhurat Locked</h1>
+      <p>Pranam <strong>${params.devoteeName}</strong>, Purohit <strong>${params.priestName}</strong> has officially accepted your ceremony booking. Your Muhurat slot is locked.</p>
+      
+      <div class="otp-box">
+        <div class="otp-label">Devotee Secret Completion Passkey</div>
+        <div class="otp-code">${params.completionCode}</div>
+        <div class="otp-hint">🔒 Keep this code private. Hand it over to the Purohit only AFTER the ceremony and vidhi have been completed to your satisfaction.</div>
+      </div>
+
+      <div class="details-box">
+        <div class="row"><span class="lbl">Booking Reference:</span><span class="val">${params.bookingReference}</span></div>
+        <div class="row"><span class="lbl">Ceremony:</span><span class="val">${params.serviceName}</span></div>
+        <div class="row"><span class="lbl">Date:</span><span class="val">${params.bookingDate}</span></div>
+        <div class="row"><span class="lbl">Muhurat Time:</span><span class="val">${params.startTime} IST</span></div>
+        <div class="row"><span class="lbl">Purohit:</span><span class="val">${params.priestName}</span></div>
+        <div class="row"><span class="lbl">Sanctum Venue:</span><span class="val">${params.venueAddress}</span></div>
+        <div class="row" style="color: #780016; font-size: 14px; border-top: 1px dashed #d6d3d1; padding-top: 8px;"><span class="lbl">Dakshina Amount:</span><span class="val">₹${params.totalPrice} (Direct Cash after Vidhi)</span></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div>© ${new Date().getFullYear()} PujaCircle Sanctum. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    await this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent: `PujaCircle: Ceremony confirmed! Your booking ${params.bookingReference} for ${params.serviceName} with ${params.priestName} is locked on ${params.bookingDate} at ${params.startTime}. Your secret completion passkey is: ${params.completionCode}. Total Dakshina: ₹${params.totalPrice}.`,
+      logLabel: 'booking confirmed email',
+    }).catch(() => {});
+  }
+
+  /**
+   * Dispatch booking rejected notification to Devotee
+   */
+  async sendBookingRejectedEmail(params: {
+    devoteeEmail: string;
+    devoteeName: string;
+    priestName: string;
+    bookingReference: string;
+    serviceName: string;
+    bookingDate: string;
+    reason: string;
+  }): Promise<void> {
+    const cleanEmail = params.devoteeEmail?.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    const subject = `ॐ PujaCircle — Ceremony Appointment Declined (${params.bookingReference})`;
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #faf8f5; color: #1c1917; }
+    .container { max-width: 560px; margin: 30px auto; background: #ffffff; border-radius: 12px; border: 2px solid #fcd34d; overflow: hidden; box-shadow: 0 10px 25px rgba(120, 0, 22, 0.08); }
+    .header { background: #780016; padding: 26px 24px; text-align: center; color: #ffffff; }
+    .om-badge { display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #fbbf24; color: #1c1917; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fde68a; margin: 0; }
+    .content { padding: 30px 26px; }
+    .badge-declined { display: inline-block; padding: 4px 12px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 10px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 16px 0; }
+    .reason-box { background: #fff7ed; border-left: 4px solid #ea580c; border-radius: 6px; padding: 14px; margin: 18px 0; font-size: 13px; color: #431407; }
+    .footer { background: #f5f5f4; padding: 20px; text-align: center; font-size: 11px; color: #a8a29e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="om-badge">ॐ</div>
+      <div class="brand-title">PUJACIRCLE</div>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fef3c7; margin-top: 4px;">Ceremony Update</div>
+    </div>
+    <div class="content">
+      <div class="badge-declined">Appointment Declined</div>
+      <h1>Pranam, ${params.devoteeName || 'Devotee'}</h1>
+      <p>Purohit <strong>${params.priestName}</strong> is unable to officiate your <strong>${params.serviceName}</strong> ceremony scheduled for <strong>${params.bookingDate}</strong> due to schedule constraints.</p>
+      
+      <div class="reason-box">
+        <strong>Purohit's Reason:</strong><br/>
+        ${params.reason || 'Existing ritual commitments during the requested Muhurat window.'}
+      </div>
+
+      <p>Because PujaCircle enforces a strict zero-advance policy, <strong>no money was deducted</strong>. You can immediately browse other verified Gurukul Purohits available in your locality.</p>
+    </div>
+    <div class="footer">
+      <div>© ${new Date().getFullYear()} PujaCircle Sanctum. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    await this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent: `PujaCircle: Your booking ${params.bookingReference} for ${params.serviceName} was declined by ${params.priestName}. Reason: ${params.reason}. No payment was deducted. Browse other verified priests on PujaCircle.`,
+      logLabel: 'booking rejected email',
+    }).catch(() => {});
+  }
+
+  /**
+   * Dispatch booking cancellation notification
+   */
+  async sendBookingCancelledEmail(params: {
+    recipientEmail: string;
+    recipientName: string;
+    cancelledByName: string;
+    bookingReference: string;
+    serviceName: string;
+    bookingDate: string;
+    reason: string;
+  }): Promise<void> {
+    const cleanEmail = params.recipientEmail?.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    const subject = `ॐ PujaCircle — Ceremony Appointment Cancelled (${params.bookingReference})`;
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #faf8f5; color: #1c1917; }
+    .container { max-width: 560px; margin: 30px auto; background: #ffffff; border-radius: 12px; border: 2px solid #fcd34d; overflow: hidden; box-shadow: 0 10px 25px rgba(120, 0, 22, 0.08); }
+    .header { background: #780016; padding: 26px 24px; text-align: center; color: #ffffff; }
+    .om-badge { display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #fbbf24; color: #1c1917; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fde68a; margin: 0; }
+    .content { padding: 30px 26px; }
+    .badge { display: inline-block; padding: 4px 12px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 10px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 16px 0; }
+    .reason-box { background: #fafaf9; border-left: 4px solid #780016; border-radius: 6px; padding: 14px; margin: 18px 0; font-size: 13px; }
+    .footer { background: #f5f5f4; padding: 20px; text-align: center; font-size: 11px; color: #a8a29e; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="om-badge">ॐ</div>
+      <div class="brand-title">PUJACIRCLE</div>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fef3c7; margin-top: 4px;">Cancellation Notice</div>
+    </div>
+    <div class="content">
+      <div class="badge">Booking Cancelled</div>
+      <h1>Ceremony Cancelled</h1>
+      <p>Pranam <strong>${params.recipientName}</strong>, please be informed that ceremony booking <strong>${params.bookingReference}</strong> for <strong>${params.serviceName}</strong> (${params.bookingDate}) has been cancelled by ${params.cancelledByName}.</p>
+      
+      <div class="reason-box">
+        <strong>Cancellation Reason:</strong><br/>
+        ${params.reason || 'No specific reason provided.'}
+      </div>
+
+      <p style="font-size: 12px; color: #78716c;">Zero advance fees were deducted. You can schedule a new Muhurat anytime on PujaCircle.</p>
+    </div>
+    <div class="footer">
+      <div>© ${new Date().getFullYear()} PujaCircle Sanctum. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    await this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent: `PujaCircle: Booking ${params.bookingReference} for ${params.serviceName} on ${params.bookingDate} has been cancelled by ${params.cancelledByName}. Reason: ${params.reason}.`,
+      logLabel: 'booking cancelled email',
+    }).catch(() => {});
+  }
+
+  /**
+   * Dispatch ceremony completed receipt and review invitation to Devotee
+   */
+  async sendBookingCompletedEmail(params: {
+    devoteeEmail: string;
+    devoteeName: string;
+    priestName: string;
+    bookingReference: string;
+    serviceName: string;
+    bookingDate: string;
+    totalPrice: number;
+  }): Promise<void> {
+    const cleanEmail = params.devoteeEmail?.trim().toLowerCase();
+    if (!cleanEmail) return;
+
+    const subject = `ॐ PujaCircle — Ceremony Successfully Completed (${params.bookingReference})`;
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #faf8f5; color: #1c1917; }
+    .container { max-width: 560px; margin: 30px auto; background: #ffffff; border-radius: 12px; border: 2px solid #fcd34d; overflow: hidden; box-shadow: 0 10px 25px rgba(120, 0, 22, 0.08); }
+    .header { background: #780016; padding: 26px 24px; text-align: center; color: #ffffff; }
+    .om-badge { display: inline-block; width: 44px; height: 44px; line-height: 44px; background: #fbbf24; color: #1c1917; border-radius: 8px; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 2px; color: #fde68a; margin: 0; }
+    .content { padding: 30px 26px; }
+    .badge-done { display: inline-block; padding: 4px 12px; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 14px; }
+    h1 { font-size: 20px; font-weight: 700; color: #1c1917; margin: 0 0 10px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #44403c; margin: 0 0 16px 0; }
+    .receipt-box { background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 8px; padding: 16px; margin: 18px 0; }
+    .row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .lbl { color: #78716c; font-weight: 600; }
+    .val { color: #1c1917; font-weight: 700; }
+    .footer { background: #f5f5f4; padding: 20px; text-align: center; font-size: 11px; color: #a8a29e; }
+    .quote { font-style: italic; color: #780016; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="om-badge">ॐ</div>
+      <div class="brand-title">PUJACIRCLE</div>
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #fef3c7; margin-top: 4px;">Sacred Vidhi Completed</div>
+    </div>
+    <div class="content">
+      <div class="badge-done">Ceremony Fulfilled</div>
+      <h1>Subho Mangalam, ${params.devoteeName || 'Devotee'}</h1>
+      <p>Your <strong>${params.serviceName}</strong> has been successfully officiated by Purohit <strong>${params.priestName}</strong> and marked as completed in our records.</p>
+      
+      <div class="receipt-box">
+        <div class="row"><span class="lbl">Booking Reference:</span><span class="val">${params.bookingReference}</span></div>
+        <div class="row"><span class="lbl">Ceremony:</span><span class="val">${params.serviceName}</span></div>
+        <div class="row"><span class="lbl">Officiating Purohit:</span><span class="val">${params.priestName}</span></div>
+        <div class="row"><span class="lbl">Fulfilled Date:</span><span class="val">${params.bookingDate}</span></div>
+        <div class="row" style="color: #15803d; border-top: 1px dashed #d6d3d1; padding-top: 8px; font-size: 14px;"><span class="lbl">Dakshina Settled:</span><span class="val">₹${params.totalPrice} (Cash Received)</span></div>
+      </div>
+
+      <p>We invite you to share your sacred experience by submitting a verified 1–5 star rating and review for Pandit ${params.priestName} on your PujaCircle dashboard.</p>
+    </div>
+    <div class="footer">
+      <div class="quote">“यज्ञो वै श्रेष्ठतमं कर्म — Yajna is the highest auspicious deed.”</div>
+      <div>© ${new Date().getFullYear()} PujaCircle Sanctum. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    await this.sendBrevoEmail({
+      toEmail: cleanEmail,
+      subject,
+      htmlContent,
+      textContent: `PujaCircle: Ceremony fulfilled! Your booking ${params.bookingReference} for ${params.serviceName} with ${params.priestName} is completed. Dakshina settled: ₹${params.totalPrice}. Please log in to leave your verified review.`,
+      logLabel: 'booking completed email',
+    }).catch(() => {});
+  }
 }
 
 export const brevoEmailService = new BrevoEmailService();

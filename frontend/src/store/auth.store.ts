@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { AuthUser, LoginCredentials } from '@/types/auth.types';
 import { authApi } from '@/api/auth.api';
+import { hasAuthCookie, removeAuthTokenCookie } from '@/lib/cookies';
 
 interface AuthState {
   user: AuthUser | null;
@@ -51,14 +52,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
     } catch {
       // Ignore network errors during logout
     } finally {
+      removeAuthTokenCookie();
       set({ user: null, isAuthenticated: false, isInitialized: true, error: null });
     }
   },
 
   checkSession: async () => {
-    // If no token exists, the visitor is an unauthenticated guest.
-    // Initialize immediately so public landing pages render instantly without waiting for backend cold-start.
-    if (typeof window !== 'undefined' && !localStorage.getItem('pc_token')) {
+    // Check if an active authentication cookie exists
+    if (!hasAuthCookie()) {
       set({ user: null, isAuthenticated: false, isInitialized: true });
       return;
     }
@@ -68,12 +69,11 @@ export const useAuthStore = create<AuthState>()((set) => ({
       if (res.success && res.data?.user) {
         set({ user: res.data.user, isAuthenticated: true, isInitialized: true });
       } else {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('pc_token');
-        }
+        removeAuthTokenCookie();
         set({ user: null, isAuthenticated: false, isInitialized: true });
       }
     } catch {
+      removeAuthTokenCookie();
       set({ user: null, isAuthenticated: false, isInitialized: true });
     }
   },
