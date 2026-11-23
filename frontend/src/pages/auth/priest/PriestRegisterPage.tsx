@@ -100,6 +100,7 @@ export const PriestRegisterPage: React.FC = () => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedPersonal, setSavedPersonal] = useState<RegisterPriestPersonalInput | null>(null);
 
   const isStep3Valid = Boolean(
     pincode.trim().length === 6 && city.trim() && bio.trim() && !isSubmitting,
@@ -110,8 +111,9 @@ export const PriestRegisterPage: React.FC = () => {
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
-      const { email } = getValues();
-      await authApi.sendEmailOtp({ email });
+      const values = getValues();
+      setSavedPersonal(values);
+      await authApi.sendEmailOtp({ email: values.email });
 
       setStep(2);
       toast.info("Verification code dispatched to your email address.");
@@ -196,7 +198,11 @@ export const PriestRegisterPage: React.FC = () => {
       return;
     }
 
-    const personal = getValues();
+    const personal = savedPersonal || getValues();
+    if (!personal.fullName || !personal.phoneNumber) {
+      setErrorMessage("Personal details were lost. Please return to Step 1 and check your information.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const res = await authApi.registerPriest({

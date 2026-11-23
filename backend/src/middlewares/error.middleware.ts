@@ -75,6 +75,24 @@ export const errorHandler = (
     return;
   }
 
+  // PostgreSQL unique violation error (code 23505) from direct postgres or DrizzleQueryError
+  const pgError = (err?.code === '23505' ? err : (err?.cause?.code === '23505' ? err.cause : null));
+  if (pgError) {
+    const detail = (pgError.detail || pgError.message || '').toLowerCase();
+    const constraint = (pgError.constraint_name || '').toLowerCase();
+
+    if (constraint.includes('email') || detail.includes('email')) {
+      sendError(res, 'An account with this email address is already registered. Please sign in or use another email.', 409);
+      return;
+    }
+    if (constraint.includes('phone') || detail.includes('phone')) {
+      sendError(res, 'An account with this phone number is already registered. Please sign in or use another phone number.', 409);
+      return;
+    }
+    sendError(res, 'An account with these details is already registered. Please sign in with your existing credentials.', 409);
+    return;
+  }
+
   // Fallback for unexpected 500 errors — never expose raw DB internals or stack traces
   sendError(res, 'An unexpected server error occurred. Please try again.', 500);
 };
