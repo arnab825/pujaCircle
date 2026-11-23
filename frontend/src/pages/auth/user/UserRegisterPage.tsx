@@ -104,14 +104,16 @@ export const UserRegisterPage: React.FC = () => {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedPersonal, setSavedPersonal] = useState<RegisterUserPersonalInput | null>(null);
 
   // Step 1: Proceed to Email OTP verification
   const onPersonalSubmit = async () => {
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
-      const { email } = getValues();
-      await authApi.sendEmailOtp({ email });
+      const values = getValues();
+      setSavedPersonal(values);
+      await authApi.sendEmailOtp({ email: values.email });
 
       setStep(2);
       toast.info("Verification code dispatched to your email address.");
@@ -195,7 +197,13 @@ export const UserRegisterPage: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    const personalData = getValues();
+    const personalData = savedPersonal || getValues();
+
+    if (!personalData.fullName || !personalData.phoneNumber) {
+      setErrorMessage("Personal details were lost. Please return to Step 1 and verify your information.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const res = await authApi.registerUser({
@@ -209,14 +217,14 @@ export const UserRegisterPage: React.FC = () => {
           houseNo: houseNo,
           street: street,
           locality: selectedLocation
-            ? (selectedLocation.locality || selectedLocation.villageTown || selectedLocation.city)
+            ? (selectedLocation.locality || selectedLocation.villageTown || selectedLocation.city || "Central Locality")
             : "Central Locality",
           villageTown: selectedLocation
-            ? selectedLocation.villageTown
+            ? (selectedLocation.villageTown || selectedLocation.city || "Kolkata")
             : "Kolkata",
-          city: selectedLocation ? selectedLocation.city : "Kolkata",
-          district: selectedLocation ? selectedLocation.district : "Kolkata",
-          state: selectedLocation ? selectedLocation.state : "West Bengal",
+          city: selectedLocation ? (selectedLocation.city || "Kolkata") : "Kolkata",
+          district: selectedLocation ? (selectedLocation.district || selectedLocation.city || "Kolkata") : "Kolkata",
+          state: selectedLocation ? (selectedLocation.state || "West Bengal") : "West Bengal",
           pincode: pincode,
         },
       });

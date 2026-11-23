@@ -35,15 +35,15 @@ export const registerUserSchema = z.object({
 export const registerPriestSchema = z.object({
   fullName: z.string().trim().min(2, 'Full name must be at least 2 characters').max(100),
   phoneNumber: z.string().trim().regex(phoneRegex, 'Please enter a valid 10-digit Indian phone number'),
-  email: z.string().trim().email('Invalid email address').max(255).optional(),
-  password: z.string().min(6, 'Password must be at least 6 characters').max(100).optional(),
+  email: z.string().trim().email('Invalid email address').max(255).or(z.literal('')).optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(100).or(z.literal('')).optional(),
   experienceYears: z.coerce.number().int().min(0).max(80).default(0),
   bio: z.string().trim().max(1000).default(''),
   languages: z.array(z.string().trim().max(50)).default([]),
   serviceAreas: z.array(z.string().trim().max(100)).default([]),
   city: z.string().trim().max(100).default(''),
   state: z.string().trim().max(100).default(''),
-  pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional(),
+  pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').or(z.literal('')).optional(),
 });
 
 export const emailOtpRequestSchema = z.object({

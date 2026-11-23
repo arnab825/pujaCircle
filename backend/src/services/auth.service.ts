@@ -161,19 +161,29 @@ export class AuthService {
     const cleanEmail = input.email.trim().toLowerCase();
     const formattedPhone = normalizePhoneNumber(input.phoneNumber);
     const rawPhone = input.phoneNumber.trim();
+    const digitsOnly = formattedPhone.replace(/\D/g, '').slice(-10);
 
     const existing = await db
-      .select()
+      .select({
+        id: users.id,
+        phoneNumber: users.phoneNumber,
+        email: users.email,
+      })
       .from(users)
       .where(or(
         eq(users.phoneNumber, formattedPhone),
         eq(users.phoneNumber, rawPhone),
+        eq(users.phoneNumber, digitsOnly),
         sql`LOWER(${users.email}) = ${cleanEmail}`
       ))
       .limit(1);
 
     if (existing.length > 0) {
-      throw new AppError(409, 'An account with this phone number or email address is already registered.');
+      const match = existing[0];
+      if (match.email && match.email.toLowerCase() === cleanEmail) {
+        throw new AppError(409, 'An account with this email address is already registered. Please sign in or use another email.');
+      }
+      throw new AppError(409, 'An account with this phone number is already registered. Please sign in or use another phone number.');
     }
 
     const userId = randomUUID();
@@ -219,21 +229,34 @@ export class AuthService {
   async registerPriest(input: RegisterPriestInput): Promise<AuthResult> {
     const formattedPhone = normalizePhoneNumber(input.phoneNumber);
     const rawPhone = input.phoneNumber.trim();
+    const digitsOnly = formattedPhone.replace(/\D/g, '').slice(-10);
+    const targetEmail = (input.email && input.email.trim())
+      ? input.email.trim().toLowerCase()
+      : `priest.${formattedPhone.replace('+', '')}@pujacircle.internal`;
 
     const existing = await db
-      .select()
+      .select({
+        id: users.id,
+        phoneNumber: users.phoneNumber,
+        email: users.email,
+      })
       .from(users)
       .where(or(
         eq(users.phoneNumber, formattedPhone),
-        eq(users.phoneNumber, rawPhone)
+        eq(users.phoneNumber, rawPhone),
+        eq(users.phoneNumber, digitsOnly),
+        sql`LOWER(${users.email}) = ${targetEmail}`
       ))
       .limit(1);
 
     if (existing.length > 0) {
-      throw new AppError(409, 'A user account with this phone number is already registered.');
+      const match = existing[0];
+      if (match.email && match.email.toLowerCase() === targetEmail) {
+        throw new AppError(409, 'An account with this email address is already registered. Please sign in or use another email.');
+      }
+      throw new AppError(409, 'A user account with this phone number is already registered. Please sign in or use another phone number.');
     }
 
-    const targetEmail = (input.email ? input.email.trim().toLowerCase() : `priest.${formattedPhone.replace('+', '')}@pujacircle.internal`);
     const targetPassword = input.password || `PujaPriest@${randomInt(100000, 999999)}`;
 
     const userId = randomUUID();
