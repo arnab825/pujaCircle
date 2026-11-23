@@ -29,6 +29,13 @@ router.post(
   mediaController.uploadImage
 );
 
+router.post(
+  '/upload-cover',
+  requireAuth,
+  validate(uploadImageSchema),
+  mediaController.uploadImage
+);
+
 router.delete(
   '/',
   requireAuth,

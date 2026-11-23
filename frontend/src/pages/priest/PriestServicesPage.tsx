@@ -7,7 +7,15 @@ import { PujaCatalogEntry } from '@/types/catalog.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit2, Power, Trash2, X, Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Plus, Edit2, Power, Trash2, X, Loader2, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 /**
@@ -30,11 +38,15 @@ export const PriestServicesPage: React.FC = () => {
   const [dakshinaPrice, setDakshinaPrice] = useState<number>(2500);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Custom Delete Modal State
+  const [serviceToDelete, setServiceToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const formRef = useRef<HTMLDivElement>(null);
 
   const fetchServices = async () => {
     try {
-      const data = await priestApi.getPriestServices(priestId);
+      const data = await priestApi.getMyServices();
       setServices(data || []);
     } catch {
       toast.error('Failed to load services.');
@@ -102,7 +114,7 @@ export const PriestServicesPage: React.FC = () => {
       setIsSaving(true);
       if (editingService) {
         // Update existing service price
-        const res = await priestApi.updatePriestService(editingService.id, priestId, {
+        const res = await priestApi.updatePriestService(editingService.id, undefined, {
           serviceName: editingService.serviceName,
           price: dakshinaPrice,
         });
@@ -122,7 +134,7 @@ export const PriestServicesPage: React.FC = () => {
           return;
         }
 
-        const res = await priestApi.createPriestService(priestId, {
+        const res = await priestApi.createPriestService(undefined, {
           serviceName: item.name,
           price: dakshinaPrice,
           pujaCatalogId: item.id,
@@ -145,7 +157,7 @@ export const PriestServicesPage: React.FC = () => {
 
   const handleToggle = async (serviceId: string) => {
     try {
-      const res = await priestApi.togglePriestService(serviceId, priestId);
+      const res = await priestApi.togglePriestService(serviceId, undefined);
       if (res.success) {
         toast.success(res.message);
         fetchServices();
@@ -157,23 +169,29 @@ export const PriestServicesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (serviceId: string, serviceName: string) => {
-    if (!window.confirm(`Are you sure you want to remove "${serviceName}" from your offerings?`)) {
-      return;
-    }
+  const handleDelete = (serviceId: string, serviceName: string) => {
+    setServiceToDelete({ id: serviceId, name: serviceName });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!serviceToDelete) return;
+    setIsDeleting(true);
     try {
-      const res = await priestApi.deletePriestService(serviceId, priestId);
+      const res = await priestApi.deletePriestService(serviceToDelete.id, undefined);
       if (res.success) {
-        toast.success(`"${serviceName}" removed.`);
-        if (editingService?.id === serviceId) {
+        toast.success(`"${serviceToDelete.name}" removed from offerings.`);
+        if (editingService?.id === serviceToDelete.id) {
           handleCloseForm();
         }
+        setServiceToDelete(null);
         fetchServices();
       } else {
         toast.error(res.message || 'Failed to remove service.');
       }
     } catch {
       toast.error('Failed to remove service.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -480,6 +498,68 @@ export const PriestServicesPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 4. Custom Delete Ceremony Confirmation Modal */}
+      <Dialog
+        open={Boolean(serviceToDelete)}
+        onOpenChange={(open) => !open && !isDeleting && setServiceToDelete(null)}
+      >
+        <DialogContent className="sm:max-w-md border-2 border-amber-300 bg-white">
+          <DialogHeader className="text-left space-y-2">
+            <div className="flex items-center gap-2 text-red-700">
+              <div className="p-2 rounded-full bg-red-100 text-red-700 shrink-0">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <DialogTitle className="font-serif text-lg font-bold text-stone-950">
+                Remove Ceremony Offering?
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-stone-600 leading-relaxed pt-1">
+              Are you sure you want to remove{' '}
+              <strong className="text-stone-900 font-semibold">"{serviceToDelete?.name}"</strong> from your ritual offerings?
+              Devotees will no longer be able to select and book this ceremony with your profile.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900 flex items-start gap-2 my-2">
+            <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+            <span>
+              Existing confirmed or completed bookings for this ceremony will remain unaffected in your records.
+            </span>
+          </div>
+
+          <DialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setServiceToDelete(null)}
+              disabled={isDeleting}
+              className="text-xs border-stone-300 hover:border-stone-400 font-medium cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="text-xs gap-1.5 bg-[#780016] hover:bg-[#600012] text-white font-bold cursor-pointer"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Removing...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Remove Offering</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

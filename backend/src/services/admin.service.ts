@@ -6,6 +6,7 @@ import { AppError } from '@/utils/AppError.js';
 import { getPagination } from '@/utils/pagination.js';
 import { cloudinaryService } from '@/services/cloudinary.service.js';
 import { brevoEmailService } from '@/services/email.service.js';
+import { resolvePriestProfileId } from '@/services/priest.service.js';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -157,47 +158,51 @@ export class AdminService {
    * Approve a pending priest onboarding application
    */
   async approvePriest(priestId: string): Promise<void> {
+    const profileId = (await resolvePriestProfileId(priestId)) || priestId;
     await db
       .update(priestProfiles)
       .set({ approvalStatus: 'APPROVED', rejectionReason: null })
-      .where(eq(priestProfiles.id, priestId));
+      .where(or(eq(priestProfiles.id, profileId), eq(priestProfiles.userId, profileId)));
   }
 
   /**
    * Reject a pending priest onboarding application with an audit reason
    */
   async rejectPriest(priestId: string, reason?: string): Promise<void> {
+    const profileId = (await resolvePriestProfileId(priestId)) || priestId;
     await db
       .update(priestProfiles)
       .set({
         approvalStatus: 'REJECTED',
         rejectionReason: reason || 'Application declined by administrator',
       })
-      .where(eq(priestProfiles.id, priestId));
+      .where(or(eq(priestProfiles.id, profileId), eq(priestProfiles.userId, profileId)));
   }
 
   /**
    * Reopen a rejected priest application for reconsideration
    */
   async reopenPriestApplication(priestId: string): Promise<void> {
+    const profileId = (await resolvePriestProfileId(priestId)) || priestId;
     await db
       .update(priestProfiles)
       .set({ approvalStatus: 'PENDING', rejectionReason: null })
-      .where(eq(priestProfiles.id, priestId));
+      .where(or(eq(priestProfiles.id, profileId), eq(priestProfiles.userId, profileId)));
   }
 
   /**
-   * Ban priest account by priestProfile id.
+   * Ban priest account by priestProfile id or user id.
    * Automatically cancels all active/pending bookings and dispatches a notification email to the priest.
    */
   async banPriest(priestId: string, reason?: string): Promise<void> {
+    const profileId = (await resolvePriestProfileId(priestId)) || priestId;
     const [priest] = await db
       .select({
         id: priestProfiles.id,
         userId: priestProfiles.userId,
       })
       .from(priestProfiles)
-      .where(eq(priestProfiles.id, priestId))
+      .where(or(eq(priestProfiles.id, profileId), eq(priestProfiles.userId, profileId)))
       .limit(1);
 
     if (!priest) {
@@ -304,13 +309,14 @@ export class AdminService {
   }
 
   /**
-   * Reactivate / Unban priest account by priestProfile id
+   * Reactivate / Unban priest account by priestProfile id or user id
    */
   async unbanPriest(priestId: string): Promise<void> {
+    const profileId = (await resolvePriestProfileId(priestId)) || priestId;
     const [priest] = await db
       .select({ userId: priestProfiles.userId })
       .from(priestProfiles)
-      .where(eq(priestProfiles.id, priestId))
+      .where(or(eq(priestProfiles.id, profileId), eq(priestProfiles.userId, profileId)))
       .limit(1);
 
     if (!priest) {
@@ -814,6 +820,7 @@ export class AdminService {
   // Query platform ceremony bookings with SQL joins and pagination
   async getAllBookings(page = 1, limit = 50): Promise<any[]> {
     const { limit: safeLimit, offset } = getPagination({ page, limit }, 50, 100);
+    const priestUser = alias(users, 'priest_user_booking_view');
 
     const results = await db
       .select({
@@ -849,10 +856,13 @@ export class AdminService {
         userName: users.name,
         userPhone: users.phoneNumber,
         userEmail: users.email,
+        priestName: priestUser.name,
+        priestPhone: priestUser.phoneNumber,
       })
       .from(bookings)
       .leftJoin(users, eq(bookings.userId, users.id))
       .leftJoin(priestProfiles, eq(bookings.priestId, priestProfiles.id))
+      .leftJoin(priestUser, eq(priestProfiles.userId, priestUser.id))
       .orderBy(desc(bookings.createdAt))
       .limit(safeLimit)
       .offset(offset);
@@ -861,6 +871,7 @@ export class AdminService {
       ...b,
       userName: b.userName || 'Devotee',
       userPhone: b.userPhone || '',
+      priestName: b.priestName || 'Vedic Purohit',
       createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
       updatedAt: b.updatedAt ? new Date(b.updatedAt).toISOString() : undefined,
       cancelledAt: b.cancelledAt ? new Date(b.cancelledAt).toISOString() : undefined,
@@ -871,6 +882,13 @@ export class AdminService {
           name: b.userName || 'Devotee',
           phoneNumber: b.userPhone || '',
           email: b.userEmail || '',
+        }
+        : undefined,
+      priest: b.priestId
+        ? {
+          id: b.priestId,
+          fullName: b.priestName || 'Vedic Purohit',
+          phoneNumber: b.priestPhone || '',
         }
         : undefined,
     }));

@@ -6,6 +6,7 @@ import { env } from '@/config/env.js';
 import { routes } from '@/routes/index.js';
 import { errorHandler } from '@/middlewares/error.middleware.js';
 import { sendError } from '@/views/response.view.js';
+import { AppError } from '@/utils/AppError.js';
 import { generalRateLimiter } from '@/middlewares/rateLimit.middleware.js';
 
 // Express Application Factory & Configuration
@@ -18,9 +19,9 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 // Robust CORS configuration supporting frontend ports, Vercel deployments, and preflight checks
-const cleanClientUrl = env.CLIENT_URL.replace(/\/$/, '');
+const configuredClientUrls = env.CLIENT_URL.split(',').map((u) => u.trim().replace(/\/$/, ''));
 const allowedOrigins = [
-  cleanClientUrl,
+  ...configuredClientUrls,
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
@@ -38,14 +39,14 @@ app.use(
       const cleanOrigin = origin.replace(/\/$/, '');
 
       if (
-        cleanOrigin === cleanClientUrl ||
         allowedOrigins.includes(cleanOrigin) ||
         cleanOrigin.endsWith('.vercel.app') ||
+        cleanOrigin.includes('localhost') ||
         env.NODE_ENV === 'development'
       ) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS policy: Origin ${origin} not allowed`));
+      return callback(new AppError(403, `CORS policy: Origin ${origin} not allowed`));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

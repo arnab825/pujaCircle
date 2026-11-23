@@ -117,6 +117,11 @@ const appRouter = createBrowserRouter([
       { path: 'user/priests', element: <Navigate to="/priests" replace /> },
       { path: 'user/priests/:id', element: <Navigate to="/priests" replace /> },
 
+      // URL Aliases & Convenience Redirects
+      { path: 'bookings', element: <Navigate to="/user/bookings" replace /> },
+      { path: 'addresses', element: <Navigate to="/user/addresses" replace /> },
+      { path: 'profile', element: <Navigate to="/user/profile" replace /> },
+
       // Canonical Devotee Features (USER Role Only)
       { path: 'user/home', element: <UserRouteGuard>{LazyPage(UserHomePage)}</UserRouteGuard> },
       { path: 'user/bookings', element: <UserRouteGuard>{LazyPage(BookingsPage)}</UserRouteGuard> },

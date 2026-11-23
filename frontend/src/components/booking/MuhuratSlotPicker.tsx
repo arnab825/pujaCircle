@@ -266,6 +266,7 @@ export const MuhuratSlotPicker: React.FC<MuhuratSlotPickerProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-2.5">
             {filteredSlots.map((slot) => {
               if (slot.isBlocked) {
+                const reasonLabel = slot.blockedReason || 'Unavailable';
                 return (
                   <div
                     key={`${slot.startTime}-${slot.endTime}`}
@@ -273,9 +274,11 @@ export const MuhuratSlotPicker: React.FC<MuhuratSlotPickerProps> = ({
                   >
                     <div className="font-bold flex items-center justify-between">
                       <span>{formatTime(slot.startTime)}</span>
-                      <span className="text-[10px] text-stone-500 font-medium">Booked</span>
+                      <span className="text-[10px] text-stone-500 font-medium">
+                        {reasonLabel.includes('12h') ? '12h Notice' : reasonLabel.includes('passed') ? 'Passed' : 'Unavailable'}
+                      </span>
                     </div>
-                    <span className="text-[10px] mt-1">Slot Unavailable</span>
+                    <span className="text-[10px] mt-1 text-stone-500">{reasonLabel}</span>
                   </div>
                 );
               }

@@ -102,8 +102,11 @@ export const PriestListingPage: React.FC = () => {
   const activeDevoteePin = activeAddress
     ? (activeAddress.pincode || activeAddress.pinCode || '').trim().replace(/\D/g, '')
     : '';
-  // Devotees strictly see Purohits matching their active address location PIN
+  // Devotees strictly see Purohits matching their active address location PIN and locality
   const effectivePincode = activeDevoteePin.length === 6 ? activeDevoteePin : undefined;
+  const effectiveLocality = activeAddress
+    ? (activeAddress.locality || activeAddress.villageTown || activeAddress.street || '').trim()
+    : undefined;
 
   // Only user-selected search criteria count as applied filters (location is the mandatory base scope)
   const appliedFiltersCount =
@@ -126,6 +129,7 @@ export const PriestListingPage: React.FC = () => {
         const data = await priestApi.getPriests({
           searchQuery: searchQuery || undefined,
           pincode: effectivePincode,
+          locality: effectiveLocality || undefined,
           catalogId: activeCatalogId || undefined,
           serviceName: activeServiceName || undefined,
           language: activeLanguage !== 'All' ? activeLanguage : undefined,
