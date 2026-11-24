@@ -71,7 +71,8 @@ export class MediaController {
    */
   async uploadImage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { file, folder } = req.body;
+      const file = req.body?.file || req.body?.image;
+      const folder = req.body?.folder;
       if (!file || typeof file !== 'string') {
         sendError(res, 'Image data (base64 string) is strictly required.', 400);
         return;

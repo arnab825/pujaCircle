@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, AlertTriangle } from 'lucide-react';
 import { Priest, PriestService } from '@/types/priest.types';
 import { CalculatedSlot } from '@/lib/availabilityUtils';
 import { Address } from '@/types/address.types';
@@ -183,6 +183,19 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
               className="text-xs min-h-15 border-amber-300 focus-visible:ring-red-700"
             />
           </div>
+
+          {/* Outside Service PIN Warning */}
+          {userAddresses.length > 0 && selectedAddressId && !isAddressServed(userAddresses.find((a) => a.id === selectedAddressId)) && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-800 flex items-start gap-2 shadow-2xs">
+              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-red-900">Venue Outside Purohit Service Localities:</strong>
+                <p className="text-[11px] text-red-700 mt-0.5">
+                  The selected address is outside {priest.displayName || priest.fullName}&apos;s serving localities ({priest.city || 'assigned district'}). Please choose another address or add an address located within their service area.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="shrink-0 flex items-center justify-end gap-2 pt-2 border-t border-amber-200">
@@ -198,9 +211,14 @@ export const BookingConfirmationDialog: React.FC<BookingConfirmationDialogProps>
           <Button
             type="button"
             size="sm"
-            disabled={isSubmitting || !selectedAddressId || !selectedSlot}
+            disabled={
+              isSubmitting ||
+              !selectedAddressId ||
+              !selectedSlot ||
+              Boolean(userAddresses.find((a) => a.id === selectedAddressId) && !isAddressServed(userAddresses.find((a) => a.id === selectedAddressId)))
+            }
             onClick={onSubmit}
-            className="text-xs bg-[#780016] hover:bg-red-800 text-white rounded-md gap-1.5 font-bold shadow-xs cursor-pointer"
+            className="text-xs bg-[#780016] hover:bg-red-800 text-white rounded-md gap-1.5 font-bold shadow-xs cursor-pointer disabled:opacity-50"
           >
             {isSubmitting ? (
               'Submitting Request...'

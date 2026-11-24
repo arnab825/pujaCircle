@@ -1,4 +1,4 @@
-import { and, eq, ilike, or, gte, sql } from 'drizzle-orm';
+import { and, eq, ilike, or, gte, sql, inArray } from 'drizzle-orm';
 import { db } from '@/db/index.js';
 import { users, priestProfiles, priestServices, priestAvailabilityExceptions, pujaCatalog, bookings } from '@/models/index.js';
 import {
@@ -85,18 +85,46 @@ export class PriestService {
       conditions.push(eq(users.accountStatus, 'ACTIVE'));
     }
 
-    // 1. PINCODE-based locality matching
+    // 1. PINCODE & Locality-based matching
+    const locationConditions: any[] = [];
+
     if (params?.pincode && params.pincode.trim()) {
       const cleanPin = params.pincode.trim().replace(/\D/g, '');
       if (cleanPin.length === 6) {
-        conditions.push(
-          or(
-            eq(priestProfiles.pincode, cleanPin),
-            sql`REPLACE(COALESCE(${priestProfiles.pincode}, ''), ' ', '') = ${cleanPin}`,
-            sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanPin + '%'}`
-          )!
+        locationConditions.push(
+          eq(priestProfiles.pincode, cleanPin),
+          sql`REPLACE(COALESCE(${priestProfiles.pincode}, ''), ' ', '') = ${cleanPin}`,
+          sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanPin + '%'}`
         );
+
+        // Fetch corresponding post office localities for this PIN from India Post / geoService
+        try {
+          const geoRes = await geoService.lookupPincode(cleanPin);
+          if (geoRes?.locations && geoRes.locations.length > 0) {
+            for (const loc of geoRes.locations) {
+              if (loc.locality && loc.locality.trim()) {
+                const cleanLoc = loc.locality.trim();
+                locationConditions.push(
+                  sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanLoc + '%'}`
+                );
+              }
+            }
+          }
+        } catch {
+          // Graceful fallback if postal lookup encounters network timeout
+        }
       }
+    }
+
+    if (params?.locality && params.locality.trim()) {
+      const cleanLoc = params.locality.trim();
+      locationConditions.push(
+        sql`${priestProfiles.serviceAreas}::text ILIKE ${'%' + cleanLoc + '%'}`
+      );
+    }
+
+    if (locationConditions.length > 0) {
+      conditions.push(or(...locationConditions)!);
     }
 
     // 2. City filter
@@ -220,8 +248,36 @@ export class PriestService {
     }
 
     const records = await query;
+    if (records.length === 0) return [];
 
-    return records.map((p) => this.formatPriestViewModel(p));
+    const profileIds = records.map((r) => r.id);
+    const services = await db
+      .select({
+        id: priestServices.id,
+        priestId: priestServices.priestId,
+        serviceName: priestServices.serviceName,
+        pujaCatalogId: priestServices.pujaCatalogId,
+        category: priestServices.category,
+        samagriList: priestServices.samagriList,
+        price: priestServices.price,
+        isCustom: priestServices.isCustom,
+        isActive: priestServices.isActive,
+        durationMinutes: pujaCatalog.durationMinutes,
+        createdAt: priestServices.createdAt,
+        updatedAt: priestServices.updatedAt,
+      })
+      .from(priestServices)
+      .leftJoin(pujaCatalog, eq(priestServices.pujaCatalogId, pujaCatalog.id))
+      .where(and(inArray(priestServices.priestId, profileIds), eq(priestServices.isActive, true)));
+
+    const servicesByPriest = new Map<string, typeof services>();
+    for (const s of services) {
+      const list = servicesByPriest.get(s.priestId) || [];
+      list.push(s);
+      servicesByPriest.set(s.priestId, list);
+    }
+
+    return records.map((p) => this.formatPriestViewModel(p, servicesByPriest.get(p.id) || []));
   }
 
   // Retrieve a single priest public profile with configured services

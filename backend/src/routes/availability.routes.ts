@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { availabilityController } from '@/controllers/availability.controller.js';
 import { requireAuth } from '@/middlewares/auth.middleware.js';
+import { requireRole } from '@/middlewares/role.middleware.js';
 import { validate } from '@/middlewares/validate.middleware.js';
 import {
   markDayOffSchema,
@@ -18,6 +19,7 @@ const router = Router();
 router.post(
   '/day-off',
   requireAuth,
+  requireRole('PRIEST'),
   validate(markDayOffSchema),
   availabilityController.markFullDayOff
 );
@@ -26,6 +28,7 @@ router.post(
 router.post(
   '/block-hours',
   requireAuth,
+  requireRole('PRIEST'),
   validate(blockHoursSchema),
   availabilityController.blockHours
 );

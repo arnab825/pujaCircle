@@ -510,6 +510,10 @@ export class AvailabilityService {
     const slots: any[] = [];
     let currentStart = startMin;
 
+    const now = new Date();
+    const currentISTDate = toISTDateString(now);
+    const currentISTTime = toISTTimeString(now);
+
     while (currentStart + durationMinutes <= endMin) {
       const currentEnd = currentStart + durationMinutes;
       const startStr = minsToTime(currentStart);
@@ -527,8 +531,31 @@ export class AvailabilityService {
         return currentStart < bEnd && currentEnd > bStart;
       });
 
-      const isBlocked = Boolean(matchingBlackout);
+      const isBlackout = Boolean(matchingBlackout);
       const isBooked = Boolean(matchingBooking);
+
+      // Verify slot has not already passed in Asia/Kolkata (IST)
+      const isPast = date < currentISTDate || (date === currentISTDate && startStr <= currentISTTime);
+
+      // Verify minimum 12-hour advance booking notice window (Purohits require preparation time)
+      const [bookingYear = 0, bookingMonth = 1, bookingDay = 1] = date.split('-').map(Number);
+      const [startHour = 0, startMinute = 0] = startStr.split(':').map(Number);
+      const slotTimestampIST = Date.UTC(bookingYear, bookingMonth - 1, bookingDay, startHour, startMinute) - (5.5 * 60 * 60 * 1000);
+      const advanceMinutes = Math.floor((slotTimestampIST - now.getTime()) / (60 * 1000));
+      const isWithinNoticeWindow = advanceMinutes < 12 * 60;
+
+      const isUnavailable = isBlackout || isBooked || isPast || isWithinNoticeWindow;
+
+      let blockedReason: string | undefined;
+      if (isPast) {
+        blockedReason = 'Time has passed';
+      } else if (isWithinNoticeWindow) {
+        blockedReason = 'Requires 12h advance notice';
+      } else if (isBlackout) {
+        blockedReason = matchingBlackout?.reason || 'Unavailable';
+      } else if (isBooked) {
+        blockedReason = 'Booked';
+      }
 
       slots.push({
         id: `slot-${date}-${startStr}-${endStr}`,
@@ -537,9 +564,9 @@ export class AvailabilityService {
         slotDate: date,
         startTime: startStr,
         endTime: endStr,
-        status: isBlocked || isBooked ? 'BOOKED' : 'AVAILABLE',
-        isBlocked,
-        blockedReason: matchingBlackout?.reason || (isBooked ? 'Booked' : undefined),
+        status: isUnavailable ? 'BOOKED' : 'AVAILABLE',
+        isBlocked: isUnavailable,
+        blockedReason,
       });
 
       currentStart += durationMinutes;

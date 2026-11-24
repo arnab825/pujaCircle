@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { PujaCatalogEntry } from "@/types/catalog.types";
 import { catalogApi } from "@/api/catalog.api";
 import { apiClient } from "@/api/client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // Modular Subcomponents
 import { CatalogTable } from "@/components/admin/catalog/CatalogTable";
@@ -26,6 +35,10 @@ export const AdminCatalogPage: React.FC = () => {
   // Modal states for Create / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<PujaCatalogEntry | null>(null);
+
+  // Custom Delete Modal State
+  const [entryToDelete, setEntryToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const normalizeCat = (c: string) => (c || "").toLowerCase().replace(/[\s_-]+/g, "");
 
@@ -70,16 +83,23 @@ export const AdminCatalogPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteEntry = async (id: string) => {
-    if (!window.confirm("Are you sure you want to remove this puja ceremony from the catalog?")) {
-      return;
-    }
+  const handleDeleteEntry = (id: string) => {
+    const item = catalog.find((c) => c.id === id);
+    setEntryToDelete({ id, name: item?.name || "this puja ceremony" });
+  };
+
+  const handleConfirmDeleteEntry = async () => {
+    if (!entryToDelete) return;
+    setIsDeleting(true);
     try {
-      await apiClient.delete(`/catalog/${id}`);
-      toast.success("Catalog entry removed successfully.");
+      await apiClient.delete(`/catalog/${entryToDelete.id}`);
+      toast.success(`"${entryToDelete.name}" removed from catalog.`);
+      setEntryToDelete(null);
       loadCatalog();
     } catch {
       toast.error("Failed to delete catalog entry.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -180,6 +200,68 @@ export const AdminCatalogPage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onSaved={loadCatalog}
       />
+
+      {/* 5. Custom Delete Ceremony Confirmation Modal */}
+      <Dialog
+        open={Boolean(entryToDelete)}
+        onOpenChange={(open) => !open && !isDeleting && setEntryToDelete(null)}
+      >
+        <DialogContent className="sm:max-w-md border-2 border-amber-300 bg-white">
+          <DialogHeader className="text-left space-y-2">
+            <div className="flex items-center gap-2 text-red-700">
+              <div className="p-2 rounded-full bg-red-100 text-red-700 shrink-0">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <DialogTitle className="font-serif text-lg font-bold text-stone-950">
+                Remove Catalog Ceremony?
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-stone-600 leading-relaxed pt-1">
+              Are you sure you want to remove{' '}
+              <strong className="text-stone-900 font-semibold">"{entryToDelete?.name}"</strong> from the central catalog?
+              Priests will no longer be able to select and offer this ceremony.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs text-amber-900 flex items-start gap-2 my-2">
+            <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+            <span>
+              Existing priest offerings and completed bookings associated with this ceremony will remain preserved in historical records.
+            </span>
+          </div>
+
+          <DialogFooter className="mt-4 flex flex-row items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setEntryToDelete(null)}
+              disabled={isDeleting}
+              className="text-xs border-stone-300 hover:border-stone-400 font-medium cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDeleteEntry}
+              disabled={isDeleting}
+              className="text-xs gap-1.5 bg-[#780016] hover:bg-[#600012] text-white font-bold cursor-pointer"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Removing...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Remove Ceremony</span>
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

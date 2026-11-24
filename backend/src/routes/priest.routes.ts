@@ -33,6 +33,8 @@ router.put('/me/profile', requireAuth, requireRole('PRIEST'), requireApprovedPri
 router.post('/me/change-password', requireAuth, requireRole('PRIEST'), validate(changePasswordSchema), priestController.changePassword);
 router.get('/me/services', requireAuth, requireRole('PRIEST'), requireApprovedPriest, priestController.getPriestServices);
 router.post('/me/services', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(createPriestServiceSchema), priestController.createPriestService);
+router.put('/me/services/:serviceId', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(z.object({ serviceId: z.string().uuid() }), 'params'), validate(updatePriestServiceSchema), priestController.updatePriestService);
+router.patch('/me/services/:serviceId/toggle', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(z.object({ serviceId: z.string().uuid() }), 'params'), priestController.togglePriestService);
 router.delete('/me/services/:serviceId', requireAuth, requireRole('PRIEST'), requireApprovedPriest, validate(z.object({ serviceId: z.string().uuid() }), 'params'), priestController.deletePriestService);
 
 // Protected priest availability & exceptions self-management (/me/...)

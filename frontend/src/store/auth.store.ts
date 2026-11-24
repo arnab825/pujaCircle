@@ -68,13 +68,17 @@ export const useAuthStore = create<AuthState>()((set) => ({
       const res = await authApi.getMe();
       if (res.success && res.data?.user) {
         set({ user: res.data.user, isAuthenticated: true, isInitialized: true });
-      } else {
+      } else if (!res.isNetworkError) {
+        // Only clear authentication cookie if server explicitly rejected the token as invalid or expired (401)
         removeAuthTokenCookie();
         set({ user: null, isAuthenticated: false, isInitialized: true });
+      } else {
+        // Network timeout or Render cold start: keep authentication cookie intact without logging out
+        set({ isInitialized: true });
       }
     } catch {
-      removeAuthTokenCookie();
-      set({ user: null, isAuthenticated: false, isInitialized: true });
+      // Retain cookie on unexpected client network failure
+      set({ isInitialized: true });
     }
   },
 

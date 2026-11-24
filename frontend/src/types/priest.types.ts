@@ -127,6 +127,7 @@ export interface PriestRegistrationRequest {
 
 export interface PriestFilterParams {
   pincode?: string;
+  locality?: string;
   city?: string;
   catalogId?: string;
   serviceName?: string;

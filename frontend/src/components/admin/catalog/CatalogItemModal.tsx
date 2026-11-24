@@ -112,7 +112,8 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
 
       const base64Data = await base64Promise;
 
-      const response: any = await apiClient.post('/media/upload-cover', {
+      const response: any = await apiClient.post('/media/upload', {
+        file: base64Data,
         image: base64Data,
         folder: 'pujacircle/catalog',
       });

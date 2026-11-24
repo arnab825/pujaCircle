@@ -30,12 +30,15 @@ export const ratingSchema = z.object({
   userId: z.string().optional(),
 });
 
-export const bookingActionReasonSchema = z.object({
-  reason: reasonSchema,
-  priestId: z.string().optional(),
-  userId: z.string().optional(),
-  completionCode: z.string().optional(),
-});
+export const bookingActionReasonSchema = z
+  .object({
+    reason: reasonSchema,
+    priestId: z.string().optional(),
+    userId: z.string().optional(),
+    completionCode: z.string().optional(),
+  })
+  .optional()
+  .default({});
 
 export const bookingQuerySchema = z.object({
   userId: z.string().uuid('Invalid user ID format').optional(),

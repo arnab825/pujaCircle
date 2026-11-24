@@ -35,6 +35,7 @@ export const updatePriestServiceSchema = createPriestServiceSchema.partial();
 
 export const priestFilterParamsSchema = z.object({
   pincode: z.string().trim().regex(/^\d{6}$/, 'PIN code must be a 6-digit number').optional().or(z.literal('')),
+  locality: z.string().optional(),
   city: z.string().optional(),
   catalogId: z.string().optional(),
   serviceName: z.string().optional(),

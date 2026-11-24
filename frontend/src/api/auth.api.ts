@@ -66,13 +66,18 @@ export const authApi = {
     }
   },
 
-  getMe: async (): Promise<{ success: boolean; data?: { user: AuthUser }; message?: string }> => {
+  getMe: async (): Promise<{ success: boolean; data?: { user: AuthUser }; message?: string; isNetworkError?: boolean }> => {
     try {
       const res = await apiClient.get('/auth/me');
       return res as any;
-    } catch (error) {
+    } catch (error: any) {
       logAppError('authApi.getMe', error);
-      return { success: false, message: 'Session expired.' };
+      const isUnauthorized = error?.response?.status === 401;
+      return {
+        success: false,
+        message: isUnauthorized ? 'Session expired.' : 'Unable to reach authentication server.',
+        isNetworkError: !isUnauthorized,
+      };
     }
   },
 

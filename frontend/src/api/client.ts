@@ -34,9 +34,12 @@ apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     // 0. Handle 401 Unauthorized: Session expired or account revoked
-    // NOTE: Do not trigger session eviction/logout if the 401 was a failed credential response on login/register endpoints!
+    // NOTE: Do not trigger session eviction/logout if the 401 was a failed credential response on login/register/me endpoints!
     const requestUrl = error.config?.url || '';
-    const isAuthEndpoint = requestUrl.includes('/auth/login') || requestUrl.includes('/auth/register');
+    const isAuthEndpoint =
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/register') ||
+      requestUrl.includes('/auth/me');
 
     if (error.response?.status === 401 && !isAuthEndpoint) {
       try {
